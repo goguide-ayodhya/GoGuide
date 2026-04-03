@@ -29,8 +29,8 @@ interface PaymentContextType {
   loading: boolean;
 
   fetchMyPayments: () => Promise<void>;
-  fetchGuidePayments: (guideId: string) => Promise<void>;
-  fetchStats: (guideId: string) => Promise<void>;
+  fetchGuidePayments: () => Promise<void>;
+  fetchStats: () => Promise<void>;
 
   createPayment: (bookingId: string) => Promise<any>;
   processPayment: (paymentId: string) => Promise<any>;
@@ -53,8 +53,8 @@ export const PaymentProvider = ({
   const fetchMyPayments = async () => {
     try {
       setLoading(true);
-      const res = await getMyPaymentsApi();
-      setPayments(res.data || []);
+      const data = await getMyPaymentsApi();
+      setPayments(data || []);
     } catch (error) {
       console.log("Error fetching Payments", error);
     } finally {
@@ -62,10 +62,10 @@ export const PaymentProvider = ({
     }
   };
 
-  const fetchGuidePayments = async (guideId: string) => {
+  const fetchGuidePayments = async () => {
     try {
       setLoading(true);
-      const res = await getGuidePaymentsApi(guideId);
+      const res = await getGuidePaymentsApi();
       setPayments(res.data || []);
     } catch (error) {
       console.log("Error fetching Guide Payments", error);
@@ -74,9 +74,9 @@ export const PaymentProvider = ({
     }
   };
 
-  const fetchStats = async (guideId: string) => {
+  const fetchStats = async () => {
     try {
-      const res = await getPaymentStatsApi(guideId);
+      const res = await getPaymentStatsApi();
       setStats(res.data);
     } catch (error) {
       console.log("Error fetching Stats", error);
@@ -85,8 +85,8 @@ export const PaymentProvider = ({
 
   const createPayment = async (bookingId: string) => {
     try {
-      const res = await createPaymentApi(bookingId);
-      return res.data;
+      const data = await createPaymentApi(bookingId);
+      return data;
     } catch (error) {
       console.log("Error Creating Payment", error);
     }
@@ -94,14 +94,14 @@ export const PaymentProvider = ({
 
   const processPayment = async (paymentId: string) => {
     try {
-      const res = await processPaymentApi(paymentId);
+      const data = await processPaymentApi(paymentId);
 
       setPayments((prev) =>
         prev.map((p) =>
           p._id === paymentId ? { ...p, status: "COMPLETED" } : p,
         ),
       );
-      return res.data;
+      return data;
     } catch (error) {
       console.log("Error Processing Payment", error);
     }

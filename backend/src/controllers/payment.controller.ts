@@ -5,7 +5,7 @@ import { paymentService } from "../services/payment.service";
 export class PaymentController {
   async createPayment(req: AuthRequest, res: Response) {
     try {
-      const bookingId = req.userId!;
+      const { bookingId } = req.params;
       const payment = await paymentService.createPayment(
         req.userId!,
         bookingId,

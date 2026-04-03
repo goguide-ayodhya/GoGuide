@@ -1,30 +1,34 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
-const getToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
+
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+const authHeaders = () => ({
+  Authorization: `Bearer ${getToken()}`,
+  "Content-Type": "application/json",
+});
+
+const handleRes = async (res: Response) => {
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Payment API error");
+  return json.data;
 };
 
-
+// Create Payment
 export const createPaymentApi = async (bookingId: string) => {
-  const res = await fetch(`${base_url}payments`, {
+  const res = await fetch(`${base_url}payments/booking/${bookingId}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleRes(res);
 };
 
+// Process Payment
 export const processPaymentApi = async (paymentId: string) => {
-  const res = await fetch(`${base_url}payment/process`, {
+  const res = await fetch(`${base_url}payments/${paymentId}/process`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify({
       status: "COMPLETED",
       paymentMethod: "CARD",
@@ -32,45 +36,42 @@ export const processPaymentApi = async (paymentId: string) => {
     }),
   });
 
-  return res.json();
+  return handleRes(res);
 };
 
+// My Payments
 export const getMyPaymentsApi = async () => {
   const res = await fetch(`${base_url}payments/my-payments`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleRes(res);
 };
 
-export const getGuidePaymentsApi = async (guideId: string) => {
-  const res = await fetch(`${base_url}payments/guide/${guideId}`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+// Guide Payments
+export const getGuidePaymentsApi = async () => {
+  const res = await fetch(`${base_url}payments/guide`, {
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleRes(res);
 };
 
-export const getPaymentStatsApi = async (guideId: string) => {
-  const res = await fetch(`${base_url}payments/guide/${guideId}/stats`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+// Stats
+export const getPaymentStatsApi = async () => {
+  const res = await fetch(`${base_url}payments/guide/stats`, {
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleRes(res);
 };
 
+// Earnings
 export const getGuideEarnings = async () => {
-  const res = await fetch(`${base_url}payment/guide/earnings`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+  const res = await fetch(`${base_url}payments/guide/earnings`, {
+    headers: authHeaders(),
   });
 
-  return res.json();
+  return handleRes(res);
 };
+  

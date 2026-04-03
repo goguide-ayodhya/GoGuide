@@ -1,106 +1,68 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
-const getToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
-};
+
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
 const authHeaders = () => ({
   Authorization: `Bearer ${getToken()}`,
   "Content-Type": "application/json",
 });
 
+const handleRes = async (res: Response) => {
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Review API error");
+  return json.data;
+};
+
+// Create
 export const createReviewApi = async (bookingId: string, data: any) => {
   const res = await fetch(`${base_url}reviews/booking/${bookingId}`, {
     method: "POST",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!res.ok) {
-    console.log("Create Review  Error ", json);
-    throw new Error(json.message || "Something went wrong");
-  }
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Guide Reviews
 export const getGuideReviewsApi = async (guideId: string) => {
   const res = await fetch(`${base_url}reviews/guide/${guideId}`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  if (!res.ok) {
-    console.log("Get Guide Review  Error  ", json);
-    throw new Error(json.message || "Something went wrong");
-  }
-  return json.data;
+
+  return handleRes(res);
 };
 
-// export const getMyReviewsApi = async () => {
-//   const res = await fetch(`${base_url}/reviews/my-reviews`, {
-//     headers: {
-//       Authorization: `Bearer ${getToken()}`,
-//     },
-//   });
-
-//   const json = await res.json();
-
-//   if (!res.ok) {
-//     console.log("Get My Reviews Error", json);
-//     throw new Error(json.message || "Something went wrong");
-//   }
-
-//   return json.data;
-// };
-
+// Booking Review
 export const getBookingReviewApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}reviews/booking/${bookingId}`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  if (!res.ok) {
-    console.log("Get Booking Review  Error ", json);
-    throw new Error(json.message || "Something went wrong");
-  }
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Update
 export const updateReviewApi = async (reviewId: string, data: any) => {
   const res = await fetch(`${base_url}reviews/${reviewId}`, {
     method: "PUT",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  const json = await res.json();
-  if (!res.ok) {
-    console.log("Get Booking Review  Error ", json);
-    throw new Error(json.message || "Something went wrong");
-  }
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Delete
 export const deleteReviewApi = async (reviewId: string) => {
   const res = await fetch(`${base_url}reviews/${reviewId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
+
   const json = await res.json();
-  if (!res.ok) {
-    console.log("Get Booking Review  Error ", json);
-    throw new Error(json.message || "Something went wrong");
-  }
-  return json.data;
+  if (!res.ok) throw new Error(json.message);
+
+  return true;
 };

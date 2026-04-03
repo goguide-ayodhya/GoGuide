@@ -1,107 +1,101 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
-const getToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
+
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+const authHeaders = () => ({
+  Authorization: `Bearer ${getToken()}`,
+  "Content-Type": "application/json",
+});
+
+const handleRes = async (res: Response) => {
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "API error");
+  return json.data;
 };
 
+// Create Booking
 export const createBooking = async (data: any) => {
   const res = await fetch(`${base_url}bookings/`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  const json = await res.json();
 
-  if (!res.ok) {
-    console.log("Booking API Error:", json);
-    throw new Error(json.message || "Booking failed");
-  }
-
-  return json;
+  return handleRes(res);
 };
 
+// My Bookings
 export const getMyBookings = async () => {
   const res = await fetch(`${base_url}bookings/my-bookings`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
-export const getGuideBookings = async (guideId: string) => {
+// Guide Bookings
+export const getGuideBookings = async () => {
   const res = await fetch(`${base_url}bookings/guide`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Get by ID
 export const getBookingsById = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Cancel
 export const cancelBookingApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/cancel`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
+// Guide Actions
 export const acceptBookingApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/accept`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
 export const rejectBookingApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/reject`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
 export const completeBookingApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/complete`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };
 
-// ---------------------- For Admin ----------------------
-
+// Admin
 export const seenBooking = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/seen`, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
-  const json = await res.json();
-  return json.data;
+
+  return handleRes(res);
 };

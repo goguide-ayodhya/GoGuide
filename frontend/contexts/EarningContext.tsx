@@ -30,9 +30,15 @@ export const EarningsProvider = ({
 
   const fetchEarnings = async () => {
     setLoading(true);
-    const res = await getGuideEarnings();
-    setEarnings(res.data);
-    setLoading(false);
+    try {
+      const data = await getGuideEarnings();
+      setEarnings(data);
+      setLoading(false);
+    } catch (error) {
+      console.log("Error fetching earnings", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

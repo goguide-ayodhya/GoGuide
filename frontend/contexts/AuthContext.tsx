@@ -1,6 +1,11 @@
 "use client";
 
-import { signupUser, loginUser } from "@/lib/api/auth";
+import {
+  signupUser,
+  loginUser,
+  logoutAllUsers,
+  logoutUser,
+} from "@/lib/api/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export interface User {
@@ -41,8 +46,8 @@ interface AuthContextType {
   loading: boolean;
   isLoggedIn: boolean;
   login: (data: LoginData) => Promise<User>;
-  signup: (data: SignupData) => Promise<void>;
-  logout: () => void;
+  signup: (data: SignupData) => Promise<User>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,35 +66,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (data: LoginData) => {
-    setLoading(true);
-    const res = await loginUser(data);
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      setLoading(true);
+      const res = await loginUser(data);
+      setUser(res.user);
 
-    setUser(res.user);
-    localStorage.setItem("user", JSON.stringify(res.user));
-    localStorage.setItem("token", res.token);
+      localStorage.setItem("user", JSON.stringify(res.user));
+      localStorage.setItem("token", res.token);
 
-    setLoading(false);
-    return res.user;
+      return res.user;
+    } catch (error: any) {
+      console.log("Login error:", error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signup = async (data: SignupData) => {
-    const res = await signupUser(data);
+    try {
+      const res = await signupUser(data);
 
-    // await new Promise((resolve) => setTimeout(resolve, 500));
+      setUser(res.user);
+      localStorage.setItem("user", JSON.stringify(res.user));
+      localStorage.setItem("token", res.token);
 
-    setUser(res.user);
-    localStorage.setItem("user", JSON.stringify(res.user));
-    localStorage.setItem("token", res.token);
-
-    return res.user;
+      return res.user;
+    } catch (error: any) {
+      console.log("Signup error:", error.message);
+      throw error;
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.log("Logout error (ignored): ", error);
+    }
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
+
+  const logoutAll = async () => {
+    try {
+      await logoutAllUsers()
+    } catch (error) {
+      
+    }
+  }
 
   return (
     <AuthContext.Provider

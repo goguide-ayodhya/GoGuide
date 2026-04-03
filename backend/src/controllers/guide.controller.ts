@@ -18,6 +18,7 @@ export class GuideController {
         message: "Guides retrieved successfully",
         data: guides,
       });
+      console.log("USER ID:", req.userId);
     } catch (error) {
       throw error;
     }
@@ -33,6 +34,7 @@ export class GuideController {
         message: "Guide retrieved successfully",
         data: guide,
       });
+      console.log("USER ID:", req.userId);
     } catch (error) {
       throw error;
     }
@@ -47,6 +49,7 @@ export class GuideController {
         message: "Guide profile retrieved successfully",
         data: guide,
       });
+      console.log("USER ID:", req.userId);
     } catch (error) {
       throw error;
     }

@@ -37,11 +37,7 @@ interface ReviewContextType {
 
 const ReviewContext = createContext<ReviewContextType | undefined>(undefined);
 
-export const ReviewProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -95,7 +91,7 @@ export const ReviewProvider = ({
     setLoading(true);
     try {
       const data = await createReviewApi(bookingId, reviewData);
-      const newReview = {
+      const newReview: Review = {
         id: data._id,
         bookingId: data.bookingId,
         guideId: data.guideId,
@@ -115,7 +111,7 @@ export const ReviewProvider = ({
   const updateReview = async (reviewId: string, data: ReviewData) => {
     setLoading(true);
     try {
-      const res = await updateReviewApi(reviewId, data);
+      await updateReviewApi(reviewId, data);
       setReviews((review) =>
         review.map((r) =>
           r.id === reviewId
@@ -134,7 +130,7 @@ export const ReviewProvider = ({
     setLoading(true);
     try {
       await deleteReviewApi(reviewId);
-      setReviews((r) => r.filter((r) => r.id !== reviewId));
+      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (error) {
       console.log("Error: Deleting review", error);
     } finally {

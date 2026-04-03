@@ -3,7 +3,6 @@
 import {
   cancelBookingApi,
   getMyBookings,
-  updateBookingStatusApi,
   acceptBookingApi,
   rejectBookingApi,
   completeBookingApi,
@@ -70,7 +69,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   // const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
@@ -127,11 +125,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     await cancelBookingApi(bookingId);
 
     setBookings((prev) =>
-      prev.map((b) =>
-        b.id === bookingId
-          ? { ...b, status: "CANCELLED" as Booking["status"] }
-          : b,
-      ),
+      prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b)),
     );
   };
 

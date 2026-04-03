@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   getAllGuides,
-  getMyGuide,
+  getGuideProfile,
   getGuideById,
   setAvailabilityApi,
   setOnlineStatusApi,
@@ -74,44 +74,40 @@ export const GuideProvider = ({ children }: any) => {
     fetchGuides();
   }, []);
 
-  useEffect(() => {
-    const fetchMyGuide = async () => {
-      try {
-        const data = await getMyGuide();
-        if (!data) {
-          return;
-        }
-        const formattedData = {
-          id: data._id,
-          name: data.userId?.name,
-          email: data.userId?.email || "",
-          avatar: data.userId?.avatar,
-          image: data.userId?.avatar || data.userId?.profileImage,
-          experience: data.yearsOfExperience,
-          rating: data.averageRating,
-          languages: data.languages,
-          specialities: data.speciality ? [data.speciality] : [],
-          price: data.hourlyRate,
-          isAvailable: data.isAvailable,
-          isOnline: data.isOnline,
-          hourlyRate: data.hourlyRate,
-          verificationStatus: data.verificationStatus,
-        };
-        setMyGuide(formattedData);
-      } catch (error) {
-        console.log("Error fetching myGuide");
-      }
-      return await getMyGuide();
-    };
-    fetchMyGuide();
-  }, []);
-
-  const getGuide = async (id: string) => {
-    return await getGuideById(id);
-  };
+  // useEffect(() => {
+  //   const fetchMyGuide = async () => {
+  //     try {
+  //       const data = await getGuideProfile();
+  //       if (!data) {
+  //         return;
+  //       }
+  //       const formattedData = {
+  //         id: data._id,
+  //         name: data.userId?.name,
+  //         email: data.userId?.email || "",
+  //         avatar: data.userId?.avatar,
+  //         image: data.userId?.avatar || data.userId?.profileImage,
+  //         experience: data.yearsOfExperience,
+  //         rating: data.averageRating,
+  //         languages: data.languages,
+  //         specialities: data.speciality ? [data.speciality] : [],
+  //         price: data.hourlyRate,
+  //         isAvailable: data.isAvailable,
+  //         isOnline: data.isOnline,
+  //         hourlyRate: data.hourlyRate,
+  //         verificationStatus: data.verificationStatus,
+  //       };
+  //       setMyGuide(formattedData);
+  //     } catch (error) {
+  //       console.log("Error fetching myGuide");
+  //     }
+  //     return await getGuideProfile();
+  //   };
+  //   fetchMyGuide();
+  // }, []);
 
   const updateGuideData = async (id: string, data: any) => {
-    const updated = await updateGuide(id, data);
+    const updated = await updateGuide(data);
 
     const formattedData = {
       id: updated._id,
@@ -129,7 +125,10 @@ export const GuideProvider = ({ children }: any) => {
       certification: updated.certification,
       hourlyRate: updated.hourlyRate,
       totalReviews: updated.totalReviews,
-      verificationStatus: updated.verificationStatus as 'PENDING' | 'VERIFIED' | 'REJECTED',
+      verificationStatus: updated.verificationStatus as
+        | "PENDING"
+        | "VERIFIED"
+        | "REJECTED",
     };
 
     setMyGuide(formattedData);
@@ -138,7 +137,7 @@ export const GuideProvider = ({ children }: any) => {
   };
 
   const setAvailability = async (id: string, status: boolean) => {
-    const updated = await setAvailabilityApi(id, status);
+    const updated = await setAvailabilityApi(status);
     setGuides((prev) =>
       prev.map((g) => (g.id === id ? { ...g, isAvailable: status } : g)),
     );
@@ -151,7 +150,7 @@ export const GuideProvider = ({ children }: any) => {
   };
 
   const setOnlineStatus = async (id: string, status: boolean) => {
-    const updated = await setOnlineStatusApi(id, status);
+    const updated = await setOnlineStatusApi(status);
     setGuides((prev) =>
       prev.map((g) => (g.id === id ? { ...g, isOnline: status } : g)),
     );
