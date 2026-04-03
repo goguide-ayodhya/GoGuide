@@ -65,7 +65,7 @@ export const GuideProvider = ({ children }: any) => {
         languages: guide.languages,
         specialities: guide.speciality ? [guide.speciality] : [],
         price: guide.hourlyRate,
-        // isAvailable: guide.isAvailable,
+        isAvailable: guide.isAvailable,
         isOnline: guide.isOnline,
       }));
       setGuides(formattedData);

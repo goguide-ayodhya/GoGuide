@@ -12,7 +12,7 @@ router.get("/me", authenticate, (req, res, next) => {
   guideController.getMyGuideProfile(req, res).catch(next);
 });
 
-router.get("/:guideId", authenticate, (req, res, next) => {
+router.get("/:guideId", (req, res, next) => {
   guideController.getGuideById(req, res).catch(next);
 });
 

@@ -11,10 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search } from "lucide-react";
 import { useGuide } from "@/contexts/GuideContext";
-import { getAllGuides } from "@/lib/api/guides";
 
 type SortOption = "rating" | "price-low" | "price-high" | "experience";
 
@@ -30,18 +29,15 @@ export default function GuidesPage() {
       specialities?: string[];
       languages: string | string[];
     }) => {
-      const matchesSearch =
-        guide.name ||
-        "".toLowerCase().includes(searchTerm.toLowerCase()) ||
-        guide.specialities ||
-        [].some((s: string) =>
-          s.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+      const nameMatch = guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+      const specialityMatch = guide.specialities?.some((s: string) =>
+        s.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || false;
 
       const matchesLanguage: boolean =
         !languageFilter || guide.languages?.includes(languageFilter);
 
-      return matchesSearch && matchesLanguage;
+      return (nameMatch || specialityMatch) && matchesLanguage;
     },
   );
 
@@ -79,19 +75,7 @@ export default function GuidesPage() {
     guides.flatMap((g: { languages: any }) => g.languages || []),
   ).size;
 
-  // useEffect(() => {
-  //   if (loading) return <p>Loading...</p>;
-  // });
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await getAllGuides();
-      if (data) setGuides(data);
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [setGuides]);
+  // Guide loading is managed in GuideProvider, no extra guest polling call needed.
 
   return (
     <main className="min-h-screen flex flex-col bg-background">

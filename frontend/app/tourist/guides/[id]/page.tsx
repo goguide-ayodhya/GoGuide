@@ -10,19 +10,70 @@ import { ConfirmationModal } from "@/components/features/ConfirmationModal";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, MapPin, Users, Award, MessageCircle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Guide, useGuide } from "@/contexts/GuideContext";
+import { getGuideById } from "@/lib/api/guides";
 
 export default function GuideDetailsPage() {
   const params = useParams();
   const guideId = params.id as string;
   const { guides } = useGuide();
+  const [guide, setGuide] = useState<Guide | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const guide = guides.find((g: Guide) => g.id === guideId);
+  useEffect(() => {
+    const fetchGuide = async () => {
+      // First try from context
+      const guideFromContext = guides.find((g: Guide) => g.id === guideId);
+      if (guideFromContext) {
+        setGuide(guideFromContext);
+        setLoading(false);
+        return;
+      }
+
+      // If not in context, fetch from API
+      try {
+        const data = await getGuideById(guideId);
+        if (data) {
+          const formattedGuide: Guide = {
+            id: data._id,
+            name: data.userId?.name,
+            email: data.userId?.email || "",
+            avatar: data.userId?.avatar,
+            image: data.userId?.avatar || data.userId?.profileImage,
+            experience: data.yearsOfExperience,
+            rating: data.averageRating,
+            languages: data.languages,
+            specialities: data.speciality ? [data.speciality] : [],
+            price: data.hourlyRate,
+            isAvailable: data.isAvailable,
+            isOnline: data.isOnline,
+            hourlyRate: data.hourlyRate,
+            verificationStatus: data.verificationStatus as "PENDING" | "VERIFIED" | "REJECTED",
+          };
+          setGuide(formattedGuide);
+        } else {
+          notFound();
+        }
+      } catch (error) {
+        console.error("Error fetching guide:", error);
+        notFound();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGuide();
+  }, [guideId, guides]);
+
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   if (!guide) {
     notFound();

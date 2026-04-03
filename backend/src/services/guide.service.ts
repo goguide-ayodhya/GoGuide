@@ -1,5 +1,6 @@
 import { Guide } from "../models/Guide";
 import { Review } from "../models/Review";
+import { User } from "../models/User";
 import { NotFound, BadRequest } from "../utils/httpException";
 
 export class GuideService {
@@ -17,10 +18,14 @@ export class GuideService {
     }
 
     const guides = await Guide.find(query)
-      .populate("userId", "id name email avatar phone")
+      .populate("userId", "id name email avatar phone status")
       .sort({ averageRating: -1 });
 
-    return guides.filter((g: any) => g.userId?.status === "ACTIVE");
+    return guides.filter((g: any) => {
+      if (!g.userId) return true;
+      // Exclude only blocked/deleted users, but allow INACTIVE for immediate tourist visibility in seed/dev mode
+      return g.userId.status !== "BLOCKED" && g.userId.status !== "DELETED";
+    });
   }
 
   async getGuideById(guideId: string) {
@@ -113,6 +118,11 @@ export class GuideService {
 
     if (!guide) throw new NotFound("Guide not found");
 
+    // Activate associated user account on verification
+    if (guide.userId) {
+      await User.findByIdAndUpdate(guide.userId, { status: "ACTIVE" });
+    }
+
     return guide;
   }
 
@@ -122,6 +132,12 @@ export class GuideService {
       { verificationStatus: "REJECTED" },
       { new: true },
     );
+
+    if (!guide) throw new NotFound("Guide not found");
+
+    if (guide.userId) {
+      await User.findByIdAndUpdate(guide.userId, { status: "INACTIVE" });
+    }
 
     if (!guide) throw new NotFound("Guide not found");
 

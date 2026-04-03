@@ -5,7 +5,7 @@ import { StatsCard } from "@/components/stats-card";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 import { GuideStatusCard } from "@/components/guide-status-card";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
-import { updateBookingStatusApi } from "@/lib/api/bookings";
+import { acceptBookingApi, rejectBookingApi } from "@/lib/api/bookings";
 import {
   Card,
   CardContent,
@@ -63,7 +63,11 @@ export default function DashboardPage() {
   const { setBookings } = useBooking();
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
-      await updateBookingStatusApi(bookingId, newStatus);
+      if (newStatus === "ACCEPTED") {
+        await acceptBookingApi(bookingId);
+      } else if (newStatus === "REJECTED") {
+        await rejectBookingApi(bookingId);
+      }
 
       setBookings((prev) =>
         prev.map((b) =>
@@ -74,7 +78,6 @@ export default function DashboardPage() {
       console.log("Status update failed", err);
     }
   };
-
   useEffect(() => {
     earningsContext?.fetchEarnings();
   }, []);
@@ -193,7 +196,7 @@ export default function DashboardPage() {
         />
         <StatsCard
           title="Upcoming Tours"
-          value={bookings.filter((b) => b.status === "CONFIRMED").length ?? 0}
+          value={bookings.filter((b) => b.status === "ACCEPTED").length ?? 0}
           icon={Calendar}
           description="Next 30 days"
           trend={{ value: 8, label: "vs last month", positive: true }}
