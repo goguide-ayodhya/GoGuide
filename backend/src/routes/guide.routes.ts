@@ -1,0 +1,49 @@
+import { Router } from "express";
+import { guideController } from "../controllers/guide.controller";
+import { authenticate, authorize } from "../middleware/auth";
+
+const router = Router();
+
+router.get("/", (req, res, next) => {
+  guideController.getAllGuides(req, res).catch(next);
+});
+
+router.get("/me", authenticate, (req, res, next) => {
+  guideController.getMyGuideProfile(req, res).catch(next);
+});
+
+router.get("/:guideId", authenticate, (req, res, next) => {
+  guideController.getGuideById(req, res).catch(next);
+});
+
+router.put("/me", authenticate, (req, res, next) => {
+  guideController.updateGuideProfile(req, res).catch(next);
+});
+
+router.patch("/me/availability", authenticate, (req, res, next) => {
+  guideController.setAvailability(req, res).catch(next);
+});
+
+router.patch("/me/online-status", authenticate, (req, res, next) => {
+  guideController.setOnlineStatus(req, res).catch(next);
+});
+
+router.patch(
+  "/:guideId/verify",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    guideController.verifyGuide(req, res).catch(next);
+  },
+);
+
+router.patch(
+  "/:guideId/reject",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    guideController.rejectGuide(req, res).catch(next);
+  },
+);
+
+export default router;
