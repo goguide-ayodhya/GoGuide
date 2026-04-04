@@ -21,7 +21,7 @@ import {
   MessageStatus,
   PassType,
   Session,
-} from '../types';
+} from "../types";
 
 // Generate unique IDs
 export const generateId = (): string => {
@@ -29,7 +29,7 @@ export const generateId = (): string => {
 };
 
 export const generateReadableId = (prefix: string, index: number): string => {
-  return `${prefix}-${String(index).padStart(3, '0')}`;
+  return `${prefix}-${String(index).padStart(3, "0")}`;
 };
 
 // Database Collections
@@ -79,12 +79,12 @@ const initializeDatabase = (): Database => {
   const adminId = generateId();
   db.users.set(adminId, {
     id: adminId,
-    email: 'admin@tourguide.com',
+    email: "admin@tourguide.com",
     // Password: admin123 (in production, this would be hashed)
-    password: '$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u',
-    name: 'Admin User',
+    password: "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u",
+    name: "Admin User",
     role: UserRole.ADMIN,
-    phone: '+91 9876543210',
+    phone: "+91 9876543210",
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -92,14 +92,78 @@ const initializeDatabase = (): Database => {
 
   // Seed Guides
   const guideData = [
-    { name: 'Rahul Sharma', email: 'rahul@example.com', phone: '+91 9876543211', status: GuideStatus.APPROVED, city: 'Delhi', rating: 4.8, bookings: 45 },
-    { name: 'Priya Patel', email: 'priya@example.com', phone: '+91 9876543212', status: GuideStatus.APPROVED, city: 'Mumbai', rating: 4.9, bookings: 62 },
-    { name: 'Amit Kumar', email: 'amit@example.com', phone: '+91 9876543213', status: GuideStatus.PENDING, city: 'Jaipur', rating: 0, bookings: 0 },
-    { name: 'Sneha Reddy', email: 'sneha@example.com', phone: '+91 9876543214', status: GuideStatus.PENDING, city: 'Hyderabad', rating: 0, bookings: 0 },
-    { name: 'Vikram Singh', email: 'vikram@example.com', phone: '+91 9876543215', status: GuideStatus.BLOCKED, city: 'Agra', rating: 3.2, bookings: 12 },
-    { name: 'Anjali Menon', email: 'anjali@example.com', phone: '+91 9876543216', status: GuideStatus.APPROVED, city: 'Kerala', rating: 4.7, bookings: 38 },
-    { name: 'Rajesh Gupta', email: 'rajesh@example.com', phone: '+91 9876543217', status: GuideStatus.REJECTED, city: 'Varanasi', rating: 0, bookings: 0 },
-    { name: 'Meera Nair', email: 'meera@example.com', phone: '+91 9876543218', status: GuideStatus.APPROVED, city: 'Goa', rating: 4.6, bookings: 28 },
+    {
+      name: "Rahul Sharma",
+      email: "rahul@example.com",
+      phone: "+91 9876543211",
+      status: GuideStatus.APPROVED,
+      city: "Delhi",
+      rating: 4.8,
+      bookings: 45,
+    },
+    {
+      name: "Priya Patel",
+      email: "priya@example.com",
+      phone: "+91 9876543212",
+      status: GuideStatus.APPROVED,
+      city: "Mumbai",
+      rating: 4.9,
+      bookings: 62,
+    },
+    {
+      name: "Amit Kumar",
+      email: "amit@example.com",
+      phone: "+91 9876543213",
+      status: GuideStatus.PENDING,
+      city: "Jaipur",
+      rating: 0,
+      bookings: 0,
+    },
+    {
+      name: "Sneha Reddy",
+      email: "sneha@example.com",
+      phone: "+91 9876543214",
+      status: GuideStatus.PENDING,
+      city: "Hyderabad",
+      rating: 0,
+      bookings: 0,
+    },
+    {
+      name: "Vikram Singh",
+      email: "vikram@example.com",
+      phone: "+91 9876543215",
+      status: GuideStatus.BLOCKED,
+      city: "Agra",
+      rating: 3.2,
+      bookings: 12,
+    },
+    {
+      name: "Anjali Menon",
+      email: "anjali@example.com",
+      phone: "+91 9876543216",
+      status: GuideStatus.APPROVED,
+      city: "Kerala",
+      rating: 4.7,
+      bookings: 38,
+    },
+    {
+      name: "Rajesh Gupta",
+      email: "rajesh@example.com",
+      phone: "+91 9876543217",
+      status: GuideStatus.REJECTED,
+      city: "Varanasi",
+      rating: 0,
+      bookings: 0,
+    },
+    {
+      name: "Meera Nair",
+      email: "meera@example.com",
+      phone: "+91 9876543218",
+      status: GuideStatus.APPROVED,
+      city: "Goa",
+      rating: 4.6,
+      bookings: 28,
+    },
   ];
 
   guideData.forEach((guide) => {
@@ -108,7 +172,7 @@ const initializeDatabase = (): Database => {
     db.users.set(userId, {
       id: userId,
       email: guide.email,
-      password: '$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u',
+      password: "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u",
       name: guide.name,
       role: UserRole.GUIDE,
       phone: guide.phone,
@@ -123,15 +187,15 @@ const initializeDatabase = (): Database => {
       email: guide.email,
       phone: guide.phone,
       status: guide.status,
-      languages: ['English', 'Hindi'],
-      specializations: ['Historical Tours', 'Cultural Tours'],
+      languages: ["English", "Hindi"],
+      specializations: ["Historical Tours", "Cultural Tours"],
       experience: Math.floor(Math.random() * 10) + 1,
       hourlyRate: Math.floor(Math.random() * 500) + 500,
       rating: guide.rating,
       totalReviews: Math.floor(guide.bookings * 0.7),
       totalBookings: guide.bookings,
       totalEarnings: guide.bookings * 1500,
-      location: { city: guide.city, state: guide.city, country: 'India' },
+      location: { city: guide.city, state: guide.city, country: "India" },
       documents: {},
       availability: {
         monday: true,
@@ -143,18 +207,24 @@ const initializeDatabase = (): Database => {
         sunday: false,
       },
       bio: `Experienced tour guide based in ${guide.city}`,
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+      ),
       updatedAt: new Date(),
     });
   });
 
   // Seed Tourists
   const touristData = [
-    { name: 'John Smith', email: 'john@example.com', nationality: 'USA' },
-    { name: 'Emma Wilson', email: 'emma@example.com', nationality: 'UK' },
-    { name: 'Hans Mueller', email: 'hans@example.com', nationality: 'Germany' },
-    { name: 'Sophie Martin', email: 'sophie@example.com', nationality: 'France' },
-    { name: 'Yuki Tanaka', email: 'yuki@example.com', nationality: 'Japan' },
+    { name: "John Smith", email: "john@example.com", nationality: "USA" },
+    { name: "Emma Wilson", email: "emma@example.com", nationality: "UK" },
+    { name: "Hans Mueller", email: "hans@example.com", nationality: "Germany" },
+    {
+      name: "Sophie Martin",
+      email: "sophie@example.com",
+      nationality: "France",
+    },
+    { name: "Yuki Tanaka", email: "yuki@example.com", nationality: "Japan" },
   ];
 
   touristData.forEach((tourist) => {
@@ -163,7 +233,7 @@ const initializeDatabase = (): Database => {
     db.users.set(userId, {
       id: userId,
       email: tourist.email,
-      password: '$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u',
+      password: "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u",
       name: tourist.name,
       role: UserRole.TOURIST,
       isActive: true,
@@ -184,11 +254,30 @@ const initializeDatabase = (): Database => {
   });
 
   // Seed Bookings
-  const guides = Array.from(db.guides.values()).filter(g => g.status === GuideStatus.APPROVED);
+  const guides = Array.from(db.guides.values()).filter(
+    (g) => g.status === GuideStatus.APPROVED,
+  );
   const tourists = Array.from(db.tourists.values());
-  const statuses = [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.COMPLETED, BookingStatus.CANCELLED];
-  const locations = ['Taj Mahal, Agra', 'Red Fort, Delhi', 'Gateway of India, Mumbai', 'Hawa Mahal, Jaipur', 'Backwaters, Kerala'];
-  const tourTypes = ['Historical Tour', 'Cultural Tour', 'Food Tour', 'Walking Tour', 'Photography Tour'];
+  const statuses = [
+    BookingStatus.PENDING,
+    BookingStatus.CONFIRMED,
+    BookingStatus.COMPLETED,
+    BookingStatus.CANCELLED,
+  ];
+  const locations = [
+    "Taj Mahal, Agra",
+    "Red Fort, Delhi",
+    "Gateway of India, Mumbai",
+    "Hawa Mahal, Jaipur",
+    "Backwaters, Kerala",
+  ];
+  const tourTypes = [
+    "Historical Tour",
+    "Cultural Tour",
+    "Food Tour",
+    "Walking Tour",
+    "Photography Tour",
+  ];
 
   for (let i = 0; i < 25; i++) {
     const guide = guides[Math.floor(Math.random() * guides.length)];
@@ -201,15 +290,17 @@ const initializeDatabase = (): Database => {
 
     db.bookings.set(id, {
       id,
-      bookingId: generateReadableId('BK', db.counters.bookings),
+      bookingId: generateReadableId("BK", db.counters.bookings),
       guideId: guide.id,
       guideName: guide.name,
       touristId: tourist.id,
       touristName: tourist.name,
       touristEmail: tourist.email,
-      date: new Date(Date.now() + (Math.random() * 30 - 15) * 24 * 60 * 60 * 1000),
-      startTime: '09:00',
-      endTime: '17:00',
+      date: new Date(
+        Date.now() + (Math.random() * 30 - 15) * 24 * 60 * 60 * 1000,
+      ),
+      startTime: "09:00",
+      endTime: "17:00",
       duration: 8,
       location: locations[Math.floor(Math.random() * locations.length)],
       tourType: tourTypes[Math.floor(Math.random() * tourTypes.length)],
@@ -218,19 +309,63 @@ const initializeDatabase = (): Database => {
       platformFee,
       guideEarnings: amount - platformFee,
       status,
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+      ),
       updatedAt: new Date(),
     });
   }
 
   // Seed Cabs
   const cabTypes = [
-    { name: 'Economy Sedan', type: 'Sedan', capacity: 4, baseFare: 100, pricePerKm: 12, features: ['AC', 'Music System'] },
-    { name: 'Premium Sedan', type: 'Sedan', capacity: 4, baseFare: 150, pricePerKm: 18, features: ['AC', 'Music System', 'Leather Seats', 'WiFi'] },
-    { name: 'Standard SUV', type: 'SUV', capacity: 6, baseFare: 200, pricePerKm: 22, features: ['AC', 'Music System', 'Extra Luggage Space'] },
-    { name: 'Luxury SUV', type: 'SUV', capacity: 6, baseFare: 300, pricePerKm: 30, features: ['AC', 'Music System', 'Leather Seats', 'WiFi', 'Mini Bar'] },
-    { name: 'Mini Van', type: 'Van', capacity: 8, baseFare: 250, pricePerKm: 25, features: ['AC', 'Music System', 'Extra Luggage Space'] },
-    { name: 'Tempo Traveller', type: 'Van', capacity: 12, baseFare: 400, pricePerKm: 35, features: ['AC', 'Music System', 'Pushback Seats'] },
+    {
+      name: "Economy Sedan",
+      type: "Sedan",
+      capacity: 4,
+      baseFare: 100,
+      pricePerKm: 12,
+      features: ["AC", "Music System"],
+    },
+    {
+      name: "Premium Sedan",
+      type: "Sedan",
+      capacity: 4,
+      baseFare: 150,
+      pricePerKm: 18,
+      features: ["AC", "Music System", "Leather Seats", "WiFi"],
+    },
+    {
+      name: "Standard SUV",
+      type: "SUV",
+      capacity: 6,
+      baseFare: 200,
+      pricePerKm: 22,
+      features: ["AC", "Music System", "Extra Luggage Space"],
+    },
+    {
+      name: "Luxury SUV",
+      type: "SUV",
+      capacity: 6,
+      baseFare: 300,
+      pricePerKm: 30,
+      features: ["AC", "Music System", "Leather Seats", "WiFi", "Mini Bar"],
+    },
+    {
+      name: "Mini Van",
+      type: "Van",
+      capacity: 8,
+      baseFare: 250,
+      pricePerKm: 25,
+      features: ["AC", "Music System", "Extra Luggage Space"],
+    },
+    {
+      name: "Tempo Traveller",
+      type: "Van",
+      capacity: 12,
+      baseFare: 400,
+      pricePerKm: 35,
+      features: ["AC", "Music System", "Pushback Seats"],
+    },
   ];
 
   cabTypes.forEach((cab) => {
@@ -246,10 +381,42 @@ const initializeDatabase = (): Database => {
 
   // Seed Passes
   const passTypes = [
-    { name: 'Day Pass', type: PassType.TOKEN, description: 'Access to all monuments for one day', price: 500, validityDays: 1, maxUsage: 5, discount: 20 },
-    { name: 'Weekend Pass', type: PassType.TOKEN, description: 'Access to all monuments for weekend', price: 800, validityDays: 2, maxUsage: 10, discount: 25 },
-    { name: 'VIP Heritage Pass', type: PassType.VIP, description: 'Skip-the-line access to premium monuments', price: 2000, validityDays: 7, maxUsage: -1, discount: 30 },
-    { name: 'Premium Annual Pass', type: PassType.PREMIUM, description: 'Unlimited access to all monuments for a year', price: 10000, validityDays: 365, maxUsage: -1, discount: 40 },
+    {
+      name: "Day Pass",
+      type: PassType.TOKEN,
+      description: "Access to all monuments for one day",
+      price: 500,
+      validityDays: 1,
+      maxUsage: 5,
+      discount: 20,
+    },
+    {
+      name: "Weekend Pass",
+      type: PassType.TOKEN,
+      description: "Access to all monuments for weekend",
+      price: 800,
+      validityDays: 2,
+      maxUsage: 10,
+      discount: 25,
+    },
+    {
+      name: "VIP Heritage Pass",
+      type: PassType.VIP,
+      description: "Skip-the-line access to premium monuments",
+      price: 2000,
+      validityDays: 7,
+      maxUsage: -1,
+      discount: 30,
+    },
+    {
+      name: "Premium Annual Pass",
+      type: PassType.PREMIUM,
+      description: "Unlimited access to all monuments for a year",
+      price: 10000,
+      validityDays: 365,
+      maxUsage: -1,
+      discount: 40,
+    },
   ];
 
   passTypes.forEach((pass) => {
@@ -257,9 +424,9 @@ const initializeDatabase = (): Database => {
     db.passes.set(id, {
       id,
       ...pass,
-      features: ['Priority Entry', 'Audio Guide', 'Map Included'],
+      features: ["Priority Entry", "Audio Guide", "Map Included"],
       isActive: true,
-      applicableSites: ['Taj Mahal', 'Red Fort', 'Qutub Minar', 'Hawa Mahal'],
+      applicableSites: ["Taj Mahal", "Red Fort", "Qutub Minar", "Hawa Mahal"],
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -267,16 +434,21 @@ const initializeDatabase = (): Database => {
 
   // Seed Payments
   const completedBookings = Array.from(db.bookings.values()).filter(
-    b => b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CONFIRMED
+    (b) =>
+      b.status === BookingStatus.COMPLETED ||
+      b.status === BookingStatus.CONFIRMED,
   );
 
   completedBookings.forEach((booking) => {
     const id = generateId();
     db.counters.payments++;
-    const status = booking.status === BookingStatus.COMPLETED ? PaymentStatus.COMPLETED : PaymentStatus.PENDING;
+    const status =
+      booking.status === BookingStatus.COMPLETED
+        ? PaymentStatus.COMPLETED
+        : PaymentStatus.PENDING;
     db.payments.set(id, {
       id,
-      paymentId: generateReadableId('PAY', db.counters.payments),
+      paymentId: generateReadableId("PAY", db.counters.payments),
       bookingId: booking.id,
       guideId: booking.guideId,
       guideName: booking.guideName,
@@ -287,7 +459,10 @@ const initializeDatabase = (): Database => {
       guideEarnings: booking.guideEarnings,
       method: Math.random() > 0.5 ? PaymentMethod.UPI : PaymentMethod.RAZORPAY,
       status,
-      transactionId: status === PaymentStatus.COMPLETED ? `TXN${Date.now()}${Math.random().toString(36).substring(7)}` : undefined,
+      transactionId:
+        status === PaymentStatus.COMPLETED
+          ? `TXN${Date.now()}${Math.random().toString(36).substring(7)}`
+          : undefined,
       paidAt: status === PaymentStatus.COMPLETED ? new Date() : undefined,
       createdAt: booking.createdAt,
       updatedAt: new Date(),
@@ -296,11 +471,39 @@ const initializeDatabase = (): Database => {
 
   // Seed Messages
   const messageData = [
-    { subject: 'Booking Inquiry', message: 'I would like to know more about the historical tour packages available.', category: 'general' as const, priority: 'medium' as const },
-    { subject: 'Payment Issue', message: 'My payment was deducted but booking is not confirmed. Please help.', category: 'payment' as const, priority: 'high' as const },
-    { subject: 'Guide Feedback', message: 'Excellent service by Rahul. Would recommend to everyone!', category: 'feedback' as const, priority: 'low' as const },
-    { subject: 'Cancellation Request', message: 'I need to cancel my booking due to emergency. Please process refund.', category: 'booking' as const, priority: 'high' as const },
-    { subject: 'Complaint', message: 'The guide arrived 30 minutes late to the meeting point.', category: 'complaint' as const, priority: 'high' as const },
+    {
+      subject: "Booking Inquiry",
+      message:
+        "I would like to know more about the historical tour packages available.",
+      category: "general" as const,
+      priority: "medium" as const,
+    },
+    {
+      subject: "Payment Issue",
+      message:
+        "My payment was deducted but booking is not confirmed. Please help.",
+      category: "payment" as const,
+      priority: "high" as const,
+    },
+    {
+      subject: "Guide Feedback",
+      message: "Excellent service by Rahul. Would recommend to everyone!",
+      category: "feedback" as const,
+      priority: "low" as const,
+    },
+    {
+      subject: "Cancellation Request",
+      message:
+        "I need to cancel my booking due to emergency. Please process refund.",
+      category: "booking" as const,
+      priority: "high" as const,
+    },
+    {
+      subject: "Complaint",
+      message: "The guide arrived 30 minutes late to the meeting point.",
+      category: "complaint" as const,
+      priority: "high" as const,
+    },
   ];
 
   messageData.forEach((msg, index) => {
@@ -309,7 +512,7 @@ const initializeDatabase = (): Database => {
     db.counters.messages++;
     db.messages.set(id, {
       id,
-      messageId: generateReadableId('MSG', db.counters.messages),
+      messageId: generateReadableId("MSG", db.counters.messages),
       touristId: tourist.id,
       touristName: tourist.name,
       touristEmail: tourist.email,
@@ -325,11 +528,11 @@ const initializeDatabase = (): Database => {
 
   // Seed Reviews
   const reviewComments = [
-    'Amazing experience! The guide was very knowledgeable and friendly.',
-    'Good tour but a bit rushed. Could have been better.',
-    'Excellent service. Highly recommended for first-time visitors.',
-    'The guide knew everything about the history. Very informative.',
-    'Average experience. Expected more from a premium tour.',
+    "Amazing experience! The guide was very knowledgeable and friendly.",
+    "Good tour but a bit rushed. Could have been better.",
+    "Excellent service. Highly recommended for first-time visitors.",
+    "The guide knew everything about the history. Very informative.",
+    "Average experience. Expected more from a premium tour.",
   ];
 
   completedBookings.slice(0, 10).forEach((booking, index) => {
@@ -337,7 +540,7 @@ const initializeDatabase = (): Database => {
     db.counters.reviews++;
     db.reviews.set(id, {
       id,
-      reviewId: generateReadableId('REV', db.counters.reviews),
+      reviewId: generateReadableId("REV", db.counters.reviews),
       bookingId: booking.id,
       guideId: booking.guideId,
       guideName: booking.guideName,
@@ -345,11 +548,13 @@ const initializeDatabase = (): Database => {
       touristName: booking.touristName,
       rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
       comment: reviewComments[index % reviewComments.length],
-      isVerified: true,
       isVisible: true,
+      verificationStatus: "VERIFIED",
       helpfulCount: Math.floor(Math.random() * 20),
       reportCount: 0,
-      createdAt: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000),
+      createdAt: new Date(
+        Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000,
+      ),
       updatedAt: new Date(),
     });
   });
@@ -357,7 +562,7 @@ const initializeDatabase = (): Database => {
   // Seed Platform Settings
   db.settings = {
     id: generateId(),
-    platformName: 'TourGuide',
+    platformName: "TourGuide",
     platformFeePercentage: 20,
     cancellationPolicy: {
       freeCancellationHours: 24,
@@ -375,8 +580,8 @@ const initializeDatabase = (): Database => {
       razorpay: { enabled: true },
       upi: { enabled: true },
     },
-    supportEmail: 'support@tourguide.com',
-    supportPhone: '+91 1800 123 4567',
+    supportEmail: "support@tourguide.com",
+    supportPhone: "+91 1800 123 4567",
     createdAt: new Date(),
     updatedAt: new Date(),
   };
