@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-// import { packages } from '@/lib/mockData'
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 

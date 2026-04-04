@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/common/Header'
 import { Footer } from '@/components/common/Footer'
-import { TokenCard } from '@/components/features/TokenCard'
+// import { TokenCard } from '@/components/features/TokenCard'
 // import { tokens } from '@/lib/mockData'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

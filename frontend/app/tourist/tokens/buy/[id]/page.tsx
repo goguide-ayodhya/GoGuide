@@ -3,7 +3,7 @@
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBooking } from '@/contexts/BookingsContext'
-import { tokens } from '@/lib/mockData'
+// import { tokens } from '@/lib/mockData'
 import { Header } from '@/components/common/Header'
 import { Footer } from '@/components/common/Footer'
 import { BookingSummaryCard } from '@/components/booking/BookingSummaryCard'
@@ -15,10 +15,10 @@ export default function TokenPurchasePage() {
   const params = useParams()
   const router = useRouter()
   const { isLoggedIn } = useAuth()
-  const { setBookingType } = useBooking()
+  // const { setBookingType } = useBooking()
 
   const tokenId = params.id as string
-  const token = tokens.find((t) => t.id === tokenId)
+  // const token = tokens.find((t) => t.id === tokenId)
 
   // Store redirect URL for login page
   useEffect(() => {
@@ -28,14 +28,14 @@ export default function TokenPurchasePage() {
     }
   }, [isLoggedIn])
 
-  if (!token) {
-    notFound()
-  }
+  // if (!token) {
+  //   notFound()
+  // }
 
-  const handleProceedToPayment = () => {
-    setBookingType('token', token.id, token.type, token.price)
-    router.push('/payment')
-  }
+  // const handleProceedToPayment = () => {
+  //   setBookingType('token', token.id, token.type, token.price)
+  //   router.push('/payment')
+  // }
 
   return (
     <main className="min-h-screen flex flex-col bg-background">
@@ -44,7 +44,7 @@ export default function TokenPurchasePage() {
       <div className="flex-1 px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
           {/* Token Summary */}
-          <BookingSummaryCard
+          {/* <BookingSummaryCard
             itemName={token.type}
             itemPrice={token.price}
             itemType="token"
@@ -52,7 +52,7 @@ export default function TokenPurchasePage() {
               'Validity': `${token.validity} day${token.validity !== 1 ? 's' : ''}`,
               'Access': token.sites.join(', '),
             }}
-          />
+          /> */}
 
           {/* Purchase Form */}
           {!isLoggedIn ? (
@@ -63,14 +63,14 @@ export default function TokenPurchasePage() {
                   Please <a href={`/login?redirect=/tokens/buy/${tokenId}`} className="text-primary font-semibold hover:underline">sign in</a> to complete your purchase.
                 </p>
                 <div className="opacity-50 pointer-events-none">
-                  <TokenBookingForm onSubmit={handleProceedToPayment} />
+                  {/* <TokenBookingForm onSubmit={handleProceedToPayment} /> */}
                 </div>
               </div>
             </div>
           ) : (
             <div className="bg-card rounded-lg p-6 border">
               <h2 className="text-xl font-semibold text-foreground mb-6">Purchase Details</h2>
-              <TokenBookingForm onSubmit={handleProceedToPayment} />
+              {/* <TokenBookingForm onSubmit={handleProceedToPayment} /> */}
             </div>
           )}
         </div>

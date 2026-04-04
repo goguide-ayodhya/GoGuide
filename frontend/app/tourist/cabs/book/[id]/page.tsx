@@ -3,7 +3,6 @@
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooking } from "@/contexts/BookingsContext";
-// import { cabs } from '@/lib/mockData'
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { BookingSummaryCard } from "@/components/booking/BookingSummaryCard";
