@@ -1,11 +1,10 @@
 // ============================================
-// Rate Limiter Middleware
+// Rate Limiter Middleware (Express Version)
 // ============================================
 
-import { NextRequest, NextResponse } from 'next/server';
-import { ApiResponse } from '../types';
+import { Request, Response, NextFunction } from "express";
 
-// Rate limit store (in production, use Redis)
+// Rate limit store (in production → use Redis)
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -13,7 +12,7 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries periodically
+// Cleanup expired entries
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
@@ -21,46 +20,51 @@ setInterval(() => {
       rateLimitStore.delete(key);
     }
   }
-}, 60000); // Clean up every minute
+}, 60000);
 
-// Rate limit configuration
+// Config
 interface RateLimitConfig {
-  windowMs: number; // Time window in milliseconds
-  maxRequests: number; // Max requests per window
+  windowMs: number;
+  maxRequests: number;
   message?: string;
 }
 
-// Default configurations
 export const rateLimitConfigs = {
-  default: { windowMs: 60000, maxRequests: 100 }, // 100 requests per minute
-  auth: { windowMs: 300000, maxRequests: 10 }, // 10 login attempts per 5 minutes
-  strict: { windowMs: 60000, maxRequests: 20 }, // 20 requests per minute
-  lenient: { windowMs: 60000, maxRequests: 500 }, // 500 requests per minute
+  default: { windowMs: 60000, maxRequests: 100 },
+  auth: { windowMs: 300000, maxRequests: 10 },
+  strict: { windowMs: 60000, maxRequests: 20 },
+  lenient: { windowMs: 60000, maxRequests: 500 },
 };
 
-// Get client identifier
-const getClientId = (request: NextRequest): string => {
-  // Try to get real IP from headers (for proxied requests)
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const ip = forwardedFor?.split(',')[0] || realIp || 'unknown';
-  
-  // Combine with user agent for more unique identification
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-  
-  return `${ip}-${userAgent.substring(0, 50)}`;
+// Get client ID (Express style)
+const getClientId = (req: Request): string => {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const realIp = req.headers["x-real-ip"];
+
+  const ip =
+    (Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor?.split(",")[0]) ||
+    realIp ||
+    req.ip ||
+    "unknown";
+
+  const userAgent = req.headers["user-agent"] || "unknown";
+
+  return `${ip}-${userAgent}`;
 };
 
-// Rate limiter middleware
-export const rateLimit = (config: RateLimitConfig = rateLimitConfigs.default) => {
-  return (request: NextRequest): { allowed: boolean; remaining: number; resetTime: number } => {
-    const clientId = getClientId(request);
-    const key = `${request.nextUrl.pathname}-${clientId}`;
+// Middleware
+export const rateLimit = (
+  config: RateLimitConfig = rateLimitConfigs.default,
+) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const clientId = getClientId(req);
+    const key = `${req.path}-${clientId}`;
     const now = Date.now();
 
     let entry = rateLimitStore.get(key);
 
-    // Initialize or reset if window expired
     if (!entry || entry.resetTime < now) {
       entry = {
         count: 0,
@@ -72,54 +76,21 @@ export const rateLimit = (config: RateLimitConfig = rateLimitConfigs.default) =>
     rateLimitStore.set(key, entry);
 
     const remaining = Math.max(0, config.maxRequests - entry.count);
-    const allowed = entry.count <= config.maxRequests;
 
-    return { allowed, remaining, resetTime: entry.resetTime };
-  };
-};
+    if (entry.count > config.maxRequests) {
+      const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
 
-// Rate limit response
-export const rateLimitResponse = (
-  resetTime: number,
-  message?: string
-): NextResponse<ApiResponse> => {
-  const retryAfter = Math.ceil((resetTime - Date.now()) / 1000);
-
-  return NextResponse.json(
-    {
-      success: false,
-      error: message || 'Too many requests. Please try again later.',
-    },
-    {
-      status: 429,
-      headers: {
-        'Retry-After': String(retryAfter),
-        'X-RateLimit-Reset': String(resetTime),
-      },
-    }
-  );
-};
-
-// Higher-order function to add rate limiting to routes
-export const withRateLimit = (
-  handler: (request: NextRequest) => Promise<NextResponse>,
-  config?: RateLimitConfig
-) => {
-  const limiter = rateLimit(config);
-
-  return async (request: NextRequest): Promise<NextResponse> => {
-    const { allowed, remaining, resetTime } = limiter(request);
-
-    if (!allowed) {
-      return rateLimitResponse(resetTime);
+      return res.status(429).json({
+        success: false,
+        message: config.message || "Too many requests. Please try again later.",
+        retryAfter,
+      });
     }
 
-    const response = await handler(request);
+    // headers (optional but good)
+    res.setHeader("X-RateLimit-Remaining", String(remaining));
+    res.setHeader("X-RateLimit-Reset", String(entry.resetTime));
 
-    // Add rate limit headers
-    response.headers.set('X-RateLimit-Remaining', String(remaining));
-    response.headers.set('X-RateLimit-Reset', String(resetTime));
-
-    return response;
+    next();
   };
 };
