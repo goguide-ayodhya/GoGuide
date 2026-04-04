@@ -7,6 +7,7 @@ import { PaymentProvider } from "@/contexts/PaymentContext";
 import { EarningsProvider } from "@/contexts/EarningContext";
 import { ReviewProvider } from "@/contexts/ReviewContext";
 import { Analytics } from "@vercel/analytics/next";
+import { Toaster } from "@/components/ui/toaster";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +16,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <PaymentProvider>
           <EarningsProvider>
             <ReviewProvider>
-              <GuideProvider>{children}</GuideProvider>
+              <GuideProvider>
+                {children}
+                <Toaster />
+              </GuideProvider>
             </ReviewProvider>
           </EarningsProvider>
         </PaymentProvider>

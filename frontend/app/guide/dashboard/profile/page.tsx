@@ -13,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 import { GuideStatusCard } from "@/components/guide-status-card";
-import { Upload, Save, Star } from "lucide-react";
+import { Upload, Save, Star, Lock } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
+import { changePassword } from "@/lib/api/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
   const { myGuide, updateGuideData } = useGuide();
@@ -24,8 +26,6 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const isDisabled = myGuide?.verificationStatus === "REJECTED";
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
     bio: myGuide?.bio || "",
     speciality: Array.isArray(myGuide?.specialities)
       ? myGuide?.specialities[0] || ""
@@ -40,14 +40,21 @@ export default function ProfilePage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { toast } = useToast();
 
   // Sync form as soon as guide profile is available
   useEffect(() => {
     if (!myGuide) return;
     setFormData({
-      name: user?.name || "",
-      email: user?.email || "",
       bio: myGuide.bio || "",
       speciality: Array.isArray(myGuide.specialities)
         ? myGuide.specialities[0] || ""
@@ -58,31 +65,25 @@ export default function ProfilePage() {
       hourlyRate: myGuide.hourlyRate || 0,
       reviews: myGuide.totalReviews,
     });
-  }, [myGuide, user]);
+  }, [myGuide]);
 
   const handleSave = async () => {
     if (!myGuide) return;
 
-    const form = new FormData();
-    if (!formData.name.trim()) return;
     if (formData.hourlyRate < 0) return;
 
-    form.append("speciality", formData.speciality);
-    form.append("bio", formData.bio);
-    form.append("certification", formData.certification);
-    form.append("hourlyRate", String(formData.hourlyRate));
-    form.append("yearsOfExperience", String(formData.yearsOfExperience));
-
-    formData.languages.forEach((lang) => {
-      form.append("languages[]", lang);
-    });
-
-    if (selectedImage) {
-      form.append("avatar", selectedImage);
-    }
+    const updateData = {
+      speciality: formData.speciality,
+      bio: formData.bio,
+      certification: formData.certification,
+      hourlyRate: formData.hourlyRate,
+      yearsOfExperience: formData.yearsOfExperience,
+      languages: formData.languages,
+      avatar: selectedImage,
+    };
 
     setLoading(true);
-    await updateGuideData(myGuide.id, form);
+    await updateGuideData(myGuide.id, updateData);
     setLoading(false);
 
     setIsEditing(false);
@@ -127,6 +128,126 @@ export default function ProfilePage() {
     setPreviewImage(previewUrl);
   };
 
+  const handleSaveAvatar = async () => {
+    if (!myGuide || !selectedImage) return;
+
+    setAvatarLoading(true);
+    try {
+      const updateData = {
+        avatar: selectedImage,
+      };
+
+      const result = await updateGuideData(myGuide.id, updateData);
+      
+      // Update localStorage with new user data for persistence
+      if (result.userId?.avatar) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const updatedUser = JSON.parse(storedUser);
+          updatedUser.avatar = result.userId.avatar;
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      }
+      
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully",
+      });
+
+      setSelectedImage(null);
+      setPreviewImage(null);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error: any) {
+      console.error("Failed to save avatar:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "New password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[A-Z]/.test(passwordData.newPassword)) {
+      toast({
+        title: "Error",
+        description: "New password must contain at least one uppercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[0-9]/.test(passwordData.newPassword)) {
+      toast({
+        title: "Error",
+        description: "New password must contain at least one number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      });
+
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswordChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   if (!user) return null;
   return (
     <div className="space-y-6">
@@ -168,12 +289,13 @@ export default function ProfilePage() {
         <CardContent>
           <div className="flex items-center gap-6">
             <div className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-border">
-              {/* {user.avatar && ( */}
               <Image
                 src={
                   previewImage
                     ? previewImage
-                    : user.avatar
+                    : myGuide?.image
+                      ? myGuide.image
+                      : user.avatar
                       ? user.avatar
                       : assets.guideImage
                 }
@@ -181,9 +303,8 @@ export default function ProfilePage() {
                 fill
                 className="object-cover"
               />
-              {/* )} */}
             </div>
-            <div>
+            <div className="flex-1">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -192,14 +313,27 @@ export default function ProfilePage() {
                 onChange={handleImageChange}
               />
 
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload size={18} />
-                Upload New Picture
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={18} />
+                  Upload New Picture
+                </Button>
+
+                {selectedImage && (
+                  <Button
+                    onClick={handleSaveAvatar}
+                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={avatarLoading}
+                  >
+                    <Save size={18} />
+                    {avatarLoading ? "Saving..." : "Save Avatar"}
+                  </Button>
+                )}
+              </div>
 
               <p className="text-xs text-muted-foreground mt-2">
                 JPG, PNG or GIF (max 5MB)
@@ -213,7 +347,7 @@ export default function ProfilePage() {
       <Card className="bg-card border border-border">
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Update your personal details</CardDescription>
+          <CardDescription>Your account details and bio</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -223,11 +357,9 @@ export default function ProfilePage() {
                   Full Name
                 </label>
                 <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  disabled={!isEditing || isDisabled}
-                  className="bg-secondary border-border"
+                  value={user.name}
+                  disabled
+                  className="bg-muted border-border"
                 />
               </div>
               <div>
@@ -235,12 +367,9 @@ export default function ProfilePage() {
                   Email
                 </label>
                 <Input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  value={user.email}
+                  disabled
+                  className="bg-muted border-border"
                 />
               </div>
             </div>
@@ -255,7 +384,7 @@ export default function ProfilePage() {
                 onChange={handleChange}
                 disabled={!isEditing}
                 rows={4}
-                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground disabled:opacity-50"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground disabled:opacity-50"
                 placeholder="Tell travelers about your experience and style..."
               />
             </div>
@@ -295,7 +424,7 @@ export default function ProfilePage() {
                   value={formData.speciality}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                   placeholder="e.g., Historical Tours"
                 />
               </div>
@@ -308,7 +437,7 @@ export default function ProfilePage() {
                   value={formData.certification}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                   placeholder="e.g., IFTA Certified"
                 />
               </div>
@@ -325,7 +454,7 @@ export default function ProfilePage() {
                   value={formData.yearsOfExperience}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
               <div>
@@ -338,7 +467,7 @@ export default function ProfilePage() {
                   value={formData.hourlyRate}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
             </div>
@@ -395,7 +524,7 @@ export default function ProfilePage() {
                   value={newLanguage}
                   onChange={(e) => setNewLanguage(e.target.value)}
                   placeholder="Add a language"
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                   onKeyPress={(e) => e.key === "Enter" && addLanguage()}
                 />
                 <Button onClick={addLanguage} variant="outline">
@@ -415,23 +544,93 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Button variant="outline" className="w-full justify-start">
-              Change Password
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Two-Factor Authentication
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Connected Devices
-            </Button>
-            <div className="border-t border-border pt-4 mt-4">
+            {!showPasswordChange ? (
               <Button
                 variant="outline"
-                className="text-red-600 hover:bg-red-500/10 w-full justify-start"
+                className="w-full justify-start gap-2"
+                onClick={() => setShowPasswordChange(true)}
               >
-                Delete Account
+                <Lock size={18} />
+                Change Password
               </Button>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Current Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }))
+                    }
+                    className="bg-muted border-border"
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    New Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
+                    }
+                    className="bg-muted border-border"
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Confirm New Password
+                  </label>
+                  <Input
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordData((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
+                    className="bg-muted border-border"
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleChangePassword}
+                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={passwordLoading}
+                  >
+                    <Save size={18} />
+                    {passwordLoading ? "Changing..." : "Change Password"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordChange(false);
+                      setPasswordData({
+                        currentPassword: "",
+                        newPassword: "",
+                        confirmPassword: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

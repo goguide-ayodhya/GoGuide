@@ -5,7 +5,13 @@ import { StatsCard } from "@/components/stats-card";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 import { GuideStatusCard } from "@/components/guide-status-card";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
-import { acceptBookingApi, rejectBookingApi } from "@/lib/api/bookings";
+import { BookingStatusBadge } from "@/components/booking-status-badge";
+import {
+  acceptBookingApi,
+  rejectBookingApi,
+  completeBookingApi,
+  cancelBookingApi,
+} from "@/lib/api/bookings";
 import {
   Card,
   CardContent,
@@ -37,24 +43,67 @@ import {
   AlertTriangle,
   CheckCircle,
   Users,
+  Star,
 } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
 import Link from "next/link";
 import { useGuide } from "@/contexts/GuideContext";
 import { useEarnings } from "@/contexts/EarningContext";
 import { useBooking } from "@/contexts/BookingsContext";
+import { useReview } from "@/contexts/ReviewContext";
 
 export default function DashboardPage() {
   const { myGuide } = useGuide();
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
+  const monthlyData = earningsContext?.monthlyData;
+  const weeklyData = earningsContext?.weeklyData;
   const { bookings } = useBooking();
+  const { reviews, getGuideReview } = useReview();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const recentBookings = bookings.slice(0, 5);
+  const pendingCount = bookings.filter((b) => b.status === "PENDING").length;
+  const acceptedCount = bookings.filter((b) => b.status === "ACCEPTED").length;
+  const completedCount = bookings.filter(
+    (b) => b.status === "COMPLETED",
+  ).length;
+  const rejectedCount = bookings.filter((b) => b.status === "REJECTED").length;
+  const cancelledCount = bookings.filter(
+    (b) => b.status === "CANCELLED",
+  ).length;
   const newBookings = bookings.filter((b) => b.status === "PENDING");
+
+  // Compute status data for pie chart
+  const statusData = [
+    {
+      name: "Accepted",
+      value: acceptedCount,
+      fill: "#22c55e",
+    },
+    {
+      name: "Pending",
+      value: pendingCount,
+      fill: "#f59e0b",
+    },
+    {
+      name: "Rejected",
+      value: rejectedCount,
+      fill: "#ef4444",
+    },
+    {
+      name: "Completed",
+      value: completedCount,
+      fill: "#3b82f6",
+    },
+    {
+      name: "Cancelled",
+      value: cancelledCount,
+      fill: "#9ca3af",
+    },
+  ].filter((item) => item.value > 0);
 
   const handleViewDetails = (booking: Booking): void => {
     setSelectedBooking(booking);
@@ -67,6 +116,10 @@ export default function DashboardPage() {
         await acceptBookingApi(bookingId);
       } else if (newStatus === "REJECTED") {
         await rejectBookingApi(bookingId);
+      } else if (newStatus === "COMPLETED") {
+        await completeBookingApi(bookingId);
+      } else if (newStatus === "CANCELLED") {
+        await cancelBookingApi(bookingId);
       }
 
       setBookings((prev) =>
@@ -80,7 +133,12 @@ export default function DashboardPage() {
   };
   useEffect(() => {
     earningsContext?.fetchEarnings();
-  }, []);
+    earningsContext?.fetchMonthlyEarnings();
+    earningsContext?.fetchWeeklyEarnings();
+    if (myGuide?.id) {
+      getGuideReview(myGuide.id);
+    }
+  }, [myGuide?.id]);
 
   return (
     <div className="space-y-8">
@@ -120,7 +178,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {newBookings.map((booking) => (
                 <div
                   key={booking.id}
@@ -146,12 +204,13 @@ export default function DashboardPage() {
                     <div className="flex gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users size={16} />
-                        <span>{booking.groupSize} guests</span>
+                        <span>Group of {booking.groupSize} guests</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar size={16} />
                         <span>
-                          {new Date(booking.bookingDate).toLocaleDateString()}
+                          {new Date(booking.bookingDate).toLocaleDateString()} •
+                          {" at "} {booking.startTime}
                         </span>
                       </div>
                     </div>
@@ -159,9 +218,9 @@ export default function DashboardPage() {
                     <div className="flex gap-2 pt-2">
                       <Button
                         size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-green-600 cursor-pointer hover:bg-green-700"
                         onClick={() =>
-                          handleStatusChange(booking.id, "CONFIRMED")
+                          handleStatusChange(booking.id, "ACCEPTED")
                         }
                       >
                         <CheckCircle size={16} className="mr-1" />
@@ -171,7 +230,18 @@ export default function DashboardPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 cursor-pointer border-red-500 text-red-600 hover:bg-red-50"
+                        onClick={() =>
+                          handleStatusChange(booking.id, "REJECTED")
+                        }
+                      >
+                        Reject
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 cursor-pointer"
                         onClick={() => handleViewDetails(booking as any)}
                       >
                         View Details
@@ -191,28 +261,32 @@ export default function DashboardPage() {
           title="Total Earnings"
           value={`$${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
           icon={DollarSign}
-          description="This month"
+          description={`Completed: ${completedCount}, Pending: ${pendingCount}`}
           trend={{ value: 12, label: "vs last month", positive: true }}
         />
         <StatsCard
           title="Upcoming Tours"
-          value={bookings.filter((b) => b.status === "ACCEPTED").length ?? 0}
+          value={acceptedCount}
           icon={Calendar}
-          description="Next 30 days"
-          trend={{ value: 8, label: "vs last month", positive: true }}
+          description={`${acceptedCount} accepted bookings`}
+          trend={{
+            value: acceptedCount >= 0 ? 8 : 0,
+            label: "vs last month",
+            positive: true,
+          }}
         />
-        {/* <StatsCard
+        <StatsCard
           title="Average Rating"
-          value={earnings?.avgRating ?? 0}
+          value={myGuide?.rating?.toFixed(1) ?? "0.0"}
           icon={Star}
-          description="Based on reviews"
+          description={`${myGuide?.totalReviews ?? 0} reviews`}
           trend={{ value: 2, label: "since last month", positive: true }}
-        /> */}
+        />
         <StatsCard
           title="Total Bookings"
           value={bookings.length}
           icon={TrendingUp}
-          description="All time"
+          description={`${rejectedCount} rejected • ${cancelledCount} cancelled`}
         />
       </div>
 
@@ -227,8 +301,8 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={monthlyData || []}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="oklch(0.25 0.03 240)"
@@ -249,7 +323,7 @@ export default function DashboardPage() {
                   radius={[8, 8, 0, 0]}
                 />
               </BarChart>
-            </ResponsiveContainer> */}
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -260,7 +334,7 @@ export default function DashboardPage() {
             <CardDescription>Distribution of bookings</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
                   data={statusData}
@@ -284,22 +358,22 @@ export default function DashboardPage() {
                   }}
                 />
               </PieChart>
-            </ResponsiveContainer> */}
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
       {/* Weekly Earnings & Recent Bookings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="">
         {/* Weekly Earnings */}
-        <Card className="bg-card border border-border">
+        {/* <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Weekly Earnings</CardTitle>
             <CardDescription>This month's weekly breakdown</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={weeklyData}>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={weeklyData || []}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="oklch(0.25 0.03 240)"
@@ -321,9 +395,9 @@ export default function DashboardPage() {
                   strokeWidth={2}
                 />
               </LineChart>
-            </ResponsiveContainer> */}
+            </ResponsiveContainer>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Recent Bookings */}
         <Card className="bg-card border border-border">
@@ -333,14 +407,14 @@ export default function DashboardPage() {
                 <CardTitle>Recent Bookings</CardTitle>
                 <CardDescription>Your latest booking requests</CardDescription>
               </div>
-              <Link href="/dashboard/bookings">
+              <Link href="/guide/dashboard/bookings">
                 <Button variant="outline" size="sm">
                   View All
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          {/* <CardContent>
+          <CardContent>
             <div className="space-y-4">
               {recentBookings.map((booking) => (
                 <div
@@ -356,24 +430,74 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {new Date(booking.bookingDate).toLocaleDateString()} •{" "}
-                      {booking.groupSize} people
+                      {booking.startTime} • Group of {booking.groupSize} people
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {booking.dropoffLocation}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex flex-col items-end gap-2">
                     <BookingStatusBadge status={booking.status} />
-                    <p className="text-sm font-semibold text-foreground mt-2">
+                    <p className="text-sm font-semibold text-foreground">
                       ${booking.totalPrice}
                     </p>
+
+                    {/* Action Buttons based on status */}
+                    {booking.status === "PENDING" && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-7"
+                          onClick={() =>
+                            handleStatusChange(booking.id, "ACCEPTED")
+                          }
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-500 text-red-600 hover:bg-red-50 text-xs px-2 py-1 h-7"
+                          onClick={() =>
+                            handleStatusChange(booking.id, "REJECTED")
+                          }
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+
+                    {booking.status === "ACCEPTED" && (
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-1 h-7"
+                        onClick={() =>
+                          handleStatusChange(booking.id, "COMPLETED")
+                        }
+                      >
+                        Complete
+                      </Button>
+                    )}
+
+                    {/* View Details button for all statuses */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs px-2 py-1 h-7 text-primary hover:text-primary/80"
+                      onClick={() => handleViewDetails(booking)}
+                    >
+                      View Details
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent> */}
+          </CardContent>
         </Card>
       </div>
 
       {/* Recent Reviews */}
-      {/* {mockReviews.length > 0 && (
+      {reviews && reviews.length > 0 && (
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Recent Reviews</CardTitle>
@@ -383,7 +507,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockReviews.map((review) => (
+              {reviews.slice(0, 3).map((review) => (
                 <div
                   key={review.id}
                   className="pb-4 border-b border-border last:border-0"
@@ -402,7 +526,7 @@ export default function DashboardPage() {
                       ))}
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {review.createdAt}
+                      {new Date(review.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <p className="text-foreground">{review.comments}</p>
@@ -411,7 +535,7 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      )} */}
+      )}
 
       {/* Booking Details Modal */}
       <BookingDetailsModal

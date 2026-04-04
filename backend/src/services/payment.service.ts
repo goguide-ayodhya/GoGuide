@@ -152,12 +152,35 @@ export class PaymentService {
       pending: bookings.filter((b) => b.status === "PENDING").length,
     };
 
+    // Calculate earnings by tour type
+    const tourTypeEarnings: { [key: string]: { revenue: number; bookings: number } } = {};
+    
+    validPayments
+      .filter((p) => p.status === "COMPLETED" && p.bookingId)
+      .forEach((payment) => {
+        const tourType = (payment.bookingId as any).tourType || "Other";
+        if (!tourTypeEarnings[tourType]) {
+          tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
+        }
+        tourTypeEarnings[tourType].revenue += payment.amount;
+        tourTypeEarnings[tourType].bookings += 1;
+      });
+
+    const revenueByTourType = Object.entries(tourTypeEarnings)
+      .map(([type, data]) => ({
+        type,
+        revenue: data.revenue,
+        bookings: data.bookings,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
     const recentTransactions = validPayments.slice(0, 5);
 
     return {
       totalEarnings,
       pendingAmount,
       bookingStats,
+      revenueByTourType,
       recentTransactions,
     };
   }
@@ -180,6 +203,76 @@ export class PaymentService {
     });
 
     return map;
+  }
+
+  async getGuideMonthlyEarnings(guideId: string) {
+    const payments = await Payment.find({ status: "COMPLETED" })
+      .populate({
+        path: "bookingId",
+        match: { guideId },
+      })
+      .sort({ createdAt: -1 });
+
+    const validPayments = payments.filter((p) => p.bookingId !== null);
+
+    const monthlyData: { [key: string]: number } = {};
+
+    validPayments.forEach((p) => {
+      const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7); // Use paidAt if available
+      monthlyData[month] = (monthlyData[month] || 0) + p.amount;
+    });
+
+    // Return last 6 months
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = date.toISOString().slice(0, 7);
+      months.push({
+        month: monthKey,
+        revenue: monthlyData[monthKey] || 0,
+      });
+    }
+
+    return months;
+  }
+
+  async getGuideWeeklyEarnings(guideId: string) {
+    const payments = await Payment.find({ status: "COMPLETED" })
+      .populate({
+        path: "bookingId",
+        match: { guideId },
+      })
+      .sort({ createdAt: -1 });
+
+    const validPayments = payments.filter((p) => p.bookingId !== null);
+
+    const weeklyData: { [key: string]: number } = {};
+
+    validPayments.forEach((p) => {
+      const date = new Date(p.paidAt || p.createdAt);
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+      const weekKey = weekStart.toISOString().slice(0, 10);
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + p.amount;
+    });
+
+    // Return last 4 weeks
+    const weeks = [];
+    const now = new Date();
+    for (let i = 3; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - (i * 7));
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      const weekKey = weekStart.toISOString().slice(0, 10);
+      weeks.push({
+        week: `Week ${4 - i}`,
+        revenue: weeklyData[weekKey] || 0,
+      });
+    }
+
+    return weeks;
   }
 }
 

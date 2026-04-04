@@ -16,6 +16,7 @@ import {
   useEffect,
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGuide } from "@/contexts/GuideContext";
 
 export type BookingStatus =
   | "PENDING"
@@ -82,15 +83,32 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchBookings = async () => {
+      console.log("Fetching bookings for user:", user);
+      console.log("User role:", user?.role);
+      console.log("Auth loading:", authLoading);
+
+      if (authLoading) {
+        console.log("Auth still loading, skipping fetch");
+        return;
+      }
+
+      if (!user) {
+        console.log("No user, setting empty bookings");
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+
       try {
         const data =
-          user?.role === "GUIDE" || "ADMIN"
+          user?.role === "GUIDE"
             ? await getGuideBookings()
             : await getMyBookings();
 
+        console.log("API response data:", data);
         const formattedData = data.map((b: any) => ({
           id: b._id,
-          guideId: b.guideId,
+          guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
           touristName: b.touristName,
           email: b.email,
           phone: b.phone,
@@ -105,8 +123,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           paymentStatus: b.paymentStatus,
           createdAt: b.createdAt,
           notes: b.notes,
+          paymentMethod: b.paymentMethod,
+          isVip: b.isVip || false,
+          avatar: b.userId?.avatar || b.userId?.profileImage || "",
+          reviewed: b.reviewed || false,
         }));
 
+        console.log("Formatted bookings:", formattedData);
         setBookings(formattedData);
       } catch (error) {
         console.log("Error fetching bookings", error);
@@ -114,13 +137,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     };
-
-    if (authLoading) return;
-    if (!localStorage.getItem("token") || !user) {
-      setBookings([]);
-      setLoading(false);
-      return;
-    }
 
     fetchBookings();
   }, [user, authLoading]);
@@ -135,6 +151,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       await rejectBookingApi(bookingId);
     } else if (status === "COMPLETED") {
       await completeBookingApi(bookingId);
+    } else if (status === "CANCELLED") {
+      await cancelBookingApi(bookingId);
     }
 
     setBookings((prev) =>

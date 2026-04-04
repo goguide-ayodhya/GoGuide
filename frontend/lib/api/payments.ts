@@ -49,6 +49,33 @@ export const processPaymentApi = async (paymentId: string) => {
   return handleRes(res);
 };
 
+// Get Guide Earnings
+export const getGuideEarningsApi = async () => {
+  const res = await fetch(`${base_url}payments/guide/earnings`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Get Guide Monthly Earnings
+export const getGuideMonthlyEarningsApi = async () => {
+  const res = await fetch(`${base_url}payments/guide/monthly-earnings`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Get Guide Weekly Earnings
+export const getGuideWeeklyEarningsApi = async () => {
+  const res = await fetch(`${base_url}payments/guide/weekly-earnings`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
 // My Payments
 export const getMyPaymentsApi = async () => {
   const res = await fetch(`${base_url}payments/my-payments`, {

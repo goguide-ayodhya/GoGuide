@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { guideController } from "../controllers/guide.controller";
 import { authenticate, authorize } from "../middleware/auth";
+import { upload } from "../middleware/upload";
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.get("/:guideId", (req, res, next) => {
   guideController.getGuideById(req, res).catch(next);
 });
 
-router.put("/me", authenticate, (req, res, next) => {
+router.put("/me", authenticate, upload.single("avatar"), (req, res, next) => {
   guideController.updateGuideProfile(req, res).catch(next);
 });
 

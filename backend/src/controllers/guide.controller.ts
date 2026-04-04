@@ -1,6 +1,8 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { guideService } from "../services/guide.service";
+import cloudinary from "../config/cloudinary";
+import { User } from "../models/User";
 
 export class GuideController {
   async getAllGuides(req: AuthRequest, res: Response) {
@@ -54,9 +56,40 @@ export class GuideController {
 
   async updateGuideProfile(req: AuthRequest, res: Response) {
     try {
+      let avatarUrl = "";
+      if (req.file) {
+        const result = await new Promise<{ secure_url: string }>(
+          (resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream(
+                {
+                  resource_type: "image",
+                },
+                (err, result) => {
+                  if (err) reject(err);
+                  else if (result) resolve(result);
+                  else reject(new Error("Upload failed: no result returned"));
+                },
+              )
+              .end(req.file?.buffer);
+          },
+        );
+        avatarUrl = result.secure_url;
+      }
+
+      const updateData = {
+        ...req.body,
+        ...(avatarUrl && { avatar: avatarUrl }),
+      };
+
+      // Update the user's avatar if a new one was uploaded
+      if (avatarUrl) {
+        await User.findByIdAndUpdate(req.userId, { avatar: avatarUrl });
+      }
+
       const guide = await guideService.updateGuideProfile(
         req.userId!,
-        req.body,
+        updateData,
       );
 
       res.status(200).json({

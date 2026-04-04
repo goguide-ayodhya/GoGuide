@@ -126,6 +126,36 @@ export class PaymentController {
       data,
     });
   }
+
+  async getGuideMonthlyEarnings(req: AuthRequest, res: Response) {
+    try {
+      const guideId = req.userId!;
+      const data = await paymentService.getGuideMonthlyEarnings(guideId);
+
+      res.status(200).json({
+        success: true,
+        message: "Guide monthly earnings fetched",
+        data,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getGuideWeeklyEarnings(req: AuthRequest, res: Response) {
+    try {
+      const guideId = req.userId!;
+      const data = await paymentService.getGuideWeeklyEarnings(guideId);
+
+      res.status(200).json({
+        success: true,
+        message: "Guide weekly earnings fetched",
+        data,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export const paymentController = new PaymentController();

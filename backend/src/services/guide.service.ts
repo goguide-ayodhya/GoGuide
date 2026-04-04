@@ -54,8 +54,8 @@ export class GuideService {
     return guide;
   }
 
-  async updateGuideProfile(guideId: string, data: any) {
-    const guide = await Guide.findByIdAndUpdate(guideId, data, {
+  async updateGuideProfile(userId: string, data: any) {
+    const guide = await Guide.findOneAndUpdate({ userId }, data, {
       new: true,
     }).populate("userId");
 
@@ -66,9 +66,9 @@ export class GuideService {
     return guide;
   }
 
-  async setAvailability(guideId: string, isAvailable: boolean) {
-    const guide = await Guide.findByIdAndUpdate(
-      guideId,
+  async setAvailability(userId: string, isAvailable: boolean) {
+    const guide = await Guide.findOneAndUpdate(
+      { userId },
       { isAvailable },
       { new: true },
     );
@@ -80,9 +80,9 @@ export class GuideService {
     return guide;
   }
 
-  async setOnlineStatus(guideId: string, isOnline: boolean) {
-    const guide = await Guide.findByIdAndUpdate(
-      guideId,
+  async setOnlineStatus(userId: string, isOnline: boolean) {
+    const guide = await Guide.findOneAndUpdate(
+      { userId },
       { isOnline },
       { new: true },
     );

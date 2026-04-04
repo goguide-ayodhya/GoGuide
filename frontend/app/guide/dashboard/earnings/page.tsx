@@ -34,6 +34,31 @@ export default function EarningsPage() {
   const earnings = earningsContext?.earnings;
   const [timeframe, setTimeframe] = useState<"week" | "month">("month");
 
+  const monthlyData = earningsContext?.monthlyData ?? [];
+  const weeklyData = earningsContext?.weeklyData ?? [];
+  const chartData = timeframe === "week" ? weeklyData : monthlyData;
+  const bookingStats = earnings?.bookingStats ?? {
+    total: 0,
+    completed: 0,
+    pending: 0,
+  };
+  const totalEarnings = earnings?.totalEarnings ?? 0;
+  const pendingAmount = earnings?.pendingAmount ?? 0;
+  const recentTransactions = earnings?.recentTransactions ?? [];
+  const revenueByTourType = earnings?.revenueByTourType ?? [];
+  const timeframeLabel = timeframe === "week" ? "Week" : "Month";
+  const averageRevenue = chartData.length
+    ? Math.round(
+        chartData.reduce((sum, item) => sum + item.revenue, 0) /
+          chartData.length,
+      )
+    : 0;
+
+  // Calculate current timeframe revenue
+  const currentTimeframeRevenue = chartData.length > 0 
+    ? chartData.reduce((sum, item) => sum + item.revenue, 0)
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -48,19 +73,19 @@ export default function EarningsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
           title="Total Earnings"
-          value={`$${earnings?.totalEarnings.toLocaleString() ?? 0}`}
+          value={`₹${totalEarnings.toLocaleString()}`}
           icon={DollarSign}
-          description="All time"
+          description="All time earnings"
         />
         <StatsCard
-          title={`This ${timeframe === "week" ? "Month" : "Month"} Revenue`}
-          value={`$${earnings?.bookingStats.total.toLocaleString() || 0}`}
+          title={`${timeframeLabel} Revenue`}
+          value={`$${currentTimeframeRevenue.toLocaleString()}`}
           icon={TrendingUp}
-          description={`Average per ${timeframe === "week" ? "week" : "week"}: $${earnings?.bookingStats.completed || 0}`}
+          description={`Average per ${timeframeLabel.toLowerCase()}: ₹${averageRevenue.toLocaleString()}`}
         />
         <StatsCard
           title="Pending Payments"
-          value={`$${earnings?.pendingAmount.toLocaleString() || 0}`}
+          value={`₹${pendingAmount.toLocaleString()}`}
           icon={Calendar}
           description="Awaiting processing"
         />
@@ -77,7 +102,7 @@ export default function EarningsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {earnings?.bookingStats.total || 0}
+              {bookingStats.total}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               All bookings received
@@ -94,7 +119,7 @@ export default function EarningsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {earnings?.bookingStats.completed || 0}
+              {bookingStats.completed}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               Tours completed successfully
@@ -111,7 +136,7 @@ export default function EarningsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-foreground">
-              {earnings?.bookingStats.pending || 0}
+              {bookingStats.pending}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               Awaiting acceptance
@@ -158,35 +183,41 @@ export default function EarningsPage() {
             </div>
           </div>
         </CardHeader>
-        {/* <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="oklch(0.25 0.03 240)"
-              />
-              <XAxis
-                dataKey={timeframe === "week" ? "week" : "month"}
-                stroke="oklch(0.65 0 0)"
-              />
-              <YAxis stroke="oklch(0.65 0 0)" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "oklch(0.15 0.02 240)",
-                  border: "1px solid oklch(0.25 0.03 240)",
-                  borderRadius: "8px",
-                }}
-                formatter={(value) => `$${value}`}
-              />
-              <Legend />
-              <Bar
-                dataKey="revenue"
-                fill="oklch(0.72 0.2 29)"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent> */}
+        <CardContent>
+          {chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={monthlyData || []}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="oklch(0.25 0.03 240)"
+                />
+                <XAxis
+                  dataKey={timeframe === "week" ? "week" : "month"}
+                  stroke="oklch(0.65 0 0)"
+                />
+                <YAxis stroke="oklch(0.65 0 0)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "oklch(0.15 0.02 240)",
+                    border: "1px solid oklch(0.25 0.03 240)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(value) => `₹${value}`}
+                />
+                <Legend />
+                <Bar
+                  dataKey="revenue"
+                  fill="oklch(0.72 0.2 29)"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="py-12 text-center text-muted-foreground">
+              No earnings data available for the selected timeframe.
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Revenue Breakdown */}
@@ -200,23 +231,22 @@ export default function EarningsPage() {
           <CardContent>
             <div className="space-y-4">
               {["completed", "pending", "failed"].map((status) => {
-                const payments = earnings?.recentTransactions.filter(
-                  (p) => p.status === (status as any),
+                const payments = recentTransactions.filter(
+                  (p) => p.status === status,
                 );
                 const total =
-                  payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+                  payments.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
                 const percentage =
-                  Math.round((total / (earnings?.totalEarnings || 1)) * 100) ||
-                  0;
+                  Math.round((total / (totalEarnings || 1)) * 100) || 0;
 
                 return (
                   <div key={status}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm font-medium text-foreground capitalize">
-                        {status}
+                        {status} ({payments.length})
                       </p>
                       <span className="text-sm font-semibold text-foreground">
-                        ${total}
+                        ${total.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
@@ -238,35 +268,36 @@ export default function EarningsPage() {
           </CardContent>
         </Card>
 
-        {/* Top Earning Days */}
+        {/* Revenue by Tour Type */}
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Revenue by Tour Type</CardTitle>
-            <CardDescription>Earnings breakdown</CardDescription>
+            <CardDescription>Earnings breakdown by tour category</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { type: "Historical Tours", revenue: 3200, bookings: 12 },
-                { type: "Adventure Tours", revenue: 2800, bookings: 10 },
-                { type: "Food & Wine Tours", revenue: 3600, bookings: 8 },
-                { type: "Cultural Tours", revenue: 2400, bookings: 9 },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between pb-3 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{item.type}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.bookings} bookings
-                    </p>
+              {revenueByTourType.length > 0 ? (
+                revenueByTourType.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between pb-3 border-b border-border last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{item.type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.bookings} booking{item.bookings !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <span className="font-semibold text-foreground">
+                      ${item.revenue.toLocaleString()}
+                    </span>
                   </div>
-                  <span className="font-semibold text-foreground">
-                    ${item.revenue}
-                  </span>
+                ))
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No tour type data available yet.
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -298,36 +329,47 @@ export default function EarningsPage() {
                 </tr>
               </thead>
               <tbody>
-                {earnings?.recentTransactions.map((payment) => (
-                  <tr
-                    key={payment.id}
-                    className="border-b border-border/50 hover:bg-secondary/30"
-                  >
-                    <td className="py-3 px-4 text-foreground">
-                      TXN-{payment.id}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-foreground">
-                      ${payment.amount}
-                    </td>
-                    <td className="py-3 px-4 text-foreground">
-                      {new Date(payment.transactionDate).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          payment.status === "completed"
-                            ? "bg-green-500/20 text-green-600"
-                            : payment.status === "pending"
-                              ? "bg-yellow-500/20 text-yellow-600"
-                              : "bg-red-500/20 text-red-600"
-                        }`}
-                      >
-                        {payment.status.charAt(0).toUpperCase() +
-                          payment.status.slice(1)}
-                      </span>
+                {recentTransactions.length > 0 ? (
+                  recentTransactions.map((payment) => (
+                    <tr
+                      key={payment.id}
+                      className="border-b border-border/50 hover:bg-secondary/30"
+                    >
+                      <td className="py-3 px-4 text-foreground">
+                        TXN-{payment.id}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-foreground">
+                        `₹{payment.amount}
+                      </td>
+                      <td className="py-3 px-4 text-foreground">
+                        {new Date(payment.transactionDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium ${
+                            payment.status === "completed"
+                              ? "bg-green-500/20 text-green-600"
+                              : payment.status === "pending"
+                                ? "bg-yellow-500/20 text-yellow-600"
+                                : "bg-red-500/20 text-red-600"
+                          }`}
+                        >
+                          {payment.status.charAt(0).toUpperCase() +
+                            payment.status.slice(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="py-8 text-center text-muted-foreground"
+                    >
+                      No recent transactions found.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

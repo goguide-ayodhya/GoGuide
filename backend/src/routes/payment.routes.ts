@@ -28,6 +28,14 @@ router.get("/guide/earnings", authenticate, (req, res, next) => {
   paymentController.getGuideEarnings(req, res).catch(next);
 });
 
+router.get("/guide/monthly-earnings", authenticate, (req, res, next) => {
+  paymentController.getGuideMonthlyEarnings(req, res).catch(next);
+});
+
+router.get("/guide/weekly-earnings", authenticate, (req, res, next) => {
+  paymentController.getGuideWeeklyEarnings(req, res).catch(next);
+});
+
 router.get(
   "/admin/revenue",
   authenticate,

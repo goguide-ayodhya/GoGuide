@@ -95,6 +95,7 @@ export const validateTokenApi = async () => {
 export const changePassword = async (data: {
   currentPassword: string;
   newPassword: string;
+  confirmPassword: string;
 }) => {
   const res = await fetch(`${base_url}auth/change-password`, {
     method: "POST",
@@ -103,7 +104,14 @@ export const changePassword = async (data: {
   });
 
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message);
+  if (!res.ok) {
+    // Handle validation errors
+    if (json.errors) {
+      const errorMessages = Object.values(json.errors).join(', ');
+      throw new Error(errorMessages || json.message);
+    }
+    throw new Error(json.message);
+  }
 
   return json.data;
 };

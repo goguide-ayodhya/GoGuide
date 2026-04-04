@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { BookingStatusBadge } from "@/components/booking-status-badge";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
 import { BookingStatus, useBooking } from "@/contexts/BookingsContext";
-import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
 
 const ITEMS_PER_PAGE = 10;
@@ -44,7 +44,7 @@ export default function BookingsPage() {
       booking.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       selectedStatus === "ALL" ||
-      booking.status.toLowerCase() === selectedStatus;
+      booking.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -88,7 +88,7 @@ export default function BookingsPage() {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pl-10 bg-secondary border-border"
+                className="pl-10 bg-muted border-border"
               />
             </div>
 
@@ -107,8 +107,8 @@ export default function BookingsPage() {
                     }}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       selectedStatus === status
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                        ? "bg-primary cursor-pointer text-primary-foreground"
+                        : "bg-muted border-border cursor-pointer text-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -123,16 +123,9 @@ export default function BookingsPage() {
       {/* Bookings Table */}
       <Card className="bg-card border border-border overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Booking List</CardTitle>
-              <CardDescription>
-                {filtered.length} bookings found
-              </CardDescription>
-            </div>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              + New Booking
-            </Button>
+          <div>
+            <CardTitle>Booking List</CardTitle>
+            <CardDescription>{filtered.length} bookings found</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -195,7 +188,7 @@ export default function BookingsPage() {
                       <td className="py-3 px-4">
                         <BookingStatusBadge
                           status={
-                            booking.status.toLowerCase() as
+                            booking.status as
                               | "PENDING"
                               | "ACCEPTED"
                               | "REJECTED"
@@ -204,13 +197,42 @@ export default function BookingsPage() {
                           }
                         />
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-4 space-y-2">
                         <button
-                          onClick={() => handleViewDetails(booking as any)}
-                          className="text-primary hover:underline text-sm font-medium transition-colors"
+                          onClick={() => handleViewDetails(booking)}
+                          className="text-primary cursor-pointer hover:text-blue-600 text-sm font-medium transition-colors"
                         >
                           View Details
                         </button>
+                        {booking.status === "PENDING" && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 cursor-pointer"
+                              onClick={() => handleStatusChange(booking.id, "ACCEPTED")}
+                            >
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStatusChange(booking.id, "REJECTED")}
+                              className="cursor-pointer"
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        )}
+                        {booking.status === "ACCEPTED" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusChange(booking.id, "COMPLETED")}
+                            className="ml-2 cursor-pointer"
+                          >
+                            Complete
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -281,13 +303,13 @@ export default function BookingsPage() {
         <BookingDetailsModal
           booking={{
             ...selectedBooking,
-            status: selectedBooking.status.toLowerCase() as
+            status: selectedBooking.status as
               | "PENDING"
               | "ACCEPTED"
               | "REJECTED"
               | "COMPLETED"
               | "CANCELLED",
-            paymentStatus: selectedBooking.paymentStatus.toLowerCase() as
+            paymentStatus: selectedBooking.paymentStatus as
               | "PENDING"
               | "COMPLETED"
               | "FAILED",

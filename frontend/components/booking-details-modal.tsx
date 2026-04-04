@@ -47,24 +47,23 @@ export function BookingDetailsModal({
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "confirmed":
+    switch (status.toUpperCase()) {
+      case "ACCEPTED":
         return "bg-green-500/20 text-green-700 border-green-500/30";
-      case "pending":
+      case "PENDING":
         return "bg-amber-500/20 text-amber-700 border-amber-500/30";
-      case "on_the_way":
-        return "bg-blue-500/20 text-blue-700 border-blue-500/30";
-      case "completed":
-        return "bg-purple-500/20 text-purple-700 border-purple-500/30";
-      case "cancelled":
+      case "REJECTED":
+      case "CANCELLED":
         return "bg-red-500/20 text-red-700 border-red-500/30";
+      case "COMPLETED":
+        return "bg-purple-500/20 text-purple-700 border-purple-500/30";
       default:
         return "bg-gray-500/20 text-gray-700 border-gray-500/30";
     }
   };
 
   const getPaymentStatusIcon = (status: string) => {
-    if (status === "completed") {
+    if (status.toUpperCase() === "COMPLETED") {
       return <CheckCircle size={18} className="text-green-600" />;
     }
     return <AlertCircle size={18} className="text-amber-600" />;
@@ -265,7 +264,7 @@ export function BookingDetailsModal({
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => handleStatusChange("CANCELLED")}
+                onClick={() => handleStatusChange("REJECTED")}
               >
                 Decline Booking
               </Button>
@@ -273,31 +272,39 @@ export function BookingDetailsModal({
           )}
 
           {booking.status === "ACCEPTED" && (
-            <div className="space-y-3">
+            <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => handleStatusChange("REJECTED")}
-              >
-                Mark as On the Way
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
                 onClick={() => handleStatusChange("COMPLETED")}
               >
                 Mark as Completed
               </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleStatusChange("CANCELLED")}
+              >
+                Cancel Booking
+              </Button>
             </div>
           )}
 
-          {booking.status === "PENDING" && (
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={() => handleStatusChange("COMPLETED")}
-            >
-              Mark as Completed
-            </Button>
+          {booking.status === "COMPLETED" && (
+            <div className="text-sm text-muted-foreground">
+              This booking is already completed.
+            </div>
+          )}
+
+          {booking.status === "REJECTED" && (
+            <div className="text-sm text-muted-foreground">
+              This booking request was rejected.
+            </div>
+          )}
+
+          {booking.status === "CANCELLED" && (
+            <div className="text-sm text-muted-foreground">
+              This booking has been cancelled.
+            </div>
           )}
         </div>
       </DialogContent>

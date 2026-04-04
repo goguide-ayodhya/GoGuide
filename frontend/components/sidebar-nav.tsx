@@ -86,10 +86,10 @@ export function SidebarNav() {
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between flex-shrink-0">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold text-sidebar-primary tracking-tight">
-              TourGuide
+              GoGuide
             </h1>
             <p className="text-xs font-medium text-sidebar-foreground/50">
-              Pro Platform
+              Verified Platform
             </p>
           </div>
 
@@ -108,7 +108,9 @@ export function SidebarNav() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+              pathname === item.href ||
+              (item.href !== "/guide/dashboard" &&
+                pathname.startsWith(item.href));
 
             return (
               <button
@@ -117,8 +119,8 @@ export function SidebarNav() {
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium text-sm",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    ? "bg-sidebar-primary cursor-pointer text-sidebar-primary-foreground shadow-md"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent cursor-pointer hover:text-sidebar-accent-foreground",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
