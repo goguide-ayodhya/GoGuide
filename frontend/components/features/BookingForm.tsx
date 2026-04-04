@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import type { useGuide } from '@/contexts/GuideContext'
+import type { Guide } from '@/contexts/GuideContext'
 
 interface BookingFormProps {
   guide: Guide

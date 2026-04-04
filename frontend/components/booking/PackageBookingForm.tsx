@@ -1,57 +1,75 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useBooking } from '@/contexts/BookingsContext'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { FormField } from './FormField'
-import { Calendar, Users, FileText } from 'lucide-react'
+import { useState } from "react";
+import { useBooking } from "@/contexts/BookingsContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FormField } from "./FormField";
+import { Calendar, Users, FileText } from "lucide-react";
 
 interface PackageBookingFormProps {
-  onSubmit: () => void
-  isLoading?: boolean
+  onSubmit: () => void;
+  isLoading?: boolean;
 }
 
-export function PackageBookingForm({ onSubmit, isLoading }: PackageBookingFormProps) {
-  const { booking, setFormData } = useBooking()
-  const [startDate, setStartDate] = useState(booking.formData.startDate || '')
-  const [participants, setParticipants] = useState(booking.formData.participants || '1')
-  const [notes, setNotes] = useState(booking.formData.notes || '')
-  const [errors, setErrors] = useState<Record<string, string>>({})
+export function PackageBookingForm({
+  onSubmit,
+  isLoading,
+}: PackageBookingFormProps) {
+  const { currentBooking, setCurrentBooking } = useBooking();
+  const [startDate, setStartDate] = useState(currentBooking?.bookingDate || "");
+  const [groupSize, setGroupSize] = useState(currentBooking?.groupSize || "1");
+  const [notes, setNotes] = useState(currentBooking?.notes || "");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
-    if (!startDate) newErrors.startDate = 'Start date is required'
-    if (!participants) newErrors.participants = 'Number of participants is required'
+    if (!startDate) newErrors.startDate = "Start date is required";
+    if (!groupSize) newErrors.groupSize = "Number of participants is required";
 
-    const numParticipants = parseInt(participants)
+    const numParticipants = parseInt(String(groupSize));
     if (isNaN(numParticipants) || numParticipants < 1 || numParticipants > 20) {
-      newErrors.participants = 'Please enter 1-20 participants'
+      newErrors.participants = "Please enter 1-20 participants";
     }
 
     // Check if date is in future
-    const selectedDate = new Date(startDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const selectedDate = new Date(startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
-      newErrors.startDate = 'Please select a future date'
+      newErrors.startDate = "Please select a future date";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = () => {
     if (validateForm()) {
-      setFormData({
-        startDate,
-        participants: parseInt(participants),
+      setCurrentBooking({
+        bookingDate: startDate,
+        groupSize: parseInt(String(groupSize)),
         notes,
-      })
-      onSubmit()
+        id: "",
+        guideId: "",
+        touristName: "",
+        email: "",
+        phone: "",
+        startTime: "",
+        tourType: "",
+        meetingPoint: "",
+        dropoffLocation: "",
+        totalPrice: 0,
+        status: "COMPLETED",
+        paymentStatus: "COMPLETED",
+        createdAt: "",
+        isVip: false,
+        avatar: "",
+      });
+      onSubmit();
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -69,7 +87,11 @@ export function PackageBookingForm({ onSubmit, isLoading }: PackageBookingFormPr
       </FormField>
 
       {/* Participants */}
-      <FormField label="Number of Participants" error={errors.participants} required>
+      <FormField
+        label="Number of Participants"
+        error={errors.participants}
+        required
+      >
         <div className="relative">
           <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -77,8 +99,8 @@ export function PackageBookingForm({ onSubmit, isLoading }: PackageBookingFormPr
             min="1"
             max="20"
             placeholder="Enter number of people"
-            value={participants}
-            onChange={(e) => setParticipants(e.target.value)}
+            value={groupSize}
+            onChange={(e) => setGroupSize(e.target.value)}
             className="pl-10 bg-muted border-0"
           />
         </div>
@@ -106,5 +128,5 @@ export function PackageBookingForm({ onSubmit, isLoading }: PackageBookingFormPr
         Proceed to Payment
       </Button>
     </div>
-  )
+  );
 }

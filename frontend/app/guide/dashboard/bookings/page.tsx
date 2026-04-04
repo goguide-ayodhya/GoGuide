@@ -55,8 +55,8 @@ export default function BookingsPage() {
 
   const statusOptions: Array<BookingStatus> = [
     "PENDING",
-    "CONFIRMED",
-    "ON_THE_WAY",
+    "ACCEPTED",
+    "REJECTED",
     "COMPLETED",
     "CANCELLED",
   ];
@@ -196,11 +196,11 @@ export default function BookingsPage() {
                         <BookingStatusBadge
                           status={
                             booking.status.toLowerCase() as
-                              | "pending"
-                              | "confirmed"
-                              | "on_the_way"
-                              | "completed"
-                              | "cancelled"
+                              | "PENDING"
+                              | "ACCEPTED"
+                              | "REJECTED"
+                              | "COMPLETED"
+                              | "CANCELLED"
                           }
                         />
                       </td>
@@ -282,21 +282,21 @@ export default function BookingsPage() {
           booking={{
             ...selectedBooking,
             status: selectedBooking.status.toLowerCase() as
-              | "pending"
-              | "confirmed"
-              | "on_the_way"
-              | "completed"
-              | "cancelled",
+              | "PENDING"
+              | "ACCEPTED"
+              | "REJECTED"
+              | "COMPLETED"
+              | "CANCELLED",
             paymentStatus: selectedBooking.paymentStatus.toLowerCase() as
-              | "pending"
-              | "completed"
-              | "failed",
+              | "PENDING"
+              | "COMPLETED"
+              | "FAILED",
           }}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onStatusChange={handleStatusChange}
         />
       )}
-    </div>  
+    </div>
   );
 }

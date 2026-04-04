@@ -253,11 +253,11 @@ export function BookingDetailsModal({
           </Card>
 
           {/* Action Buttons */}
-          {booking.status === "pending" && (
+          {booking.status === "PENDING" && (
             <div className="flex gap-3">
               <Button
                 className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={() => handleStatusChange("CONFIRMED")}
+                onClick={() => handleStatusChange("ACCEPTED")}
               >
                 <CheckCircle size={18} className="mr-2" />
                 Accept Booking
@@ -272,12 +272,12 @@ export function BookingDetailsModal({
             </div>
           )}
 
-          {booking.status === "confirmed" && (
+          {booking.status === "ACCEPTED" && (
             <div className="space-y-3">
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => handleStatusChange("ON_THE_WAY")}
+                onClick={() => handleStatusChange("REJECTED")}
               >
                 Mark as On the Way
               </Button>
@@ -291,7 +291,7 @@ export function BookingDetailsModal({
             </div>
           )}
 
-          {booking.status === "on_the_way" && (
+          {booking.status === "PENDING" && (
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
               onClick={() => handleStatusChange("COMPLETED")}

@@ -18,7 +18,7 @@ export function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
 
   const canCancel = booking.status !== "CANCELLED" &&
     booking.status !== "COMPLETED" &&
-    (booking.paymentStatus === "PENDING" || booking.status === "CONFIRMED");
+    (booking.paymentStatus === "PENDING" || booking.status === "ACCEPTED");
 
   return (
     <Card className="p-6 border">
