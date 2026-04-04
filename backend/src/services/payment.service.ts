@@ -11,8 +11,12 @@ export class PaymentService {
       throw new NotFound("Booking not found");
     }
 
-    if (booking.status !== "ACCEPTED") {
-      throw new BadRequest("Booking not accepted yet");
+    if (booking.userId.toString() !== userId) {
+      throw new Unauthorized("Not authorized to create payment for this booking");
+    }
+
+    if (["REJECTED", "CANCELLED", "COMPLETED"].includes(booking.status)) {
+      throw new BadRequest("Cannot create payment for this booking");
     }
 
     // Check if payment already exists

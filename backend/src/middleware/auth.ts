@@ -17,15 +17,23 @@ export const authenticate = (
   try {
     const authHeader = req.headers.authorization;
 
+    console.log("Authorization header:", authHeader);
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       throw new Unauthorized("Missing or invalid authorization token");
     }
 
     const token = authHeader.substring(7);
+    if (!token || token === "null" || token === "undefined") {
+      throw new Unauthorized("Missing or invalid authorization token");
+    }
+
     const decoded = jwt.verify(token, env.JWT_SECRET) as {
       userId: string;
       email: string;
     };
+
+    console.log("Decoded JWT payload:", decoded);
 
     req.user = decoded;
     req.userId = decoded.userId;

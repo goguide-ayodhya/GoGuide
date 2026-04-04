@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { paymentService } from "../services/payment.service";
+import { BadRequest } from "../utils/httpException";
 
 export class PaymentController {
   async createPayment(req: AuthRequest, res: Response) {
@@ -23,7 +24,18 @@ export class PaymentController {
 
   async processPayment(req: AuthRequest, res: Response) {
     try {
-      const paymentId = req.userId!;
+      const paymentId = req.params.paymentId || req.body.paymentId;
+
+      console.log("Processing payment", {
+        paymentId,
+        body: req.body,
+        userId: req.userId,
+      });
+
+      if (!paymentId) {
+        throw new BadRequest("paymentId is required");
+      }
+
       const payment = await paymentService.processPayment(
         paymentId,
         req.body,

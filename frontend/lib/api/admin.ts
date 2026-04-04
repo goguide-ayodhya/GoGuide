@@ -1,11 +1,20 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("token") : null;
+const getToken = () => {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
+};
 
-const authHeaders = () => ({
-  Authorization: `Bearer ${getToken()}`,
-});
+const authHeaders = () => {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 // Get Users
 export const getUsersApi = async () => {

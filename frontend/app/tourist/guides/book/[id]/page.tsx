@@ -20,12 +20,28 @@ import { createPaymentApi } from "@/lib/api/payments";
 export default function GuideBookingPage() {
   const params = useParams();
   const router = useRouter();
-  const { guides } = useGuide();
+  const { guides, loading } = useGuide();
   const { isLoggedIn } = useAuth();
   const { setCurrentBooking } = useBooking();
 
   const guideId = params.id as string;
+  console.log("guideId from URL:", guideId);
+
+  if (!guideId) {
+    console.log("Missing guideId in URL, redirecting to guide list");
+    router.replace("/tourist/guides");
+    return null;
+  }
+
   const guide = guides.find((g: Guide) => g.id === guideId);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        <div>Loading guide...</div>
+      </main>
+    );
+  }
 
   if (!guide) {
     notFound();
@@ -46,12 +62,16 @@ export default function GuideBookingPage() {
         throw new Error("Booking failed");
       }
 
-      setCurrentBooking({
+      const normalizedBooking = {
         ...bookingData,
+        id: bookingData._id || bookingData.id,
+      };
+
+      setCurrentBooking({
+        ...normalizedBooking,
         paymentMethod: null,
       });
-      // router.push("/tourist/payment");
-      router.push(`/tourist/payment?paymentId=${bookingData._id}`);
+      router.push(`/tourist/payment?bookingId=${normalizedBooking.id}`);
     } catch (error) {
       console.log("Error: ", error);
     }
@@ -181,7 +201,7 @@ export default function GuideBookingPage() {
                 <p className="text-muted-foreground text-sm">
                   Please{" "}
                   <a
-                    href={`/login?redirect=/guides/book/${guideId}`}
+                    href={`/login?redirect=/tourist/guides/book/${guideId}`}
                     className="text-primary font-semibold hover:underline"
                   >
                     sign in

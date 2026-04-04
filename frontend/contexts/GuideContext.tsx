@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   getAllGuides,
   getGuideProfile,
@@ -43,36 +44,78 @@ type GuideContextType = {
 const GuideContext = createContext<GuideContextType | undefined>(undefined);
 
 export const GuideProvider = ({ children }: any) => {
+  const { user } = useAuth();
   const [guides, setGuides] = useState<Guide[]>([]);
   const [myGuide, setMyGuide] = useState<Guide | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const mapGuide = (guide: any): Guide => ({
+    id: guide._id || guide.id || "",
+    name: guide.userId?.name || guide.name || "Unknown",
+    email: guide.userId?.email || guide.email || "",
+    avatar: guide.userId?.avatar || guide.avatar || "",
+    image:
+      guide.userId?.avatar || guide.image || guide.userId?.profileImage || "",
+    bio: guide.bio || guide.userId?.bio || "",
+    experience: guide.yearsOfExperience || guide.experience || 0,
+    rating: guide.averageRating || guide.rating || 0,
+    languages: Array.isArray(guide.languages) ? guide.languages : [],
+    specialities: guide.speciality
+      ? [guide.speciality]
+      : Array.isArray(guide.specialities)
+      ? guide.specialities
+      : [],
+    price: guide.hourlyRate || guide.price || 0,
+    isAvailable: guide.isAvailable ?? false,
+    isOnline: guide.isOnline ?? false,
+    certification: guide.certification || "",
+    yearsOfExperience: guide.yearsOfExperience || guide.yearsOfExperience || 0,
+    hourlyRate: guide.hourlyRate || guide.price || 0,
+    totalReviews: guide.totalReviews || 0,
+    verificationStatus:
+      guide.verificationStatus || "PENDING", // or fallback
+  });
+
   useEffect(() => {
     const fetchGuides = async () => {
-      const data = await getAllGuides();
-      if (!data) {
+      try {
+        const data = await getAllGuides();
+        if (!data) {
+          setGuides([]);
+          return;
+        }
+
+        const formattedData = data.map((guide: any) => mapGuide(guide));
+        setGuides(formattedData);
+      } catch (error) {
+        console.error("Failed to fetch guides", error);
+        setGuides([]);
+      } finally {
         setLoading(false);
-        return;
       }
-      const formattedData = data.map((guide: any) => ({
-        id: guide._id,
-        name: guide.userId?.name,
-        email: guide.userId?.email || "",
-        avatar: guide.userId?.avatar,
-        image: guide.userId?.avatar || guide.userId?.profileImage,
-        experience: guide.yearsOfExperience,
-        rating: guide.averageRating,
-        languages: guide.languages,
-        specialities: guide.speciality ? [guide.speciality] : [],
-        price: guide.hourlyRate,
-        isAvailable: guide.isAvailable,
-        isOnline: guide.isOnline,
-      }));
-      setGuides(formattedData);
-      setLoading(false);
     };
+
     fetchGuides();
   }, []);
+
+  useEffect(() => {
+    const fetchMyGuide = async () => {
+      if (!user || user.role !== "GUIDE") {
+        setMyGuide(null);
+        return;
+      }
+
+      try {
+        const data = await getGuideProfile();
+        if (data) setMyGuide(mapGuide(data));
+      } catch (error) {
+        console.error("Failed to fetch guide profile", error);
+        setMyGuide(null);
+      }
+    };
+
+    fetchMyGuide();
+  }, [user]);
 
   // useEffect(() => {
   //   const fetchMyGuide = async () => {

@@ -28,15 +28,17 @@ export default function GuidesPage() {
 
   // Filter guides
   const filtered = guides.filter((guide) => {
-    const matchesSearch =
-      guide.name ||
-      "".toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (guide.specialities?.[0] || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+    const nameMatch =
+      guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false;
+    const specialityMatch =
+      guide.specialities?.some((spec) =>
+        spec.toLowerCase().includes(searchTerm.toLowerCase()),
+      ) || false;
+    const matchesSearch = nameMatch || specialityMatch;
     const matchesSpeciality =
       selectedSpeciality === "all" ||
-      guide.specialities?.[0] === selectedSpeciality;
+      (guide.specialities?.[0] || "") === selectedSpeciality;
     return matchesSearch && matchesSpeciality;
   });
 

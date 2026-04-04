@@ -65,8 +65,8 @@ export const PaymentProvider = ({
   const fetchGuidePayments = async () => {
     try {
       setLoading(true);
-      const res = await getGuidePaymentsApi();
-      setPayments(res.data || []);
+      const data = await getGuidePaymentsApi();
+      setPayments(data || []);
     } catch (error) {
       console.log("Error fetching Guide Payments", error);
     } finally {
@@ -76,8 +76,8 @@ export const PaymentProvider = ({
 
   const fetchStats = async () => {
     try {
-      const res = await getPaymentStatsApi();
-      setStats(res.data);
+      const data = await getPaymentStatsApi();
+      setStats(data);
     } catch (error) {
       console.log("Error fetching Stats", error);
     }

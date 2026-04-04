@@ -1,16 +1,23 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 const getToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
+};
+
+const authHeaders = () => {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
-  return null;
+  return headers;
 };
 
 export const getAllDrivers = async () => {
   const res = await fetch(`${base_url}drivers`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
   const json = await res.json();
   return json.data;
@@ -18,9 +25,7 @@ export const getAllDrivers = async () => {
 
 export const getMyDriver = async () => {
   const res = await fetch(`${base_url}drivers/me`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
   const json = await res.json();
   return json.data;
@@ -28,9 +33,7 @@ export const getMyDriver = async () => {
 
 export const getDriverById = async (id: string) => {
   const res = await fetch(`${base_url}drivers/${id}`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers: authHeaders(),
   });
   const json = await res.json();
   return json.data;
@@ -41,7 +44,7 @@ export const updateDriver = async (id: string, data: any) => {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...authHeaders(),
     },
     body: JSON.stringify(data),
   });
@@ -57,7 +60,7 @@ export const setDriverAvailabilityApi = async (
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...authHeaders(),
     },
     body: JSON.stringify({ isAvailable }),
   });
@@ -70,7 +73,7 @@ export const setDriverOnlineStatusApi = async (id: string, isOnline: boolean) =>
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
+      ...authHeaders(),
     },
     body: JSON.stringify({ isOnline }),
   });

@@ -18,7 +18,7 @@ import { useGuide } from "@/contexts/GuideContext";
 type SortOption = "rating" | "price-low" | "price-high" | "experience";
 
 export default function GuidesPage() {
-  const { guides, setGuides } = useGuide();
+  const { guides, loading } = useGuide();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [languageFilter, setLanguageFilter] = useState<string>("");
@@ -74,6 +74,18 @@ export default function GuidesPage() {
   const totalLanguages = new Set(
     guides.flatMap((g: { languages: any }) => g.languages || []),
   ).size;
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex flex-col bg-background">
+        <Header title="Find a Guide" showBackButton />
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-lg text-muted-foreground">Loading guides...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   // Guide loading is managed in GuideProvider, no extra guest polling call needed.
 

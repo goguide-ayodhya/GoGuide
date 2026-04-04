@@ -1,53 +1,36 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import { useBooking } from '@/contexts/BookingsContext'
-import { useBookings } from '@/contexts/BookingsContext'
-import { Header } from '@/components/common/Header'
-import { Footer } from '@/components/common/Footer'
-import { BookingSummaryCard } from '@/components/booking/BookingSummaryCard'
-import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { CheckCircle, Calendar, MapPin } from 'lucide-react'
-import Link from 'next/link'
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useBooking } from "@/contexts/BookingsContext";
+import { Header } from "@/components/common/Header";
+import { Footer } from "@/components/common/Footer";
+import { BookingStatusBadge } from "@/components/booking/BookingStatusBadge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { CheckCircle, Calendar, MapPin } from "lucide-react";
+import Link from "next/link";
 
 export default function PaymentSuccessPage() {
-  const router = useRouter()
-  const { booking, clearBooking } = useBooking()
-  const { addBooking } = useBookings()
+  const router = useRouter();
+  const { currentBooking, setCurrentBooking } = useBooking();
 
   useEffect(() => {
-    // Add booking to history when payment succeeds
-    if (booking.type && booking.itemId && booking.bookingId) {
-      addBooking({
-        type: booking.type,
-        itemId: booking.itemId,
-        itemName: booking.itemName || '',
-        itemPrice: booking.itemPrice || 0,
-        itemImage: booking.itemImage,
-        status: 'confirmed',
-        date: booking.formData?.date || new Date().toISOString().split('T')[0],
-        time: booking.formData?.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        meetingPoint: booking.formData?.meetingPoint,
-        isVip: booking.formData?.vipPass || false,
-        formData: booking.formData,
-      })
-      clearBooking()
+    if (!currentBooking?.id) {
+      router.replace("/");
     }
-  }, [booking, addBooking, clearBooking])
+  }, [currentBooking, router]);
 
-  if (!booking.bookingId) {
+  if (!currentBooking?.id) {
     return (
       <main className="min-h-screen flex flex-col bg-background">
         <Header showBack={true} title="Payment" />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center min-h-screen justify-center">
           <p className="text-muted-foreground">Redirecting...</p>
         </div>
         <Footer />
       </main>
-    )
+    );
   }
 
   return (
@@ -74,53 +57,68 @@ export default function PaymentSuccessPage() {
             {/* Booking ID */}
             <div className="bg-background p-4 rounded-lg text-center">
               <p className="text-sm text-muted-foreground mb-1">Booking ID</p>
-              <p className="text-2xl font-mono font-bold text-primary">{booking.bookingId}</p>
+              <p className="text-2xl font-mono font-bold text-primary">
+                {currentBooking.id}
+              </p>
             </div>
 
             {/* Status */}
             <div className="flex justify-center">
-              <BookingStatusBadge status="confirmed" />
+              <BookingStatusBadge status="ACCEPTED" />
             </div>
 
             {/* Details */}
             <div className="space-y-3 pt-4 border-t">
               <div className="flex items-start gap-3">
-                <span className="text-sm text-muted-foreground flex-shrink-0">Service:</span>
-                <p className="font-semibold text-foreground capitalize">{booking.itemName}</p>
+                <span className="text-sm text-muted-foreground flex-shrink-0">
+                  Service:
+                </span>
+                <p className="font-semibold text-foreground capitalize">
+                  {currentBooking.touristName}
+                </p>
               </div>
 
-              {booking.formData?.date && (
+              {currentBooking.bookingDate && (
                 <div className="flex items-start gap-3">
                   <Calendar className="h-5 w-5 text-secondary mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm text-muted-foreground">Date & Time</p>
                     <p className="font-semibold text-foreground">
-                      {booking.formData.date} at {booking.formData.time || 'TBD'}
+                      {currentBooking.bookingDate} at{" "}
+                      {currentBooking.createdAt || "TBD"}
                     </p>
                   </div>
                 </div>
               )}
 
-              {booking.formData?.meetingPoint && (
+              {currentBooking.meetingPoint && (
                 <div className="flex items-start gap-3">
                   <MapPin className="h-5 w-5 text-secondary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Meeting Point</p>
-                    <p className="font-semibold text-foreground">{booking.formData.meetingPoint}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Meeting Point
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {currentBooking.meetingPoint}
+                    </p>
                   </div>
                 </div>
               )}
 
               <div className="flex items-start justify-between pt-4 border-t">
-                <span className="text-sm text-muted-foreground">Amount Paid:</span>
-                <p className="text-lg font-bold text-primary">₹{booking.itemPrice}</p>
+                <span className="text-sm text-muted-foreground">
+                  Amount Paid:
+                </span>
+                <p className="text-lg font-bold text-primary">
+                  ₹{currentBooking.totalPrice}
+                </p>
               </div>
             </div>
           </Card>
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Link href="/bookings" className="block">
+            <Link href="/tourist/bookings" className="block">
               <Button className="w-full bg-secondary hover:bg-secondary/90">
                 View My Bookings
               </Button>
@@ -136,5 +134,5 @@ export default function PaymentSuccessPage() {
 
       <Footer />
     </main>
-  )
+  );
 }

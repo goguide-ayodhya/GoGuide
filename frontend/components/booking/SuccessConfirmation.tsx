@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { CheckCircle, Calendar, MapPin, Smartphone } from 'lucide-react'
-import { useBooking } from '@/contexts/BookingsContext'
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { CheckCircle, Calendar, MapPin, Smartphone } from "lucide-react";
+import { useBooking } from "@/contexts/BookingsContext";
 
 export function SuccessConfirmation() {
-  const { booking } = useBooking()
+  const { currentBooking } = useBooking();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-secondary/5 to-background px-4 py-8">
@@ -22,7 +22,7 @@ export function SuccessConfirmation() {
           Booking Confirmed!
         </h1>
         <p className="text-center text-muted-foreground mb-8">
-          Your {booking.type} has been successfully booked.
+          Your {currentBooking?.tourType} has been successfully booked.
         </p>
 
         {/* Booking Details */}
@@ -30,7 +30,9 @@ export function SuccessConfirmation() {
           {/* Booking ID */}
           <div className="bg-background p-4 rounded-lg text-center">
             <p className="text-sm text-muted-foreground mb-1">Booking ID</p>
-            <p className="text-2xl font-mono font-bold text-primary">{booking.bookingId}</p>
+            <p className="text-2xl font-mono font-bold text-primary">
+              {currentBooking?.id}
+            </p>
           </div>
 
           {/* Booking Details */}
@@ -39,7 +41,9 @@ export function SuccessConfirmation() {
               <Smartphone className="h-5 w-5 text-secondary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm text-muted-foreground">Service</p>
-                <p className="font-semibold text-foreground capitalize">{booking.itemName}</p>
+                <p className="font-semibold text-foreground capitalize">
+                  {currentBooking?.touristName}
+                </p>
               </div>
             </div>
 
@@ -47,7 +51,9 @@ export function SuccessConfirmation() {
               <MapPin className="h-5 w-5 text-secondary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm text-muted-foreground">Amount Paid</p>
-                <p className="font-semibold text-foreground">₹{booking.itemPrice}</p>
+                <p className="font-semibold text-foreground">
+                  ₹{currentBooking?.totalPrice}
+                </p>
               </div>
             </div>
 
@@ -56,7 +62,9 @@ export function SuccessConfirmation() {
               <div>
                 <p className="text-sm text-muted-foreground">Payment Method</p>
                 <p className="font-semibold text-foreground capitalize">
-                  {booking.paymentMethod === 'upi' ? 'UPI' : 'Card/Netbanking'}
+                  {currentBooking?.paymentMethod === "upi"
+                    ? "UPI"
+                    : "Cash In Hand"}
                 </p>
               </div>
             </div>
@@ -64,8 +72,17 @@ export function SuccessConfirmation() {
 
           {/* Timestamp */}
           <div className="text-center text-xs text-muted-foreground border-t pt-3">
-            Confirmed on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at{' '}
-            {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            Confirmed on{" "}
+            {new Date().toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}{" "}
+            at{" "}
+            {new Date().toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         </Card>
 
@@ -85,9 +102,10 @@ export function SuccessConfirmation() {
 
         {/* Help Text */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          You will receive a confirmation email and SMS shortly. Keep your booking ID for reference.
+          You will receive a confirmation email and SMS shortly. Keep your
+          booking ID for reference.
         </p>
       </div>
     </div>
-  )
+  );
 }

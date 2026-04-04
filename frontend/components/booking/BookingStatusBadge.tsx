@@ -18,12 +18,12 @@ const statusConfig: Record<
     label: "Pending",
     variant: "default",
   },
-  CONFIRMED: {
-    label: "Confirmed",
+  ACCEPTED: {
+    label: "Accepted",
     variant: "secondary",
   },
-  ON_THE_WAY: {
-    label: "On the Way",
+  REJECTED: {
+    label: "Rejected",
     variant: "default",
   },
   COMPLETED: {
@@ -42,9 +42,9 @@ export function BookingStatusBadge({ status }: BookingStatusBadgeProps) {
   const badgeStyles: Record<BookingStatus, string> = {
     PENDING:
       "bg-yellow-500/20 text-yellow-700 border-yellow-200 hover:bg-yellow-500/30",
-    CONFIRMED:
+    ACCEPTED:
       "bg-blue-500/20 text-blue-700 border-blue-200 hover:bg-blue-500/30",
-    ON_THE_WAY:
+    REJECTED:
       "bg-purple-500/20 text-purple-700 border-purple-200 hover:bg-purple-500/30",
     COMPLETED:
       "bg-green-500/20 text-green-700 border-green-200 hover:bg-green-500/30",

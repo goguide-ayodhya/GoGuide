@@ -2,7 +2,7 @@
 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { Smartphone, CreditCard } from "lucide-react";
+import { Smartphone, CreditCard, HandHeart } from "lucide-react";
 
 interface PaymentMethodSelectorProps {
   value: "upi" | "card" | null;
@@ -57,6 +57,12 @@ export function PaymentMethodSelector({
             >
               {" "}
               <div className="flex items-center gap-3">
+                <HandHeart className="h-6 w-6 text-secondary" />
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Cash in Hand</p>
+                </div>
+              </div>
+              {/* <div className="flex items-center gap-3">
                 <CreditCard className="h-6 w-6 text-secondary" />
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">
@@ -66,7 +72,7 @@ export function PaymentMethodSelector({
                     Credit, Debit, or Bank Transfer
                   </p>
                 </div>
-              </div>
+              </div> */}
             </Card>
           </label>
         </div>

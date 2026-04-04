@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBooking } from "@/contexts/BookingsContext";
 import { usePayment } from "@/contexts/PaymentContext";
+import { getBookingsById } from "@/lib/api/bookings";
 
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
@@ -18,28 +19,74 @@ import { Loader2, Lock } from "lucide-react";
 export default function PaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const paymentId = searchParams.get("paymentId");
+  const bookingId = searchParams.get("bookingId");
 
-  const { processPayment } = usePayment();
-  const { currentBooking, setPaymentMethod } = useBooking();
+  const { processPayment, createPayment } = usePayment();
+  const { currentBooking, setCurrentBooking, setPaymentMethod } = useBooking();
 
+  const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
 
-  // ✅ redirect properly
+  const booking = currentBooking || bookingDetails;
+
   useEffect(() => {
-    if (!paymentId) {
-      router.push("/");
+    console.log("bookingId from URL:", bookingId);
+
+    if (!bookingId) {
+      router.replace("/");
+      return;
     }
-  }, [paymentId, router]);
+
+    if (currentBooking?.id === bookingId) {
+      return;
+    }
+
+    const fetchBooking = async () => {
+      try {
+        const data = await getBookingsById(bookingId);
+        if (!data) {
+          return;
+        }
+
+        const normalizedBooking = {
+          ...data,
+          id: data._id || data.id,
+        };
+
+        setBookingDetails(normalizedBooking);
+        setCurrentBooking(normalizedBooking);
+      } catch (error) {
+        console.log("Failed to load booking by URL:", error);
+      }
+    };
+
+    fetchBooking();
+  }, [bookingId, currentBooking, router, setCurrentBooking]);
+
+  if (!bookingId) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        <div>Booking ID missing. Redirecting...</div>
+      </main>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background">
+        <div>Loading booking details...</div>
+      </main>
+    );
+  }
 
   // ✅ success condition
-  if (paymentComplete || currentBooking?.status === "CONFIRMED") {
+  if (paymentComplete) {
     return <SuccessConfirmation />;
   }
 
   // ✅ price calc
-  const basePrice = currentBooking?.totalPrice || 0;
+  const basePrice = booking?.totalPrice || 0;
   const taxAmount = Math.round(basePrice * 0.18);
   const totalAmount = basePrice + taxAmount;
 
@@ -50,16 +97,27 @@ export default function PaymentPage() {
 
   // ✅ payment handler
   const handlePayment = async () => {
-    if (!paymentId) return;
+    if (!bookingId) return;
 
     setIsProcessing(true);
 
     try {
+      const paymentResponse = await createPayment(bookingId);
+      const paymentId =
+        paymentResponse?.payment?._id || paymentResponse?._id || paymentResponse?.paymentId;
+
+      console.log("Created payment for bookingId:", bookingId, "paymentId:", paymentId);
+
+      if (!paymentId) {
+        throw new Error("Payment creation failed");
+      }
+
       await processPayment(paymentId);
       setPaymentComplete(true);
 
       router.push("/tourist/payment-success");
     } catch (error) {
+      console.log("Error processing payment for bookingId:", bookingId, error);
       router.push("/tourist/payment-failed");
     } finally {
       setIsProcessing(false);
@@ -74,16 +132,16 @@ export default function PaymentPage() {
         <div className="max-w-2xl mx-auto space-y-8">
           {/* ✅ Booking Summary */}
           <BookingSummaryCard
-            itemName={currentBooking?.tourType || ""}
-            itemPrice={currentBooking?.totalPrice || 0}
-            // itemImage={currentBooking?.guideId?.avatar || assets.guideImage}
+            itemName={booking?.tourType || ""}
+            itemPrice={booking?.totalPrice || 0}
+            // itemImage={booking?.guideId?.avatar || assets.guideImage}
             itemType="guide"
           />
 
           {/* ✅ Payment Method */}
           <Card className="p-6">
             <PaymentMethodSelector
-              value={currentBooking?.paymentMethod as "upi" | "card" | null}
+              value={booking?.paymentMethod as "upi" | "card" | null}
               onChange={setPaymentMethod}
             />
           </Card>

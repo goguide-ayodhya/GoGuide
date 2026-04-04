@@ -2,16 +2,22 @@ const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 import { LoginData, SignupData } from "@/contexts/AuthContext";
 
 const getToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 };
 
-const authHeaders = () => ({
-  Authorization: `Bearer ${getToken()}`,
-  "Content-Type": "application/json",
-});
+const authHeaders = () => {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 // Login
 export const loginUser = async (data: LoginData) => {
@@ -68,6 +74,21 @@ export const logoutAllUsers = async () => {
   });
 
   if (!res.ok) throw new Error("Logout all failed");
+};
+
+export const validateTokenApi = async () => {
+  const headers = authHeaders();
+
+  const res = await fetch(`${base_url}auth/validate-token`, {
+    method: "POST",
+    headers,
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error("Validate Token Failed");
+  }
+  return json.data;
 };
 
 // Change Password

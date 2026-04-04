@@ -1,12 +1,22 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("token") : null;
+const getToken = () => {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
+};
 
-const authHeaders = () => ({
-  Authorization: `Bearer ${getToken()}`,
-  "Content-Type": "application/json",
-});
+const authHeaders = () => {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 const handleRes = async (res: Response) => {
   const json = await res.json();
@@ -74,4 +84,3 @@ export const getGuideEarnings = async () => {
 
   return handleRes(res);
 };
-  

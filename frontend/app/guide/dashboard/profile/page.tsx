@@ -1,7 +1,7 @@
 "use client";
 
 import { useGuide } from "@/contexts/GuideContext";
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -41,6 +41,24 @@ export default function ProfilePage() {
   const [newLanguage, setNewLanguage] = useState("");
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync form as soon as guide profile is available
+  useEffect(() => {
+    if (!myGuide) return;
+    setFormData({
+      name: user?.name || "",
+      email: user?.email || "",
+      bio: myGuide.bio || "",
+      speciality: Array.isArray(myGuide.specialities)
+        ? myGuide.specialities[0] || ""
+        : myGuide.specialities?.[0] || "",
+      certification: myGuide.certification || "",
+      yearsOfExperience: myGuide.yearsOfExperience || 0,
+      languages: myGuide.languages || [],
+      hourlyRate: myGuide.hourlyRate || 0,
+      reviews: myGuide.totalReviews,
+    });
+  }, [myGuide, user]);
 
   const handleSave = async () => {
     if (!myGuide) return;

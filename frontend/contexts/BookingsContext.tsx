@@ -3,6 +3,7 @@
 import {
   cancelBookingApi,
   getMyBookings,
+  getGuideBookings,
   acceptBookingApi,
   rejectBookingApi,
   completeBookingApi,
@@ -12,9 +13,9 @@ import {
   useContext,
   useState,
   ReactNode,
-  useCallback,
   useEffect,
 } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type BookingStatus =
   | "PENDING"
@@ -42,6 +43,8 @@ export interface Booking {
   createdAt: string;
   notes?: string;
   paymentMethod?: string;
+  isVip: boolean;
+  avatar: string;
   reviewed?: boolean;
 }
 
@@ -69,12 +72,22 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   // const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem("currentBooking");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const data = await getMyBookings();
+        const data =
+          user?.role === "GUIDE" || "ADMIN"
+            ? await getGuideBookings()
+            : await getMyBookings();
+
         const formattedData = data.map((b: any) => ({
           id: b._id,
           guideId: b.guideId,
@@ -96,13 +109,21 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
         setBookings(formattedData);
       } catch (error) {
-        console.log("Error fetching bookings");
+        console.log("Error fetching bookings", error);
       } finally {
         setLoading(false);
       }
     };
+
+    if (authLoading) return;
+    if (!localStorage.getItem("token") || !user) {
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+
     fetchBookings();
-  }, []);
+  }, [user, authLoading]);
 
   const updateBookingStatus = async (
     bookingId: string,

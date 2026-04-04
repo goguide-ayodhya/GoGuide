@@ -5,6 +5,7 @@ import {
   loginUser,
   logoutAllUsers,
   logoutUser,
+  validateTokenApi,
 } from "@/lib/api/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -56,13 +57,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize from localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser && storedUser !== "undefined") {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const initAuth = async () => {
+      const token = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
+
+      if (!token || !storedUser || token === "null" || token === "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await validateTokenApi();
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
   }, []);
 
   const login = async (data: LoginData) => {
@@ -111,11 +131,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logoutAll = async () => {
     try {
-      await logoutAllUsers()
-    } catch (error) {
-      
-    }
-  }
+      await logoutAllUsers();
+    } catch (error) {}
+  };
 
   return (
     <AuthContext.Provider
