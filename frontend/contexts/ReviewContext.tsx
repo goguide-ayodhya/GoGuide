@@ -28,10 +28,10 @@ interface ReviewContextType {
   reviews: Review[];
   loading: boolean;
 
-  getGuideReview: (guideId: string) => Promise<void>;
-  getBookingReview: (bookingId: string) => Promise<void>;
-  createReview: (bookingId: string, data: any) => Promise<void>;
-  updateReview: (reviewId: string, data: any) => Promise<void>;
+  getGuideReview: (guideId: string) => Promise<Review[]>;
+  getBookingReview: (bookingId: string) => Promise<Review | null>;
+  createReview: (bookingId: string, data: any) => Promise<Review>;
+  updateReview: (reviewId: string, data: any) => Promise<Review>;
   deleteReview: (reviewId: string) => Promise<void>;
 }
 
@@ -55,8 +55,10 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
         createdAt: review.createdAt,
       }));
       setReviews(formatted);
+      return formatted;
     } catch (error) {
       console.log("Get Reviews Error", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -68,20 +70,24 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await getBookingReviewApi(bookingId);
 
       if (data) {
-        setReviews([
-          {
-            id: data._id,
-            bookingId: data.bookingId,
-            guideId: data.guideId,
-            userId: data.userId,
-            rating: data.rating,
-            comments: data.comments,
-            createdAt: data.createdAt,
-          },
-        ]);
+        const formattedReview = {
+          id: data._id,
+          bookingId: data.bookingId,
+          guideId: data.guideId,
+          userId: data.userId,
+          rating: data.rating,
+          comments: data.comments,
+          createdAt: data.createdAt,
+        };
+        setReviews([formattedReview]);
+        return formattedReview;
       }
+
+      setReviews([]);
+      return null;
     } catch (error) {
       console.log("Get Booking Reviews Error", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -101,8 +107,10 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
         createdAt: data.createdAt,
       };
       setReviews((prev) => [newReview, ...prev]);
+      return newReview;
     } catch (error) {
       console.log("Error creating reviews", error);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -111,16 +119,25 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
   const updateReview = async (reviewId: string, data: ReviewData) => {
     setLoading(true);
     try {
-      await updateReviewApi(reviewId, data);
+      const updated = await updateReviewApi(reviewId, data);
+      const updatedReview: Review = {
+        id: updated._id,
+        bookingId: updated.bookingId,
+        guideId: updated.guideId,
+        userId: updated.userId,
+        rating: updated.rating,
+        comments: updated.comments,
+        createdAt: updated.createdAt,
+      };
       setReviews((review) =>
         review.map((r) =>
-          r.id === reviewId
-            ? { ...r, rating: data.rating, comments: data.comments }
-            : r,
+          r.id === reviewId ? updatedReview : r,
         ),
       );
+      return updatedReview;
     } catch (error) {
       console.log("Error update review", error);
+      throw error;
     } finally {
       setLoading(false);
     }

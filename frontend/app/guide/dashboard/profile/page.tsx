@@ -2,6 +2,7 @@
 
 import { useGuide } from "@/contexts/GuideContext";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useReview } from "@/contexts/ReviewContext";
 import {
   Card,
   CardContent,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
@@ -50,6 +52,7 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
+  const { reviews, getGuideReview } = useReview();
 
   // Sync form as soon as guide profile is available
   useEffect(() => {
@@ -66,6 +69,14 @@ export default function ProfilePage() {
       reviews: myGuide.totalReviews,
     });
   }, [myGuide]);
+
+  useEffect(() => {
+    if (myGuide?.id) {
+      getGuideReview(myGuide.id).catch((error) => {
+        console.error("Unable to load guide reviews", error);
+      });
+    }
+  }, [myGuide?.id, getGuideReview]);
 
   const handleSave = async () => {
     if (!myGuide) return;
@@ -138,7 +149,7 @@ export default function ProfilePage() {
       };
 
       const result = await updateGuideData(myGuide.id, updateData);
-      
+
       // Update localStorage with new user data for persistence
       if (result.userId?.avatar) {
         const storedUser = localStorage.getItem("user");
@@ -148,7 +159,7 @@ export default function ProfilePage() {
           localStorage.setItem("user", JSON.stringify(updatedUser));
         }
       }
-      
+
       toast({
         title: "Success",
         description: "Avatar updated successfully",
@@ -172,8 +183,20 @@ export default function ProfilePage() {
     }
   };
 
+  useEffect(() => {
+    if (myGuide?.id) {
+      getGuideReview(myGuide.id).catch((error) => {
+        console.error("Unable to load guide reviews", error);
+      });
+    }
+  }, [myGuide?.id, getGuideReview]);
+
   const handleChangePassword = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       toast({
         title: "Error",
         description: "Please fill in all password fields",
@@ -296,8 +319,8 @@ export default function ProfilePage() {
                     : myGuide?.image
                       ? myGuide.image
                       : user.avatar
-                      ? user.avatar
-                      : assets.guideImage
+                        ? user.avatar
+                        : assets.guideImage
                 }
                 alt={user.name}
                 fill
@@ -637,18 +660,25 @@ export default function ProfilePage() {
 
       {/* Reviews Section */}
       <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Tourist Reviews</CardTitle>
-          <CardDescription>
-            Feedback from tourists who booked your tours
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Tourist Reviews</CardTitle>
+            <CardDescription>
+              Feedback from tourists who booked your tours
+            </CardDescription>
+          </div>
+          <Link href="/guide/dashboard/reviews">
+            <Button size="sm" variant="outline" className="gap-2">
+              View All Reviews
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* {myGuide.reviews && mockReviews.length > 0 ? (
-              mockReviews.map((review, idx) => (
+            {reviews && reviews.length > 0 ? (
+              reviews.map((review) => (
                 <div
-                  key={idx}
+                  key={review.id}
                   className="pb-6 border-b border-border last:border-0 last:pb-0"
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -658,6 +688,9 @@ export default function ProfilePage() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Booking ID: {review.bookingId}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Review Date: {new Date(review.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -688,7 +721,7 @@ export default function ProfilePage() {
                   No reviews yet. Complete some tours to receive feedback!
                 </p>
               </div>
-            )} */}
+            )}
           </div>
         </CardContent>
       </Card>

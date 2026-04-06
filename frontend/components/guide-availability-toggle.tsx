@@ -2,12 +2,7 @@
 
 import { useGuide } from "@/contexts/GuideContext";
 import { Circle } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 
 export function GuideAvailabilityToggle() {
@@ -20,16 +15,16 @@ export function GuideAvailabilityToggle() {
   };
 
   return (
-    <Card className="bg-card border border-border">
-      <CardHeader>
+    <div className="">
+      {/* <CardHeader>
         <CardTitle className="text-lg">Availability Status</CardTitle>
-      </CardHeader>
+      </CardHeader> */}
 
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
+        <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3">
+          {/* <span className="text-sm font-bold text-muted-foreground">
             Availability Status
-          </span>
+          // </span> */}
 
           <div className="flex items-center gap-2">
             <Circle
@@ -46,12 +41,13 @@ export function GuideAvailabilityToggle() {
             </span>
             <Switch
               id="availability-toggle"
+              className="cursor-pointer"
               checked={myGuide?.isAvailable}
               onCheckedChange={handleToggle}
             />
           </div>
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 }

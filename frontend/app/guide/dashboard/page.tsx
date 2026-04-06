@@ -144,9 +144,19 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back! Here's your booking and earnings overview.
+        <div className="w-full flex space-between items-center">
+          <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground">
+            Dashboard
+          </h1>
+          {/* Status Cards */}
+          <div className="absolute right-2">
+            <GuideAvailabilityToggle />
+          </div>
+        </div>
+
+        <p className="text-muted-foreground text-sm mt-2">
+          Dear <b>{myGuide?.name}</b>, Best of Luck from{" "}
+          <b className="text-secondary">GoGuide</b> Team{" "}
         </p>
       </div>
 
@@ -160,12 +170,6 @@ export default function DashboardPage() {
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GuideStatusCard />
-        <GuideAvailabilityToggle />
-      </div>
 
       {/* New Bookings Section */}
       {bookings.length > 0 && (

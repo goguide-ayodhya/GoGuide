@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Settings, Check, HelpCircle, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { assets } from "@/public/assets/assets";
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -30,86 +32,33 @@ export function Header() {
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-30">
       <div className="flex-1">
-        <h2 className="text-lg md:text-2xl font-bold text-foreground">
-          Welcome, {user.name?.split(" ")[0]}!
-        </h2>
+        <Image
+          src={assets.logo}
+          alt="GoGuide Ayodhya Logo"
+          className="h-8 w-auto"
+          width={32}
+          height={32}
+        />
         <p className="text-xs md:text-sm text-muted-foreground mt-1">
           {user.speciality}
         </p>
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        {/* Notifications Dropdown */}
-        {/* <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground relative"
-              aria-label="Notifications"
-            >
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="font-semibold">
-              Notifications
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {mockNotifications.length > 0 ? (
-              <div className="max-h-96 overflow-y-auto">
-                {mockNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`px-4 py-3 border-b last:border-b-0 cursor-pointer hover:bg-secondary transition-colors ${
-                      !notification.read ? "bg-primary/5" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-1 flex-shrink-0 ${!notification.read ? "text-primary" : "text-muted-foreground"}`}
-                      >
-                        {!notification.read && <Check size={16} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground">
-                          {notification.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {notification.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">
-                          {notification.time}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-8 text-center text-muted-foreground text-sm">
-                No notifications
-              </div>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu> */}
-
         {/* Settings Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+              className="p-2 hover:bg-primary/20 cursor-pointer rounded-lg border- transition-colors text-muted-foreground hover:text-foreground"
               aria-label="Settings"
             >
               <Settings size={20} />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleProfileClick}>
               <div className="flex items-center gap-2">Profile Settings</div>
             </DropdownMenuItem>
-            <DropdownMenuItem>Account Preferences</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <HelpCircle size={16} className="mr-2" />

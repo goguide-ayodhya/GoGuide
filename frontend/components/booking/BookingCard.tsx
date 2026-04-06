@@ -16,7 +16,8 @@ export function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
   const canReview =
     booking.paymentStatus === "COMPLETED" && booking.status === "COMPLETED";
 
-  const canCancel = booking.status !== "CANCELLED" &&
+  const canCancel =
+    booking.status !== "CANCELLED" &&
     booking.status !== "COMPLETED" &&
     (booking.paymentStatus === "PENDING" || booking.status === "ACCEPTED");
 
@@ -46,7 +47,10 @@ export function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
         {booking.meetingPoint && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
-            <span>{booking.meetingPoint}</span>
+            <span>
+              Ride started from {booking.meetingPoint} to{" "}
+              {booking.dropoffLocation}{" "}
+            </span>
           </div>
         )}
       </div>
@@ -78,7 +82,7 @@ export function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
               className="bg-primary hover:bg-primary/90"
             >
               <Star className="h-4 w-4 mr-1" />
-              Review
+              {booking.reviewed ? "Edit Review" : "Review"}
             </Button>
           )}
           {/* {booking.reviews && (

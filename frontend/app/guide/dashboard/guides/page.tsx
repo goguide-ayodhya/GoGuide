@@ -66,7 +66,7 @@ export default function GuidesPage() {
                 placeholder="Search guides by name or speciality..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                className="pl-10 bg-muted border-border"
               />
             </div>
 
@@ -82,8 +82,8 @@ export default function GuidesPage() {
                     onClick={() => setSelectedSpeciality(speciality)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       selectedSpeciality === speciality
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                        ? "bg-primary cursor-pointer text-primary-foreground"
+                        : "bg-muted cursor-pointer text-foreground hover:bg-secondary/80"
                     }`}
                   >
                     {speciality.charAt(0).toUpperCase() + speciality.slice(1)}
@@ -180,7 +180,7 @@ export default function GuidesPage() {
                     </div>
 
                     {/* Actions */}
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Button className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground">
                       View Profile
                     </Button>
                   </div>

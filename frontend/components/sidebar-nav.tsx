@@ -10,6 +10,7 @@ import {
   Users,
   PieChart,
   User,
+  Star,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/guide/dashboard/bookings", label: "Bookings", icon: Calendar },
   { href: "/guide/dashboard/guides", label: "Guides", icon: Users },
   { href: "/guide/dashboard/earnings", label: "Earnings", icon: PieChart },
+  { href: "/guide/dashboard/reviews", label: "Reviews", icon: Star },
   { href: "/guide/dashboard/profile", label: "Profile", icon: User },
 ];
 

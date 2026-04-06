@@ -36,7 +36,6 @@ const ReviewSchema = new Schema<IReview>(
     },
     comments: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }
