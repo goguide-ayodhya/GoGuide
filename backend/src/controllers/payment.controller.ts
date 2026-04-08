@@ -156,6 +156,51 @@ export class PaymentController {
       throw error;
     }
   }
+
+  async getDriverEarnings(req: AuthRequest, res: Response) {
+    try {
+      const driverId = req.userId!;
+      const data = await paymentService.getDriverEarnings(driverId);
+
+      res.status(200).json({
+        success: true,
+        message: "Driver earnings fetched",
+        data,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getDriverMonthlyEarnings(req: AuthRequest, res: Response) {
+    try {
+      const driverId = req.userId!;
+      const data = await paymentService.getDriverMonthlyEarnings(driverId);
+
+      res.status(200).json({
+        success: true,
+        message: "Driver monthly earnings fetched",
+        data,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getDriverWeeklyEarnings(req: AuthRequest, res: Response) {
+    try {
+      const driverId = req.userId!;
+      const data = await paymentService.getDriverWeeklyEarnings(driverId);
+
+      res.status(200).json({
+        success: true,
+        message: "Driver weekly earnings fetched",
+        data,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export const paymentController = new PaymentController();

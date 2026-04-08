@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
+import Image from "next/image";
+import { assets } from "@/public/assets/assets";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,6 +24,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -38,10 +43,17 @@ export default function LoginPage() {
         throw new Error("User not found");
       }
 
+      if (redirect && redirect.startsWith("/")) {
+        router.push(redirect);
+        return;
+      }
+
       if (user.role === "GUIDE") {
         router.push("/guide/dashboard");
+      } else if (user.role === "DRIVER") {
+        router.push("/driver/dashboard");
       } else {
-        router.push("/tourist/guides");
+        router.push("/");
       }
     } catch (err) {
       setError(`Login failed. Please try again., ${err}`);
@@ -55,13 +67,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="p-2 bg-primary rounded-lg">
-              <MapPin className="w-4 h-4 text-primary-foreground" />
+          <div className="max-w-md w-full space-y-8">
+            <div className="text-center">
+              <Image
+                src={assets.logo}
+                alt="GoGuide - Ayodhya"
+                className="mx-auto h-24 w-auto"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">TourGuide</h1>
           </div>
-          <p className="text-muted-foreground">Travel ● Feel ● Remember</p>
+          <p className="text-muted-foreground pt-2">Travel ● Feel ● Remember</p>
         </div>
 
         {/* Login Card */}
@@ -71,7 +86,7 @@ export default function LoginPage() {
               Welcome Back
             </CardTitle>
             <CardDescription className="text-center">
-              Sign in to your guide account
+              Sign in to your account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -91,7 +106,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-input border-border"
+                  className="bg-muted border-border"
                   disabled={loading}
                 />
               </div>
@@ -105,7 +120,7 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-input border-border"
+                  className="bg-muted"
                   disabled={loading}
                 />
               </div>

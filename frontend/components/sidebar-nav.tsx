@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Menu,
   X,
@@ -17,19 +17,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/guide/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/guide/dashboard/bookings", label: "Bookings", icon: Calendar },
-  { href: "/guide/dashboard/guides", label: "Guides", icon: Users },
-  { href: "/guide/dashboard/earnings", label: "Earnings", icon: PieChart },
-  { href: "/guide/dashboard/reviews", label: "Reviews", icon: Star },
-  { href: "/guide/dashboard/profile", label: "Profile", icon: User },
-];
-
 export function SidebarNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -37,6 +28,21 @@ export function SidebarNav() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Generate dynamic nav items based on user role
+  const navItems = useMemo(() => {
+    const basePath = user?.role === "DRIVER" ? "/driver/dashboard" : "/guide/dashboard";
+    const professionalLabel = user?.role === "DRIVER" ? "Drivers" : "Guides";
+
+    return [
+      { href: `${basePath}`, label: "Dashboard", icon: BarChart3 },
+      { href: `${basePath}/bookings`, label: "Bookings", icon: Calendar },
+      { href: `${basePath}/guides`, label: professionalLabel, icon: Users },
+      { href: `${basePath}/earnings`, label: "Earnings", icon: PieChart },
+      { href: `${basePath}/reviews`, label: "Reviews", icon: Star },
+      { href: `${basePath}/profile`, label: "Profile", icon: User },
+    ];
+  }, [user?.role]);
 
   const handleNavigation = (href: string) => {
     router.push(href);

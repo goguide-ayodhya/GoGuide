@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { bookingService } from "../services/booking.service";
 import { Guide } from "../models/Guide";
+import { Driver } from "../models/Driver";
 
 export class BookingController {
   async createBooking(req: AuthRequest, res: Response) {
@@ -69,6 +70,43 @@ export class BookingController {
     }
   }
 
+  async getDriverBookings(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { status } = req.query;
+
+      console.log("getDriverBookings called for userId:", userId);
+
+      // Find the driver document by userId
+      const driver = await Driver.findOne({ userId });
+      console.log("Found driver:", driver);
+
+      if (!driver) {
+        console.log("Driver profile not found for userId:", userId);
+        return res.status(200).json({
+          success: true,
+          message: "Driver profile not found",
+          data: [],
+        });
+      }
+
+      console.log("Querying bookings for driverId:", driver._id.toString());
+      const bookings = await bookingService.getBookingsByDriver(driver._id.toString(), {
+        status: status as string,
+      });
+
+      console.log("Found bookings:", bookings.length);
+      res.status(200).json({
+        success: true,
+        message: "Bookings retrieved successfully",
+        data: bookings,
+      });
+    } catch (error) {
+      console.log("Error in getDriverBookings:", error);
+      throw error;
+    }
+  }
+
   async getBookingById(req: AuthRequest, res: Response) {
     try {
       const { bookingId } = req.params;
@@ -105,24 +143,45 @@ export class BookingController {
       const userId = req.userId!;
       const { bookingId } = req.params;
 
-      // Find the guide document by userId
-      const guide = await Guide.findOne({ userId });
-      if (!guide) {
+      const booking = await bookingService.getBookingById(bookingId);
+      if (!booking) {
         return res.status(404).json({
           success: false,
-          message: "Guide profile not found",
+          message: "Booking not found",
         });
       }
 
-      const booking = await bookingService.acceptBooking(
+      let actorId: string;
+      if (booking.bookingType === "GUIDE") {
+        const guide = await Guide.findOne({ userId });
+        if (!guide) {
+          return res.status(404).json({
+            success: false,
+            message: "Guide profile not found",
+          });
+        }
+        actorId = guide._id.toString();
+      } else {
+        const driver = await Driver.findOne({ userId });
+        if (!driver) {
+          return res.status(404).json({
+            success: false,
+            message: "Driver profile not found",
+          });
+        }
+        actorId = driver._id.toString();
+      }
+
+      const updatedBooking = await bookingService.acceptBooking(
         bookingId,
-        guide._id.toString(),
+        actorId,
+        booking.bookingType,
       );
 
       res.status(200).json({
         success: true,
         message: "Booking accepted successfully",
-        data: booking,
+        data: updatedBooking,
       });
     } catch (error) {
       throw error;
@@ -134,24 +193,45 @@ export class BookingController {
       const userId = req.userId!;
       const { bookingId } = req.params;
 
-      // Find the guide document by userId
-      const guide = await Guide.findOne({ userId });
-      if (!guide) {
+      const booking = await bookingService.getBookingById(bookingId);
+      if (!booking) {
         return res.status(404).json({
           success: false,
-          message: "Guide profile not found",
+          message: "Booking not found",
         });
       }
 
-      const booking = await bookingService.rejectBooking(
+      let actorId: string;
+      if (booking.bookingType === "GUIDE") {
+        const guide = await Guide.findOne({ userId });
+        if (!guide) {
+          return res.status(404).json({
+            success: false,
+            message: "Guide profile not found",
+          });
+        }
+        actorId = guide._id.toString();
+      } else {
+        const driver = await Driver.findOne({ userId });
+        if (!driver) {
+          return res.status(404).json({
+            success: false,
+            message: "Driver profile not found",
+          });
+        }
+        actorId = driver._id.toString();
+      }
+
+      const updatedBooking = await bookingService.rejectBooking(
         bookingId,
-        guide._id.toString(),
+        actorId,
+        booking.bookingType,
       );
 
       res.status(200).json({
         success: true,
         message: "Booking rejected successfully",
-        data: booking,
+        data: updatedBooking,
       });
     } catch (error) {
       throw error;
@@ -163,24 +243,45 @@ export class BookingController {
       const userId = req.userId!;
       const { bookingId } = req.params;
 
-      // Find the guide document by userId
-      const guide = await Guide.findOne({ userId });
-      if (!guide) {
+      const booking = await bookingService.getBookingById(bookingId);
+      if (!booking) {
         return res.status(404).json({
           success: false,
-          message: "Guide profile not found",
+          message: "Booking not found",
         });
       }
 
-      const booking = await bookingService.completeBooking(
+      let actorId: string;
+      if (booking.bookingType === "GUIDE") {
+        const guide = await Guide.findOne({ userId });
+        if (!guide) {
+          return res.status(404).json({
+            success: false,
+            message: "Guide profile not found",
+          });
+        }
+        actorId = guide._id.toString();
+      } else {
+        const driver = await Driver.findOne({ userId });
+        if (!driver) {
+          return res.status(404).json({
+            success: false,
+            message: "Driver profile not found",
+          });
+        }
+        actorId = driver._id.toString();
+      }
+
+      const updatedBooking = await bookingService.completeBooking(
         bookingId,
-        guide._id.toString(),
+        actorId,
+        booking.bookingType,
       );
 
       res.status(200).json({
         success: true,
         message: "Booking completed successfully",
-        data: booking,
+        data: updatedBooking,
       });
     } catch (error) {
       throw error;

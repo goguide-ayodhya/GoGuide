@@ -1,5 +1,5 @@
 // ============================================
-// Base Types & Interfaces for TourGuide Admin
+// Base Types & Interfaces for GoGuide Admin
 // ============================================
 
 // Enums

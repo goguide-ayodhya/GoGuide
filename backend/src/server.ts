@@ -15,6 +15,7 @@ import paymentRoutes from "./routes/payment.routes";
 import adminDashboardRoutes from "./routes/adminDashboard.routes";
 import adminRoutes from "./routes/admin.routes";
 import cabRoutes from "./routes/cab.routes";
+import driverRoutes from "./routes/driver.routes";
 import passRoutes from "./routes/pass.routes";
 import tourPackageRoutes from "./routes/tourPackage.routes";
 import settingsRoutes from './routes/setting.routes'
@@ -40,6 +41,7 @@ app.get("/health", (req: Request, res: Response) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/guides", guideRoutes);
+app.use("/api/drivers", driverRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/adminDashboard", adminDashboardRoutes);

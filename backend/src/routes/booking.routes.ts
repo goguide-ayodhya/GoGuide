@@ -26,6 +26,10 @@ router.get("/guide", authenticate, (req, res, next) => {
   bookingController.getGuideBookings(req, res).catch(next);
 });
 
+router.get("/driver", authenticate, (req, res, next) => {
+  bookingController.getDriverBookings(req, res).catch(next);
+});
+
 router.get("/:bookingId", authenticate, (req, res, next) => {
   bookingController.getBookingById(req, res).catch(next);
 });

@@ -1,21 +1,21 @@
-"use client";
+﻿"use client";
 
-import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
+import { useRouter, useParams, notFound } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooking } from "@/contexts/BookingsContext";
+import { useGuide, Guide } from "@/contexts/GuideContext";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { GuideBookingForm } from "@/components/booking/GuideBookingForm";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { notFound } from "next/navigation";
-import { Star, Circle, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useGuide, Guide } from "@/contexts/GuideContext";
+import { Circle, Star, AlertCircle } from "lucide-react";
 import { assets } from "@/public/assets/assets";
 import { createBooking } from "@/lib/api/bookings";
-import { createPaymentApi } from "@/lib/api/payments";
+import { poppins } from "@/lib/fonts";
 
 export default function GuideBookingPage() {
   const params = useParams();
@@ -23,39 +23,45 @@ export default function GuideBookingPage() {
   const { guides, loading } = useGuide();
   const { isLoggedIn } = useAuth();
   const { setCurrentBooking } = useBooking();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const guideId = params.id as string;
-  console.log("guideId from URL:", guideId);
+  const guide = guides.find((g: Guide) => g.id === guideId);
+  const isGuideAvailable = guide?.isOnline && guide?.isAvailable;
 
   if (!guideId) {
-    console.log("Missing guideId in URL, redirecting to guide list");
     router.replace("/tourist/guides");
     return null;
   }
 
-  const guide = guides.find((g: Guide) => g.id === guideId);
-
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background">
-        <div>Loading guide...</div>
+      <main className={`${poppins.className} min-h-screen bg-slate-50 text-slate-950`}>
+        <Header />
+        <div className="flex min-h-[calc(100vh-96px)] items-center justify-center px-4 py-16">
+          <Card className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl shadow-slate-200/30">
+            <p className="text-xl font-semibold text-slate-900">Loading guide details...</p>
+          </Card>
+        </div>
+        <Footer />
       </main>
     );
   }
 
   if (!guide) {
-    notFound();
+    return notFound();
   }
 
   const handleProceedToPayment = async (formData: any) => {
+    setIsSubmitting(true);
+    setError(null);
+
     try {
       const bookingRes = await createBooking({
-        guideId: guideId,
+        guideId,
         ...formData,
       });
-
-      console.log("bookingRes:", bookingRes);
-
       const bookingData = bookingRes?.data || bookingRes;
 
       if (!bookingData) {
@@ -72,161 +78,180 @@ export default function GuideBookingPage() {
         paymentMethod: null,
       });
       router.push(`/tourist/payment?bookingId=${normalizedBooking.id}`);
-    } catch (error) {
-      console.log("Error: ", error);
+    } catch (error: any) {
+      console.error("Booking error:", error);
+      const errorMessage = error.errors
+        ? Object.values(error.errors).join(", ")
+        : error.message || "An error occurred while creating the booking";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Check if guide is available
-  const isGuideAvailable = guide.isOnline && guide.isAvailable;
-
   return (
-    <main className="min-h-screen flex flex-col bg-background">
-      <Header showBack={true} title="Book a Guide" />
+    <main className={`${poppins.className} min-h-screen bg-slate-50 text-slate-950`}>
+      <Header showBack={true} />
 
-      <div className="flex-1 px-4 py-8">
-        <div className="max-w-2xl mx-auto space-y-8">
-          {/* Guide Summary */}
-          <Card className="overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 p-4">
-              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                <Image
-                  src={guide.avatar || assets.guideImage}
-                  alt={guide.name}
-                  fill
-                  className="object-cover"
-                  sizes="200px"
-                />
+      <div className="px-4 py-8 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-7xl space-y-8">
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/20">
+            <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
+              <div className="flex flex-col gap-6">
+                <div className="grid gap-4 sm:grid-cols-[160px_1fr] items-center">
+                  <div className="relative aspect-square overflow-hidden rounded-[1.75rem] bg-slate-100">
+                    <Image
+                      src={guide.avatar || assets.guideImage}
+                      alt={guide.name}
+                      fill
+                      className="object-cover"
+                      sizes="160px"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm uppercase tracking-[0.3em] text-orange-600">Guide profile</p>
+                        <h1 className="mt-2 text-3xl font-semibold text-slate-950">{guide.name}</h1>
+                      </div>
+                      <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+                        {isGuideAvailable ? "Available" : "Unavailable"}
+                      </div>
+                    </div>
+
+                    <p className="text-sm leading-7 text-slate-600">{guide.specialities?.join(", ") || "Personalized local experiences in your destination."}</p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {guide.languages?.map((lang: string) => (
+                        <Badge key={lang} variant="secondary" className="rounded-full px-3 py-1 text-sm text-slate-800 bg-orange-50 border-orange-100">
+                          {lang}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Hourly rate</p>
+                    <p className="mt-3 text-2xl font-semibold text-slate-950">₹{guide.price}</p>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rating</p>
+                    <p className="mt-3 text-2xl font-semibold text-slate-950">{guide.rating?.toFixed(1) ?? "0.0"}</p>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Experience</p>
+                    <p className="mt-3 text-2xl font-semibold text-slate-950">{guide.experience} yrs</p>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-foreground">
-                      {guide.name}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      {guide.specialities?.join(", ") || "No Speciality"}
-                    </p>
-                  </div>
-                  {/* Status Badge */}
-                  <div>
-                    {guide.isOnline && guide.isAvailable && (
-                      <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/20 text-green-700 border border-green-200 whitespace-nowrap">
-                        <Circle className="h-2 w-2 fill-current text-green-500" />
-                        <span className="text-xs font-semibold">
-                          Available Now
-                        </span>
-                      </div>
-                    )}
-                    {guide.isOnline && !guide.isAvailable && (
-                      <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-700 border border-yellow-200 whitespace-nowrap">
-                        <Circle className="h-2 w-2 fill-current text-yellow-500" />
-                        <span className="text-xs font-semibold">Busy</span>
-                      </div>
-                    )}
-                    {!guide.isOnline && (
-                      <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-500/20 text-gray-700 border border-gray-200 whitespace-nowrap">
-                        <Circle className="h-2 w-2 fill-current text-gray-500" />
-                        <span className="text-xs font-semibold">Offline</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < Math.floor(guide.rating)
-                            ? "fill-secondary text-secondary"
-                            : "text-muted-foreground"
-                        }`}
-                      />
-                    ))}
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                <p className="text-sm uppercase tracking-[0.24em] text-orange-600">Quick details</p>
+                <div className="mt-6 space-y-4 text-sm text-slate-600">
+                  <div className="rounded-3xl bg-white p-4 shadow-sm">
+                    <p className="font-semibold text-slate-900">Live availability</p>
+                    <p className="mt-2">{isGuideAvailable ? "Ready to book now" : "Requests will be handled when the guide is available."}</p>
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    {guide.rating}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {guide.languages.map((lang: string) => (
-                    <Badge
-                      key={lang}
-                      variant="outline"
-                      className="bg-primary/10 text-primary border-primary/20"
-                    >
-                      {lang}
-                    </Badge>
-                  ))}
-                </div>
-
-                <div className="text-2xl font-bold text-secondary">
-                  ₹{guide.price}
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    /hour
-                  </span>
+                  <div className="rounded-3xl bg-white p-4 shadow-sm">
+                    <p className="font-semibold text-slate-900">Languages covered</p>
+                    <p className="mt-2">{guide.languages?.join(", ") || "-"}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </section>
 
-          {/* About Guide */}
-          <div className="bg-card rounded-lg p-6 border">
-            <h3 className="font-semibold text-foreground mb-2">About</h3>
-            <p className="text-muted-foreground text-sm">{guide.bio}</p>
-          </div>
-
-          {/* Availability Alert */}
           {!isGuideAvailable && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
+            <Alert className="rounded-[1.75rem] border border-amber-200 bg-amber-50 text-amber-900">
               <AlertDescription>
-                {!guide.isOnline
-                  ? "This guide is currently offline. Please check back later or select another guide."
-                  : "This guide is currently busy. Please try booking at a later time."}
+                {guide.isOnline
+                  ? "This guide is currently busy. You can still request a booking, and we will notify you when they are ready."
+                  : "This guide is currently offline. Please check back later or choose another expert for instant booking."}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Booking Form */}
-          {!isLoggedIn ? (
-            <div className="bg-card rounded-lg p-6 border">
-              <h2 className="text-xl font-semibold text-foreground mb-6">
-                Book Tour
-              </h2>
-              <div className="space-y-4">
-                <p className="text-muted-foreground text-sm">
-                  Please{" "}
-                  <a
-                    href={`/login?redirect=/tourist/guides/book/${guideId}`}
-                    className="text-primary font-semibold hover:underline"
-                  >
-                    sign in
-                  </a>{" "}
-                  to complete your booking.
-                </p>
-                <div className="opacity-50 pointer-events-none">
-                  <GuideBookingForm
-                    guideHourlyRate={guide.price}
-                    onSubmit={handleProceedToPayment}
-                  />
+          {error && (
+            <Alert className="rounded-[1.75rem] border border-red-200 bg-red-50 text-red-900">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+            <div className="space-y-6">
+              <Card className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+                <h2 className="text-2xl font-semibold text-slate-950 mb-4">About this guide</h2>
+                <p className="text-slate-600 leading-7">{guide.bio || "Your guide will deliver an insightful, safe, and memorable experience with local knowledge and personalized service."}</p>
+              </Card>
+
+              <Card className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+                <h3 className="text-xl font-semibold text-slate-950 mb-4">What to expect</h3>
+                <ul className="space-y-4 text-slate-600">
+                  <li className="flex items-start gap-3">
+                    <Circle className="mt-1 h-3 w-3 text-orange-500" />
+                    <span>Private guided tour with local insights.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Circle className="mt-1 h-3 w-3 text-orange-500" />
+                    <span>Flexible itinerary shaped by your interests.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Circle className="mt-1 h-3 w-3 text-orange-500" />
+                    <span>Authentic recommendations beyond the guidebook.</span>
+                  </li>
+                </ul>
+              </Card>
+            </div>
+
+            <Card className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.24em] text-orange-600">Book the guide</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">Booking details</h2>
+                </div>
+                <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                  {isGuideAvailable ? "Open" : "Request"}
                 </div>
               </div>
+
+              <div className="mt-6 space-y-4">
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Price per hour</p>
+                  <p className="mt-2 text-3xl font-semibold text-slate-950">₹{guide.price}</p>
+                </div>
+
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Rating</p>
+                  <p className="mt-2 text-xl font-semibold text-slate-950">{guide.rating?.toFixed(1) ?? "0.0"} / 5</p>
+                </div>
+              </div>
+
+              <div className="relative">
+                <GuideBookingForm guideHourlyRate={guide.price} onSubmit={handleProceedToPayment} />
+                {!isGuideAvailable && (
+                  <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-white/70" />
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-950">Reviews</h3>
+                <p className="text-sm text-slate-500">Verified traveler feedback and ratings.</p>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-700">
+                <Star className="h-4 w-4" />
+                {guide.rating?.toFixed(1) ?? "0.0"}
+              </div>
             </div>
-          ) : isGuideAvailable ? (
-            <div className="bg-card rounded-lg p-6 border">
-              <h2 className="text-xl font-semibold text-foreground mb-6">
-                Book Tour
-              </h2>
-              <GuideBookingForm
-                guideHourlyRate={guide.price}
-                onSubmit={handleProceedToPayment}
-              />
-            </div>
-          ) : null}
+            <div className="text-slate-600">Reviews are being displayed here once available.</div>
+          </Card>
         </div>
       </div>
 
@@ -234,3 +259,4 @@ export default function GuideBookingPage() {
     </main>
   );
 }
+

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Circle } from "lucide-react";
+import { Star } from "lucide-react";
 import { Guide } from "@/contexts/GuideContext";
 import { assets } from "@/public/assets/assets";
 
@@ -38,142 +39,130 @@ function getStatusBadge(isOnline: boolean, isAvailable: boolean) {
 export function GuideCard({ guide }: GuideCardProps) {
   const statusBadge = getStatusBadge(guide.isOnline, guide.isAvailable);
   const canBook = guide.isAvailable && guide.isOnline;
+  const profileImage = guide.avatar || guide.image || assets.guideImage;
+  const bioText =
+    guide.bio?.trim() || guide.specialities?.[0] ||
+    "Friendly local guide with stories and insider tips.";
+  const recentReviews = guide.recentReviews?.slice(0, 2) || [];
 
   const cardContent = (
     <Card
       className={[
-        "group overflow-hidden transition-all",
-        "border-border/70 bg-card/80 backdrop-blur",
+        "group overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-sm transition-all duration-300",
         canBook
-          ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40"
+          ? "hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
           : "opacity-80",
       ].join(" ")}
     >
-      <div className="relative h-44 overflow-hidden bg-muted">
-        {guide.image ? (
-          <>
-            <Image
-              src={
-                guide.image && !guide.image.includes("fakepath")
-                  ? guide.image
-                  : assets.guideImage
-              }
-              alt={guide.name}
-              fill
-              priority={false}
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-primary/10" />
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <div className="text-sm font-medium">No Image</div>
-              {!canBook && (
-                <div className="mt-1 text-xs text-destructive">
-                  This guide is currently unavailable.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Status Badge - Top Right */}
-        <div className="absolute top-3 right-3">
-          <div
-            className={[
-              "flex items-center gap-1 px-2.5 py-1 rounded-full border shadow-sm",
-              "backdrop-blur bg-background/75",
-              statusBadge.color,
-            ].join(" ")}
-          >
-            <Circle
-              className={`h-2 w-2 fill-current ${statusBadge.dotColor}`}
-            />
-            <span className="text-xs font-semibold">{statusBadge.label}</span>
-          </div>
-        </div>
-
-        {/* Circular photo overlay (premium look) */}
-        <div className="absolute -bottom-7 left-4">
-          <div className="relative h-14 w-14 rounded-full border-2 border-background shadow-md ring-2 ring-primary/30 overflow-hidden bg-muted">
-            {guide.image ? (
+      <div className="p-5">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="flex-shrink-0">
+            <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/20 bg-muted">
               <Image
-                src={guide.image}
+                src={profileImage}
                 alt={guide.name}
                 fill
                 className="object-cover"
-                sizes="56px"
+                sizes="96px"
               />
-            ) : (
-              <div className="h-full w-full grid place-items-center text-xs font-semibold text-muted-foreground">
-                {guide.name?.slice(0, 1)?.toUpperCase() ?? "G"}
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="p-4 pt-10">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div>
-            <h3 className="font-semibold leading-tight text-foreground">
-              {guide.name}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {guide.experience}+ years experience
-            </p>
-          </div>
-          <div className="shrink-0">
-            <div className="inline-flex items-center gap-1 rounded-full border border-secondary/20 bg-secondary/10 px-2.5 py-1 text-secondary-foreground/90">
-              <Star className="h-3.5 w-3.5 fill-secondary text-secondary" />
-              <span className="text-xs font-semibold text-foreground">
-                {guide.rating}
-              </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-foreground">
+                  {guide.name}
+                </h3>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+                  {bioText}
+                </p>
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs font-semibold text-foreground">
+                  <span
+                    className={`h-2 w-2 rounded-full bg-current ${statusBadge.dotColor}`}
+                  />
+                  {statusBadge.label}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full bg-secondary/10 px-3 py-2 text-sm font-semibold text-secondary-foreground">
+                <Star className="h-4 w-4 fill-secondary text-secondary" />
+                <span>{guide.rating?.toFixed(1) ?? "0.0"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {guide.totalReviews ?? 0} reviews
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+                {guide.experience} yrs experience
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+                ₹{guide.price}/hr
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+                {guide.languages?.length ?? 0} languages
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(guide.languages || []).map((lang: string) => (
+                <Badge
+                  key={lang}
+                  variant="secondary"
+                  className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
+                >
+                  {lang}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1 mb-3">
-          {(guide.languages || []).map((lang: string) => (
-            <Badge
-              key={lang}
-              variant="secondary"
-              className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
-            >
-              {lang}
-            </Badge>
-          ))}
+        <div className="mt-6 rounded-3xl border border-border/70 bg-background/80 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold text-foreground">
+              Recent Reviews
+            </h4>
+            <span className="text-xs text-muted-foreground">
+              {recentReviews.length}/2
+            </span>
+          </div>
+
+          {recentReviews.length > 0 ? (
+            <div className="space-y-3">
+              {recentReviews.map((review, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl border border-border/70 bg-muted p-4"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {review.reviewer || "Guest"}
+                    </span>
+                    <div className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-1 text-xs font-semibold text-secondary-foreground">
+                      <Star className="h-3.5 w-3.5 fill-secondary text-secondary" />
+                      <span>{review.rating?.toFixed(1) ?? "0.0"}</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {review.comment || "No review text available."}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-muted-foreground">
+              No reviews yet
+            </p>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-1 mb-3">
-          {guide.specialities ||
-            [].slice(0, 2).map((speciality) => (
-              <Badge
-                key={speciality}
-                variant="outline"
-                className="text-[11px] border-secondary/30 bg-secondary/5"
-              >
-                {speciality}
-              </Badge>
-            ))}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold tracking-tight text-primary">
-            ₹{guide.price ? guide.price : 1000}/hr
-          </span>
-          <span
-            className={[
-              "text-xs font-medium",
-              canBook
-                ? "text-muted-foreground group-hover:text-foreground"
-                : "text-destructive",
-            ].join(" ")}
-          >
-            {canBook ? "Book now →" : "Unavailable"}
-          </span>
+        <div className="mt-6">
+          <Button className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90">
+            Book Now
+          </Button>
         </div>
       </div>
     </Card>

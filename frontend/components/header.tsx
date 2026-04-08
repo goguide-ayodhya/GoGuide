@@ -81,13 +81,19 @@ export function Header() {
           </div>
           <div className="relative">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden">
-              {/* <Image
-                src={user.profileImage || ""}
-                alt={user.name}
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              /> */}
+              {user.avatar || user.profileImage ? (
+                <Image
+                  src={user.avatar || user.profileImage || ""}
+                  alt={user.name}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
             {user.isOnline && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>

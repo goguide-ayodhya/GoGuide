@@ -36,6 +36,18 @@ router.get("/guide/weekly-earnings", authenticate, (req, res, next) => {
   paymentController.getGuideWeeklyEarnings(req, res).catch(next);
 });
 
+router.get("/driver/earnings", authenticate, (req, res, next) => {
+  paymentController.getDriverEarnings(req, res).catch(next);
+});
+
+router.get("/driver/monthly-earnings", authenticate, (req, res, next) => {
+  paymentController.getDriverMonthlyEarnings(req, res).catch(next);
+});
+
+router.get("/driver/weekly-earnings", authenticate, (req, res, next) => {
+  paymentController.getDriverWeeklyEarnings(req, res).catch(next);
+});
+
 router.get(
   "/admin/revenue",
   authenticate,

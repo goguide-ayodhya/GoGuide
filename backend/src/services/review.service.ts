@@ -1,6 +1,7 @@
 import { Review } from "../models/Review";
 import { Booking } from "../models/Booking";
 import { Guide } from "../models/Guide";
+import { Driver } from "../models/Driver";
 import { NotFound, BadRequest, Conflict } from "../utils/httpException";
 import { guideService } from "./guide.service";
 
@@ -27,10 +28,16 @@ export class ReviewService {
       ...data,
       bookingId,
       guideId: booking.guideId,
+      driverId: booking.driverId,
       userId,
     });
 
-    await this.updateGuideRating(booking.guideId.toString());
+    if (booking.guideId) {
+      await this.updateGuideRating(booking.guideId.toString());
+    }
+    if (booking.driverId) {
+      await this.updateDriverRating(booking.driverId.toString());
+    }
 
     return review;
   }
@@ -48,8 +55,29 @@ export class ReviewService {
     });
   }
 
+  async updateDriverRating(driverId: string) {
+    const reviews = await Review.find({ driverId });
+
+    const total = reviews.reduce((sum, r) => sum + r.rating, 0);
+
+    const avg = reviews.length ? total / reviews.length : 0;
+
+    await Driver.findByIdAndUpdate(driverId, {
+      averageRating: avg,
+      totalReviews: reviews.length,
+    });
+  }
+
   async getReviewsByGuide(guideId: string) {
     const reviews = await Review.find({ guideId })
+      .populate("userId", "id name profileImage")
+      .sort({ createdAt: -1 });
+
+    return reviews;
+  }
+
+  async getReviewsByDriver(driverId: string) {
+    const reviews = await Review.find({ driverId })
       .populate("userId", "id name profileImage")
       .sort({ createdAt: -1 });
 

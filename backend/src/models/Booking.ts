@@ -1,21 +1,30 @@
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IBooking extends Document {
-  guideId: Types.ObjectId;
+  guideId?: Types.ObjectId;
   userId: Types.ObjectId;
+  driverId?: Types.ObjectId;
+
   touristName: string;
   email: string;
   phone: string;
+
   cabRequired: boolean;
+
   isSeenByAdmin: boolean;
+
   groupSize: number;
   bookingDate: Date;
   startTime: string;
+
   tourType: string;
   meetingPoint: string;
   dropoffLocation: string;
   totalPrice: number;
+
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
+
+  bookingType: "GUIDE" | "DRIVER" | "TOKEN";
 
   paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
   notes?: string;
@@ -29,11 +38,22 @@ const BookingSchema = new Schema<IBooking>(
     guideId: {
       type: Schema.Types.ObjectId,
       ref: "Guide",
-      required: true,
+      required: function() {
+        return this.bookingType === "GUIDE";
+      },
     },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    driverId: {
+      type: Schema.Types.ObjectId,
+      ref: "Driver",
+    },
+    bookingType: {
+      type: String,
+      enum: ["GUIDE", "DRIVER", "TOKEN"],
       required: true,
     },
     touristName: {

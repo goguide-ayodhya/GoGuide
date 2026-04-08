@@ -1,53 +1,74 @@
-// "use client";
+"use client";
 
-// // import { useDriver } from "@/app/driver/contexts/DriverContext";
-// import { Circle } from "lucide-react";
-// import {
-//   Card,
-//   CardContent,
-//   CardHeader,
-//   CardTitle,
-// } from "@/components/ui/card";
-// import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
+import { Circle } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { useDriver } from "@/contexts/DriverContext";
 
-// export function DriverAvailabilityToggle() {
-//   const { myDriver, setAvailability } = useDriver();
+interface DriverAvailabilityToggleProps {
+  driver: any;
+}
 
-//   if (!myDriver) return null;
+export function DriverAvailabilityToggle({ driver }: DriverAvailabilityToggleProps) {
+  const { setAvailability } = useDriver();
+  const [loading, setLoading] = useState(false);
 
-//   const handleToggle = (checked: boolean) => {
-//     setAvailability(myDriver.id, checked);
-//   };
+  if (!driver) return null;
 
-//   return (
-//     <Card className="bg-card border border-border">
-//       <CardHeader>
-//         <CardTitle className="text-lg">Availability Status</CardTitle>
-//       </CardHeader>
+  const handleToggle = async (checked: boolean) => {
+    setLoading(true);
+    try {
+      await setAvailability(driver.id, checked);
+    } catch (error) {
+      console.error("Failed to update availability:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//       <CardContent className="space-y-4">
-//         <div className="flex items-center justify-between">
-//           <span className="text-sm font-medium text-muted-foreground">
-//             Availability Status
-//           </span>
+  return (
+    <Card className="bg-card border border-border">
+      <CardHeader>
+        <CardTitle className="text-lg">Availability Status</CardTitle>
+      </CardHeader>
 
-//           <div className="flex items-center gap-2">
-//             <Circle
-//               size={12}
-//               className={
-//                 myDriver.isAvailable
-//                   ? "fill-green-500 text-green-500"
-//                   : "fill-gray-500 text-gray-500"
-//               }
-//             />
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">
+            Availability Status
+          </span>
 
-//             <span className="text-sm font-medium">
-//               {myDriver.isAvailable ? "Available" : "Not Available"}
-//             </span>
-//             <Switch
-//               id="driver-availability-toggle"
-//               checked={myDriver?.isAvailable}
-//               onCheckedChange={handleToggle}
+          <div className="flex items-center gap-2">
+            <Circle
+              size={12}
+              className={
+                driver.isAvailable
+                  ? "fill-green-500 text-green-500"
+                  : "fill-gray-500 text-gray-500"
+              }
+            />
+
+            <span className="text-sm font-medium">
+              {driver.isAvailable ? "Available" : "Not Available"}
+            </span>
+            <Switch
+              id="driver-availability-toggle"
+              checked={driver?.isAvailable}
+              onCheckedChange={handleToggle}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 //             />
 //           </div>
 //         </div>

@@ -19,7 +19,12 @@ router.post("/login", validate(loginSchema), (req, res, next) => {
 
 router.post(
   "/signup",
-  upload.single("avatar"),
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "profileImage", maxCount: 1 },
+    { name: "driverPhoto", maxCount: 1 },
+    { name: "vehiclePhoto", maxCount: 1 },
+  ]),
   validate(signupSchema),
   (req, res, next) => {
     authController.signup(req, res).catch(next);

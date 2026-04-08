@@ -18,26 +18,19 @@ const authHeaders = () => {
   return headers;
 };
 
-export const createCab = async (data: any) => {
-  const res = await fetch(`${base_url}cabs`, {
-    method: "POST",
+// Profile
+export const getProfile = async () => {
+  const res = await fetch(`${base_url}settings/me`, {
+    headers: authHeaders(),
+  });
+  return res.json();
+};
+
+export const updateProfile = async (data: any) => {
+  const res = await fetch(`${base_url}settings/me`, {
+    method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(data),
-  });
-  return res.json();
-};
-
-export const getMyCabs = async () => {
-  const res = await fetch(`${base_url}cabs/my-cabs`, {
-    headers: authHeaders(),
-  });
-  return res.json();
-};
-
-export const cancelCab = async (id: string) => {
-  const res = await fetch(`${base_url}cabs/${id}/cancel`, {
-    method: "PATCH",
-    headers: authHeaders(),
   });
   return res.json();
 };

@@ -37,6 +37,21 @@ export class ReviewController {
     }
   }
 
+  async getDriverReviews(req: AuthRequest, res: Response) {
+    try {
+      const { driverId } = req.params;
+      const reviews = await reviewService.getReviewsByDriver(driverId);
+
+      res.status(200).json({
+        success: true,
+        message: "Reviews retrieved successfully",
+        data: reviews,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getBookingReview(req: AuthRequest, res: Response) {
     try {
       const { bookingId } = req.params;

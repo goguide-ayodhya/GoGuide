@@ -10,6 +10,7 @@ import {
   NotFound,
 } from "../utils/httpException";
 import { LoginInput, SignupInput } from "../validations/auth";
+import { Driver } from "../models/Driver";
 
 export class AuthService {
   // --------------------- Authentication ---------------------
@@ -68,15 +69,40 @@ export class AuthService {
       hourlyRate: input.hourlyRate || 500,
     });
 
-    // Create guide profile if role is GUIDE
     if (input.role === "GUIDE") {
       await Guide.create({
         userId: user._id,
+        speciality: input.speciality || "General",
+        hourlyRate: input.hourlyRate || 500,
+        yearsOfExperience: input.experience || 0,
+        languages: input.languages || [],
         verificationStatus: "PENDING",
         isAvailable: false,
+        isOnline: false,
+        averageRating: 0,
+        totalReviews: 0,
       });
     }
 
+    if (input.role === "DRIVER") {
+      await Driver.create({
+        userId: user._id,
+        vehicleType: input.vehicleType,
+        vehicleName: input.vehicleName || "",
+        vehicleNumber: input.vehicleNumber || "",
+        pricePerKm: input.pricePerKm || 0,
+        seats: input.seats || 0,
+        images: [input.driverPhoto, input.vehiclePhoto].filter(
+          Boolean,
+        ) as string[],
+        verificationStatus: "PENDING",
+        isAvailable: false,
+        averageRating: 0,
+        totalRides: 0,
+        driverName: input.name,
+        driverAadhar: input.driverAadhar || "",
+      });
+    }
     const token = this.generateToken(user._id.toString(), user.email);
 
     return {

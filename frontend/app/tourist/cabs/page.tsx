@@ -1,104 +1,113 @@
-// "use client";
+"use client";
 
-// import { Header } from "@/components/common/Header";
-// import { Footer } from "@/components/common/Footer";
-// import { CabCard } from "@/components/features/CabCard";
-// import { Input } from "@/components/ui/input";
-// // import { cabs } from "@/lib/mockData";
-// import { useState } from "react";
-// import { Search } from "lucide-react";
+import { Header } from "@/components/common/Header";
+import { Footer } from "@/components/common/Footer";
+import { CabCard } from "@/components/features/CabCard";
+import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
+import { useDriver } from "@/contexts/DriverContext";
+import { poppins } from "@/lib/fonts";
 
-// export default function CabsPage() {
-//   const [searchTerm, setSearchTerm] = useState("");
+export default function CabsPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { drivers, loading, fetchDrivers } = useDriver();
 
-//   // const filteredCabs = cabs.filter(
-//   //   (cab) =>
-//   //     cab.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//   //     cab.driver.toLowerCase().includes(searchTerm.toLowerCase()) ||
-//   //     cab.currentLocation.toLowerCase().includes(searchTerm.toLowerCase()),
-//   // );
+  useEffect(() => {
+    fetchDrivers();
+  }, [fetchDrivers]);
 
-//   return (
-//     <main className="min-h-screen flex flex-col bg-background">
-//       <Header title="Book a Cab" showBackButton />
+  const filteredDrivers = drivers.filter(
+    (driver) =>
+      driver.vehicleType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      driver.vehicleName.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
-//       <div className="flex-grow">
-//         <div className="px-4 md:px-6 py-8">
-//           <div className="mx-auto max-w-7xl">
-//             {/* Booking Info Section */}
-//             <div className="mb-8 bg-muted/50 p-6 rounded-lg border border-border">
-//               <h2 className="text-xl font-semibold text-foreground mb-4">
-//                 Plan Your Journey
-//               </h2>
-//               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-//                 <div>
-//                   <label className="block text-sm font-medium text-foreground mb-2">
-//                     Pickup Location
-//                   </label>
-//                   <Input
-//                     placeholder="Enter pickup location"
-//                     className="bg-background"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-foreground mb-2">
-//                     Dropoff Location
-//                   </label>
-//                   <Input
-//                     placeholder="Enter dropoff location"
-//                     className="bg-background"
-//                   />
-//                 </div>
-//                 <div>
-//                   <label className="block text-sm font-medium text-foreground mb-2">
-//                     Date & Time
-//                   </label>
-//                   <Input type="datetime-local" className="bg-background" />
-//                 </div>
-//               </div>
-//             </div>
+  return (
+    <main
+      className={`${poppins.className} min-h-screen bg-slate-50 text-slate-900`}
+    >
+      <Header showBackButton />
 
-//             {/* Search and Filter */}
-//             <div className="mb-8">
-//               <div className="relative">
-//                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-//                 <Input
-//                   placeholder="Search cabs by type, driver, or location..."
-//                   value={searchTerm}
-//                   onChange={(e) => setSearchTerm(e.target.value)}
-//                   className="pl-10 bg-background"
-//                 />
-//               </div>
-//             </div>
+      <div className="flex-grow px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8">
+          <section className="w-full bg-white rounded-3xl border border-slate-200 p-8 shadow-lg shadow-slate-200/40">
+            <div className="flex flex-col gap-4">
+              <span className="text-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-orange-700">
+                Cab/Driver service
+              </span>
 
-//             {/* Results */}
-//             {/* <div>
-//               <h3 className="text-lg font-semibold text-foreground mb-4">
-//                 Available Cabs ({filteredCabs.length})
-//               </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-3xl border border-slate-200 bg-orange-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700">
+                    Quick pickup
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-slate-950">
+                    Easy ride planning
+                  </p>
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Better routes
+                  </p>
+                  <p className="mt-3 text-lg font-semibold text-slate-950">
+                    Optimized driver selection
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
 
-//               {filteredCabs.length > 0 ? (
-//                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//                   {filteredCabs.map((cab) => (
-//                     <CabCard key={cab.id} cab={cab} />
-//                   ))}
-//                 </div>
-//               ) : (
-//                 <div className="text-center py-12">
-//                   <p className="text-muted-foreground mb-2">
-//                     No cabs found matching your search
-//                   </p>
-//                   <p className="text-sm text-muted-foreground">
-//                     Try adjusting your search terms
-//                   </p>
-//                 </div>
-//               )}
-//             </div> */}
-//           </div>
-//         </div>
-//       </div>
+          <section className="space-y-6">
+            <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg shadow-slate-200/40">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-orange-600">
+                    Drivers nearby
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                    Available drivers ({filteredDrivers.length})
+                  </h2>
+                </div>
 
-//       <Footer />
-//     </main>
-//   );
-// }
+                <div className="relative max-w-xl">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    placeholder="Search cabs by type, driver, or vehicle..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full rounded-3xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-slate-900 shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="rounded-2xl border border-slate-200 bg-white/95 p-10 text-center shadow-lg shadow-slate-200/30">
+                <p className="text-base text-slate-600">Loading drivers...</p>
+              </div>
+            ) : filteredDrivers.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filteredDrivers.map((driver) => (
+                  <CabCard key={driver.id} driver={driver} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/95 p-10 text-center shadow-lg shadow-slate-200/20">
+                <p className="text-lg font-semibold text-slate-950 mb-2">
+                  No drivers found
+                </p>
+                <p className="text-sm text-slate-500">
+                  Try different keywords or adjust your search filters.
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      <Footer />
+    </main>
+  );
+}

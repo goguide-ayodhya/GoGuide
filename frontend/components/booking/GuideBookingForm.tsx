@@ -24,6 +24,7 @@ interface GuideBookingFormProps {
     groupSize: number;
     bookingDate: string;
     startTime: string;
+    bookingType: string;
     tourType: string;
     dropoffLocation: string;
   }) => void;
@@ -39,6 +40,7 @@ export function GuideBookingForm({
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState("2");
   const [meetingPoint, setMeetingPoint] = useState("Hotel Lobby");
+  const [dropoffLocation, setDropoffLocation] = useState("Ram Mandir Main Gate");
   const [vipPass, setVipPass] = useState(false);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -62,6 +64,20 @@ export function GuideBookingForm({
     }
     if (!meetingPoint.trim())
       newErrors.meetingPoint = "Meeting point is required";
+    if (!dropoffLocation.trim())
+      newErrors.dropoffLocation = "Drop-off location is required";
+    if (!touristName.trim())
+      newErrors.touristName = "Name is required";
+    if (!email.trim()) newErrors.email = "Email is required";
+    if (!phone.trim()) newErrors.phone = "Phone is required";
+    else if (phone.length < 10) newErrors.phone = "Phone must be at least 10 digits";
+    if (!groupSize || parseInt(groupSize) < 1) newErrors.groupSize = "Group size must be at least 1";
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      newErrors.email = "Please enter a valid email";
+    }
 
     // Check if date is in future
     const selectedDate = new Date(date);
@@ -85,8 +101,9 @@ export function GuideBookingForm({
 
         bookingDate: new Date(date).toISOString(),
         startTime: time,
-        tourType: "GUIDE",
-        dropoffLocation: meetingPoint,
+        bookingType: "GUIDE",
+        tourType: "Personalized Tour",
+        dropoffLocation,
 
         duration: durationHours,
         meetingPoint,
@@ -166,22 +183,40 @@ export function GuideBookingForm({
         </div>
       </FormField>
 
-      <FormField label="Your Name" required>
+      {/* Drop-off Location */}
+      <FormField label="Drop-off Location" error={errors.dropoffLocation} required>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <select
+            value={dropoffLocation}
+            onChange={(e) => setDropoffLocation(e.target.value)}
+            className="pl-10 w-full h-11 bg-muted border-0 rounded-md text-foreground appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option>Hotel Lobby</option>
+            <option>Ram Mandir Main Gate</option>
+            <option>Hanuman Garhi Temple</option>
+            <option>Ayodhya Train Station</option>
+            <option>Other Location</option>
+          </select>
+        </div>
+      </FormField>
+
+      <FormField label="Your Name" error={errors.touristName} required>
         <Input
           value={touristName}
           onChange={(e) => setTouristName(e.target.value)}
         />
       </FormField>
 
-      <FormField label="Email" required>
+      <FormField label="Email" error={errors.email} required>
         <Input value={email} onChange={(e) => setEmail(e.target.value)} />
       </FormField>
 
-      <FormField label="Phone" required>
+      <FormField label="Phone" error={errors.phone} required>
         <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
       </FormField>
 
-      <FormField label="Group Size" required>
+      <FormField label="Group Size" error={errors.groupSize} required>
         <Input
           type="number"
           value={groupSize}

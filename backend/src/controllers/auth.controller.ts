@@ -25,8 +25,10 @@ export class AuthController {
 
   async signup(req: AuthRequest, res: Response) {
     try {
-      let avatarUrl = "";
-      if (req.file) {
+      const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+      const uploadImage = async (file?: Express.Multer.File) => {
+        if (!file) return "";
+
         const result = await new Promise<{ secure_url: string }>(
           (resolve, reject) => {
             cloudinary.uploader
@@ -40,15 +42,22 @@ export class AuthController {
                   else reject(new Error("Upload failed: no result returned"));
                 },
               )
-              .end(req.file?.buffer);
+              .end(file.buffer);
           },
         );
-        avatarUrl = result.secure_url;
-      }
+        return result.secure_url;
+      };
+
+      const avatarUrl = await uploadImage(files?.avatar?.[0]);
+      const profileImageUrl = await uploadImage(files?.profileImage?.[0]);
+      const driverPhotoUrl = await uploadImage(files?.driverPhoto?.[0]);
+      const vehiclePhotoUrl = await uploadImage(files?.vehiclePhoto?.[0]);
 
       const response = await authService.signup({
         ...req.body,
-        avatar: avatarUrl,
+        avatar: avatarUrl || profileImageUrl || "",
+        driverPhoto: driverPhotoUrl,
+        vehiclePhoto: vehiclePhotoUrl,
       });
 
       res.status(201).json({

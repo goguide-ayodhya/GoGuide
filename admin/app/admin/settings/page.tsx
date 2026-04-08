@@ -155,7 +155,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="p-3 sm:p-4 rounded-lg bg-muted">
               <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Email</p>
-              <p className="text-xs sm:text-sm font-medium text-foreground mt-1 truncate">admin@tourguide.com</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground mt-1 truncate">admin@goguide.com</p>
             </div>
             <div className="p-3 sm:p-4 rounded-lg bg-muted">
               <p className="text-[10px] sm:text-xs text-muted-foreground">Last Login</p>

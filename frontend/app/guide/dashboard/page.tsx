@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/stats-card";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
-import { GuideStatusCard } from "@/components/guide-status-card";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
 import { BookingStatusBadge } from "@/components/booking-status-badge";
 import {
@@ -57,7 +56,6 @@ export default function DashboardPage() {
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
   const monthlyData = earningsContext?.monthlyData;
-  const weeklyData = earningsContext?.weeklyData;
   const { bookings } = useBooking();
   const { reviews, getGuideReview } = useReview();
 

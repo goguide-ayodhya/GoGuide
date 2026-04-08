@@ -3,7 +3,8 @@ import { Schema, model, Document, Types } from "mongoose";
 export interface IPayment extends Document {
   bookingId: Types.ObjectId;
   userId: Types.ObjectId;
-  guideId: Types.ObjectId;
+  guideId?: Types.ObjectId;
+  driverId?: Types.ObjectId;
   amount: number;
   currency: string;
   status: "PENDING" | "COMPLETED" | "FAILED";
@@ -31,7 +32,10 @@ const PaymentSchema = new Schema<IPayment>(
     guideId: {
       type: Schema.Types.ObjectId,
       ref: "Guide",
-      required: true,
+    },
+    driverId: {
+      type: Schema.Types.ObjectId,
+      ref: "Driver",
     },
     amount: {
       type: Number,

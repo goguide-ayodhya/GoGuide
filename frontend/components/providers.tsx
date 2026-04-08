@@ -8,21 +8,24 @@ import { EarningsProvider } from "@/contexts/EarningContext";
 import { ReviewProvider } from "@/contexts/ReviewContext";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/toaster";
+import { DriverProvider } from "@/contexts/DriverContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <BookingProvider>
-        <PaymentProvider>
-          <EarningsProvider>
-            <ReviewProvider>
-              <GuideProvider>
-                {children}
-                <Toaster />
-              </GuideProvider>
-            </ReviewProvider>
-          </EarningsProvider>
-        </PaymentProvider>
+        <DriverProvider>
+          <PaymentProvider>
+            <EarningsProvider>
+              <ReviewProvider>
+                <GuideProvider>
+                  {children}
+                  <Toaster />
+                </GuideProvider>
+              </ReviewProvider>
+            </EarningsProvider>
+          </PaymentProvider>
+        </DriverProvider>
         <Analytics />
       </BookingProvider>
     </AuthProvider>

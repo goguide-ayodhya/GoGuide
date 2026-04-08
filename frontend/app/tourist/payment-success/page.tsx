@@ -1,19 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBooking } from "@/contexts/BookingsContext";
+import { useReview } from "@/contexts/ReviewContext";
+import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { BookingStatusBadge } from "@/components/booking/BookingStatusBadge";
+import { PaymentReviewModal } from "@/components/booking/PaymentReviewModal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, Calendar, MapPin } from "lucide-react";
+import HeadingTitle from "@/components/common/headingTitle";
 import Link from "next/link";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
   const { currentBooking, setCurrentBooking } = useBooking();
+  const { createReview } = useReview();
+  const { toast } = useToast();
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!currentBooking?.id) {
@@ -24,7 +31,8 @@ export default function PaymentSuccessPage() {
   if (!currentBooking?.id) {
     return (
       <main className="min-h-screen flex flex-col bg-background">
-        <Header showBack={true} title="Payment" />
+        <Header />
+        <HeadingTitle title="Payment Successful" />
         <div className="flex-1 flex items-center min-h-screen justify-center">
           <p className="text-muted-foreground">Redirecting...</p>
         </div>
@@ -64,7 +72,7 @@ export default function PaymentSuccessPage() {
 
             {/* Status */}
             <div className="flex justify-center">
-              <BookingStatusBadge status="ACCEPTED" />
+              <BookingStatusBadge status="PENDING" />
             </div>
 
             {/* Details */}
@@ -118,19 +126,55 @@ export default function PaymentSuccessPage() {
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Link href="/tourist/bookings" className="block">
-              <Button className="w-full bg-secondary hover:bg-secondary/90">
-                View My Bookings
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link href="/tourist/bookings" className="block">
+                <Button className="w-full bg-secondary cursor-pointer hover:bg-secondary/90">
+                  View My Bookings
+                </Button>
+              </Link>
+              <Button
+                onClick={() => setReviewOpen(true)}
+                className="w-full border border-secondary text-black bg-transparent cursor-pointer hover:bg-secondary/5"
+              >
+                Create a Review
               </Button>
-            </Link>
+            </div>
             <Link href="/" className="block">
-              <Button variant="outline" className="w-full">
+              <Button className="w-full cursor-pointer bg-secondary hover:bg-secondary/90">
                 Back to Home
               </Button>
             </Link>
           </div>
         </div>
       </div>
+
+      <PaymentReviewModal
+        open={reviewOpen}
+        bookingId={currentBooking.id}
+        onOpenChange={setReviewOpen}
+        onSubmit={async (bookingId, review) => {
+          try {
+            await createReview(bookingId, {
+              rating: review.rating,
+              comments: review.comment,
+            });
+
+            toast({
+              title: "Review submitted",
+              description: "Thanks for sharing your experience!",
+            });
+          } catch (error: any) {
+            toast({
+              title: "Unable to submit review",
+              description:
+                error?.message ||
+                "Something went wrong while submitting your review.",
+              variant: "destructive",
+            });
+            throw error;
+          }
+        }}
+      />
 
       <Footer />
     </main>

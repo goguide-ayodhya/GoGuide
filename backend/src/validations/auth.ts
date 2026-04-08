@@ -10,10 +10,94 @@ export const signupSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().optional(),
-  role: z.enum(["GUIDE", "TOURIST"]).default("TOURIST"),
+  role: z.enum(["GUIDE", "TOURIST", "DRIVER"]).default("TOURIST"),
   avatar: z.string().optional(),
+  profileImage: z.string().optional(),
   speciality: z.string().optional(),
-  hourlyRate: z.number().optional(),
+  hourlyRate: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return Number(value);
+    }
+    return value;
+  }, z.number().optional()),
+  experience: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return Number(value);
+    }
+    return value;
+  }, z.number().optional()),
+  languages: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return [value];
+    }
+    return value;
+  }, z.array(z.string()).optional()),
+  vehicleType: z.string().optional(),
+  vehicleName: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  pricePerKm: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return Number(value);
+    }
+    return value;
+  }, z.number().optional()),
+  seats: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return Number(value);
+    }
+    return value;
+  }, z.number().optional()),
+  driverPhoto: z.string().optional(), 
+  vehiclePhoto: z.string().optional(),
+  driverAadhar: z.string().optional(),
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.driverAadhar && data.driverAadhar.trim() !== "";
+  }
+  return true;
+}, {
+  message: "Aadhar number is required for drivers",
+  path: ["driverAadhar"],
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.vehicleType && data.vehicleType.trim() !== "";
+  }
+  return true;
+}, {
+  message: "Vehicle type is required for drivers",
+  path: ["vehicleType"],
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.vehicleName && data.vehicleName.trim() !== "";
+  }
+  return true;
+}, {
+  message: "Vehicle name is required for drivers",
+  path: ["vehicleName"],
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.vehicleNumber && data.vehicleNumber.trim() !== "";
+  }
+  return true;
+}, {
+  message: "Vehicle number is required for drivers",
+  path: ["vehicleNumber"],
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.pricePerKm && data.pricePerKm > 0;
+  }
+  return true;
+}, {
+  message: "Price per km is required for drivers",
+  path: ["pricePerKm"],
+}).refine((data) => {
+  if (data.role === "DRIVER") {
+    return data.seats && data.seats > 0;
+  }
+  return true;
+}, {
+  message: "Number of seats is required for drivers",
+  path: ["seats"],
 });
 
 export const changePasswordSchema = z
@@ -37,6 +121,8 @@ export const updateProfileSchema = z.object({
   phone: z.string().optional(),
   bio: z.string().optional(),
   profileImage: z.string().optional(),
+  driverPhoto: z.string().optional(),
+  vehiclePhoto: z.string().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

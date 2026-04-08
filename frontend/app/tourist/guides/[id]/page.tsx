@@ -1,5 +1,8 @@
 "use client";
 
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useParams, notFound } from "next/navigation";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import {
@@ -9,12 +12,11 @@ import {
 import { ConfirmationModal } from "@/components/features/ConfirmationModal";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { Star, MapPin, Users, Award, MessageCircle } from "lucide-react";
-import { notFound } from "next/navigation";
 import { Guide, useGuide } from "@/contexts/GuideContext";
 import { getGuideById } from "@/lib/api/guides";
+import { assets } from "@/public/assets/assets";
+import { Star, MapPin, Users, Award, MessageCircle, Circle } from "lucide-react";
+import { poppins } from "@/lib/fonts";
 
 export default function GuideDetailsPage() {
   const params = useParams();
@@ -22,10 +24,11 @@ export default function GuideDetailsPage() {
   const { guides } = useGuide();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [bookingData, setBookingData] = useState<BookingData | null>(null);
 
   useEffect(() => {
     const fetchGuide = async () => {
-      // First try from context
       const guideFromContext = guides.find((g: Guide) => g.id === guideId);
       if (guideFromContext) {
         setGuide(guideFromContext);
@@ -33,30 +36,32 @@ export default function GuideDetailsPage() {
         return;
       }
 
-      // If not in context, fetch from API
       try {
         const data = await getGuideById(guideId);
-        if (data) {
-          const formattedGuide: Guide = {
-            id: data._id,
-            name: data.userId?.name,
-            email: data.userId?.email || "",
-            avatar: data.userId?.avatar,
-            image: data.userId?.avatar || data.userId?.profileImage,
-            experience: data.yearsOfExperience,
-            rating: data.averageRating,
-            languages: data.languages,
-            specialities: data.speciality ? [data.speciality] : [],
-            price: data.hourlyRate,
-            isAvailable: data.isAvailable,
-            isOnline: data.isOnline,
-            hourlyRate: data.hourlyRate,
-            verificationStatus: data.verificationStatus as "PENDING" | "VERIFIED" | "REJECTED",
-          };
-          setGuide(formattedGuide);
-        } else {
+        if (!data) {
           notFound();
+          return;
         }
+
+        const formattedGuide: Guide = {
+          id: data._id,
+          name: data.userId?.name,
+          email: data.userId?.email || "",
+          bio: data.bio || data.userId?.bio || "",
+          avatar: data.userId?.avatar,
+          image: data.userId?.avatar || data.userId?.profileImage,
+          experience: data.yearsOfExperience || data.experience || 0,
+          rating: data.averageRating || data.rating || 0,
+          languages: Array.isArray(data.languages) ? data.languages : [],
+          specialities: data.speciality ? [data.speciality] : [],
+          price: data.hourlyRate || data.price || 0,
+          isAvailable: data.isAvailable ?? false,
+          isOnline: data.isOnline ?? false,
+          hourlyRate: data.hourlyRate || data.price || 0,
+          verificationStatus: data.verificationStatus as "PENDING" | "VERIFIED" | "REJECTED",
+        };
+
+        setGuide(formattedGuide);
       } catch (error) {
         console.error("Error fetching guide:", error);
         notFound();
@@ -68,23 +73,39 @@ export default function GuideDetailsPage() {
     fetchGuide();
   }, [guideId, guides]);
 
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [bookingData, setBookingData] = useState<BookingData | null>(null);
-
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <main className={`${poppins.className} min-h-screen bg-slate-50 text-slate-950`}>
+        <Header />
+        <div className="flex min-h-[calc(100vh-96px)] items-center justify-center px-4 py-16">
+          <Card className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl shadow-slate-200/30">
+            <p className="text-xl font-semibold text-slate-900">Loading guide profile...</p>
+          </Card>
+        </div>
+        <Footer />
+      </main>
+    );
   }
 
   if (!guide) {
-    notFound();
+    return notFound();
   }
+
+  const languages = Array.isArray(guide.languages)
+    ? guide.languages
+    : guide.languages
+    ? [guide.languages]
+    : [];
+
+  const specialties = guide.specialities || [];
+  const isAvailable = guide.isAvailable && guide.isOnline;
 
   const handleBookingSubmit = (data: BookingData) => {
     setBookingData(data);
     setShowConfirmation(true);
   };
 
-  const availableStatus = guide.isAvailable ? (
+  const availableStatus = isAvailable ? (
     <Badge className="bg-secondary text-white border-0">Available</Badge>
   ) : (
     <Badge variant="outline">Currently Unavailable</Badge>
@@ -92,7 +113,7 @@ export default function GuideDetailsPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-background">
-      <Header title="Guide Details" showBackButton />
+      <Header showBackButton />
 
       <div className="flex-grow">
         <div className="px-4 md:px-6 py-8">
@@ -166,7 +187,7 @@ export default function GuideDetailsPage() {
                       Languages
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {(guide.languages || []).map((lang: string) => (
+                      {languages.map((lang: string) => (
                         <Badge key={lang} variant="secondary">
                           {lang}
                         </Badge>
@@ -181,12 +202,17 @@ export default function GuideDetailsPage() {
                       Specialties
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {guide.specialities ||
-                        [].map((speciality: string) => (
+                      {specialties.length ? (
+                        specialties.map((speciality: string) => (
                           <Badge key={speciality} variant="outline">
                             {speciality}
                           </Badge>
-                        ))}
+                        ))
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          Custom itinerary tailoring available
+                        </span>
+                      )}
                     </div>
                   </Card>
                 </div>

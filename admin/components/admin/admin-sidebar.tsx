@@ -105,7 +105,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary">
                 <MapPin className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-sidebar-foreground">TourGuide</span>
+              <span className="font-semibold text-sidebar-foreground">GoGuide</span>
             </Link>
             <Button
               variant="ghost"
@@ -153,7 +153,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">Admin</p>
-                <p className="text-xs text-muted-foreground truncate">admin@tourguide.com</p>
+                <p className="text-xs text-muted-foreground truncate">admin@goguide.com</p>
               </div>
             </div>
           </div>

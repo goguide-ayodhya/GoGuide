@@ -12,6 +12,10 @@ router.get('/guide/:guideId', authenticate, (req, res, next) => {
   reviewController.getGuideReviews(req, res).catch(next);
 });
 
+router.get('/driver/:driverId', authenticate, (req, res, next) => {
+  reviewController.getDriverReviews(req, res).catch(next);
+});
+
 router.get('/booking/:bookingId', authenticate, (req, res, next) => {
   reviewController.getBookingReview(req, res).catch(next);
 });

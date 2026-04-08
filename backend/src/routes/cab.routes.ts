@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { cabController } from "../controllers/cab.controller";
+import { cabController } from "../controllers/driver.controller";
 import { authenticate } from "../middleware/auth";
 
 const router = Router();

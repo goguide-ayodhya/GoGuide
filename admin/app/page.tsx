@@ -21,7 +21,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     // Mock authentication
-    if (email === "admin@tourguide.com" && password === "admin123") {
+    if (email === "admin@goguide.com" && password === "goduide123") {
       setTimeout(() => {
         router.push("/admin/dashboard")
       }, 500)
@@ -39,7 +39,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
             <MapPin className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">TourGuide Admin</h1>
+          <h1 className="text-2xl font-semibold text-foreground">GoGuide - Ayodhya</h1>
           <p className="text-muted-foreground text-sm mt-1">Manage your tour guide platform</p>
         </div>
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@tourguide.com"
+                    placeholder="admin@goguide.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
@@ -96,8 +96,8 @@ export default function LoginPage() {
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground text-center mb-2">Demo Credentials</p>
               <div className="text-sm text-center space-y-1">
-                <p><span className="font-medium">Email:</span> admin@tourguide.com</p>
-                <p><span className="font-medium">Password:</span> admin123</p>
+                <p><span className="font-medium">Email:</span> admin@goguide.com</p>
+                <p><span className="font-medium">Password:</span> goduide123</p>
               </div>
             </div>
           </CardContent>

@@ -79,7 +79,7 @@ const initializeDatabase = (): Database => {
   const adminId = generateId();
   db.users.set(adminId, {
     id: adminId,
-    email: "admin@tourguide.com",
+    email: "admin@goguide.com",
     // Password: admin123 (in production, this would be hashed)
     password: "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu/1u",
     name: "Admin User",
@@ -562,7 +562,7 @@ const initializeDatabase = (): Database => {
   // Seed Platform Settings
   db.settings = {
     id: generateId(),
-    platformName: "TourGuide",
+    platformName: "GoGuide",
     platformFeePercentage: 20,
     cancellationPolicy: {
       freeCancellationHours: 24,
@@ -580,7 +580,7 @@ const initializeDatabase = (): Database => {
       razorpay: { enabled: true },
       upi: { enabled: true },
     },
-    supportEmail: "support@tourguide.com",
+    supportEmail: "support@goguide.com",
     supportPhone: "+91 1800 123 4567",
     createdAt: new Date(),
     updatedAt: new Date(),

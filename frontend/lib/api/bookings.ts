@@ -20,7 +20,11 @@ const authHeaders = () => {
 
 const handleRes = async (res: Response) => {
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "API error");
+  if (!res.ok) {
+    const error = new Error(json.message || "API error");
+    (error as any).errors = json.errors;
+    throw error;
+  }
   return json.data;
 };
 
@@ -47,6 +51,15 @@ export const getMyBookings = async () => {
 // Guide Bookings
 export const getGuideBookings = async () => {
   const res = await fetch(`${base_url}bookings/guide`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Driver Bookings
+export const getDriverBookings = async () => {
+  const res = await fetch(`${base_url}bookings/driver`, {
     headers: authHeaders(),
   });
 

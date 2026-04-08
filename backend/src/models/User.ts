@@ -7,15 +7,16 @@ export interface IUser extends Document {
   phone?: string;
   bio?: string;
   avatar: string;
+  vehiclePhoto?: string;
+  driverPhoto?: string;
 
-  role: "GUIDE" | "TOURIST" | "ADMIN";
+  role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
   status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETED";
   blockReason?: string;
   blockedAt?: Date;
   lastLoginAt?: Date;
   isDeleted?: boolean;
 
-  // isActive: boolean;
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -39,10 +40,16 @@ const UserSchema = new Schema<IUser>(
     },
     phone: String,
     avatar: String, // avatar as profileImage
+    vehiclePhoto: {
+      type: String,
+    },
+    driverPhoto: {
+      type: String,
+    },
     bio: String,
     role: {
       type: String,
-      enum: ["GUIDE", "TOURIST", "ADMIN"],
+      enum: ["GUIDE", "TOURIST", "ADMIN", "DRIVER"],
     },
     isDeleted: {
       type: Boolean,
@@ -55,10 +62,6 @@ const UserSchema = new Schema<IUser>(
     },
     blockReason: { type: String },
     blockedAt: { type: Date },
-    // isActive: {
-    //   type: Boolean,
-    //   default: true,
-    // },
     emailVerified: {
       type: Boolean,
       default: false,
