@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,13 @@ import { cn } from "@/lib/utils";
 import { poppins } from "@/lib/fonts";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
+import {
+  validateRequiredFields,
+  validateEmail,
+  validatePassword,
+  validatePhone,
+  FieldErrors,
+} from "@/lib/errorHandler";
 
 type UserFormData = {
   name: string;
@@ -40,6 +48,7 @@ export default function UserForm() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const passwordStrength = {
     hasLength: formData.password.length >= 8,
@@ -51,15 +60,63 @@ export default function UserForm() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: "" });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setFieldErrors({});
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    // Client-side validation
+    const validationErrors: FieldErrors = {};
+
+    // Check required fields
+    const requiredErrors = validateRequiredFields({
+      name: formData.name,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+      phone: formData.phone,
+    });
+    Object.assign(validationErrors, requiredErrors);
+
+    // Validate email if provided
+    if (formData.email) {
+      const emailError = validateEmail(formData.email);
+      if (emailError) {
+        validationErrors.email = emailError;
+      }
+    }
+
+    // Validate phone
+    if (formData.phone) {
+      const phoneError = validatePhone(formData.phone);
+      if (phoneError) {
+        validationErrors.phone = phoneError;
+      }
+    }
+
+    // Validate password
+    const passwordError = validatePassword(formData.password, 6);
+    if (passwordError) {
+      validationErrors.password = passwordError;
+    }
+
+    // Check password match
+    if (
+      formData.password &&
+      formData.confirmPassword &&
+      formData.password !== formData.confirmPassword
+    ) {
+      validationErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
       setLoading(false);
       return;
     }
@@ -69,13 +126,18 @@ export default function UserForm() {
         name: formData.name,
         email: formData.email || undefined,
         password: formData.password,
-
         phone: formData.phone,
         role: "TOURIST",
       });
       router.push("/");
     } catch (err: any) {
-      setError(err.message || "Signup failed");
+      // Handle API errors with field-level validation errors
+      if (err instanceof ApiError && err.fieldErrors) {
+        setFieldErrors(err.fieldErrors);
+        setError(err.message);
+      } else {
+        setError(err.message || "Signup failed");
+      }
     }
     setLoading(false);
   };
@@ -111,9 +173,12 @@ export default function UserForm() {
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="bg-muted"
+                  className={`bg-muted ${fieldErrors.name ? "border-red-500" : ""}`}
                   required
                 />
+                {fieldErrors.name && (
+                  <p className="text-sm text-red-500">{fieldErrors.name}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -125,8 +190,11 @@ export default function UserForm() {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="bg-muted"
+                  className={`bg-muted ${fieldErrors.email ? "border-red-500" : ""}`}
                 />
+                {fieldErrors.email && (
+                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -139,8 +207,11 @@ export default function UserForm() {
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="bg-muted"
+                  className={`bg-muted ${fieldErrors.phone ? "border-red-500" : ""}`}
                 />
+                {fieldErrors.phone && (
+                  <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -152,10 +223,13 @@ export default function UserForm() {
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="bg-muted"
+                  className={`bg-muted ${fieldErrors.password ? "border-red-500" : ""}`}
                   required
                 />
-                {formData.password && (
+                {fieldErrors.password && (
+                  <p className="text-sm text-red-500">{fieldErrors.password}</p>
+                )}
+                {formData.password && !fieldErrors.password && (
                   <div className="space-y-1">
                     <div className="flex gap-1 text-xs">
                       <div
@@ -216,9 +290,12 @@ export default function UserForm() {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="bg-muted"
+                  className={`bg-muted ${fieldErrors.confirmPassword ? "border-red-500" : ""}`}
                   required
                 />
+                {fieldErrors.confirmPassword && (
+                  <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
               {error && (

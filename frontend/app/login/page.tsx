@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { forgotPassword, sendOtp, resetPassword } from "@/lib/api/auth";
+import {
+  forgotPassword,
+  sendOtp,
+  resetPassword,
+  ApiError,
+} from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +22,12 @@ import {
 import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
+import {
+  validateRequiredFields,
+  validateEmail,
+  validatePassword,
+  FieldErrors,
+} from "@/lib/errorHandler";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,6 +39,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
@@ -45,7 +57,7 @@ export default function LoginPage() {
           return;
         }
 
-        const user = await login({ identifier, password });
+        const user = await login({ email: identifier, password });
         if (!user) {
           throw new Error("User not found");
         }
@@ -90,7 +102,9 @@ export default function LoginPage() {
           return;
         }
         await resetPassword(identifier, otp, newPassword);
-        setSuccess("Password reset successfully! Please login with your new password.");
+        setSuccess(
+          "Password reset successfully! Please login with your new password.",
+        );
         setMode("login");
         setIdentifier("");
         setPassword("");
@@ -124,15 +138,18 @@ export default function LoginPage() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-primary">
-              {mode === "login" ? "Welcome Back" : mode === "forgot" ? "Reset Password" : "Enter OTP"}
+              {mode === "login"
+                ? "Welcome Back"
+                : mode === "forgot"
+                  ? "Reset Password"
+                  : "Enter OTP"}
             </CardTitle>
             <CardDescription className="text-center">
-              {mode === "login" 
-                ? "Sign in to your account" 
+              {mode === "login"
+                ? "Sign in to your account"
                 : mode === "forgot"
-                ? "Enter your email or phone to reset password"
-                : "Enter the OTP sent to your email and set new password"
-              }
+                  ? "Enter your email or phone to reset password"
+                  : "Enter the OTP sent to your email and set new password"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -181,10 +198,14 @@ export default function LoginPage() {
 
                   <div className="flex items-center justify-between text-sm">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="rounded" defaultChecked />
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        defaultChecked
+                      />
                       <span className="text-foreground">Remember me</span>
                     </label>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setMode("forgot")}
                       className="text-primary hover:underline"
@@ -258,10 +279,17 @@ export default function LoginPage() {
                 className="w-full bg-primary hover:bg-primary/90 cursor-pointer text-primary-foreground font-medium"
                 disabled={loading}
               >
-                {loading 
-                  ? (mode === "login" ? "Signing in..." : mode === "forgot" ? "Sending..." : "Resetting...") 
-                  : (mode === "login" ? "Sign In" : mode === "forgot" ? "Send OTP" : "Reset Password")
-                }
+                {loading
+                  ? mode === "login"
+                    ? "Signing in..."
+                    : mode === "forgot"
+                      ? "Sending..."
+                      : "Resetting..."
+                  : mode === "login"
+                    ? "Sign In"
+                    : mode === "forgot"
+                      ? "Send OTP"
+                      : "Reset Password"}
               </Button>
 
               {mode === "forgot" && (

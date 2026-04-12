@@ -51,7 +51,7 @@ export type SignupData = {
 };
 
 export type LoginData = {
-  identifier: string;
+  email: string;
   password: string;
 };
 

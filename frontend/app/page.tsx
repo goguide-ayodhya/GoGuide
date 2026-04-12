@@ -261,6 +261,91 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Top Drivers Section */}
+        <section className="px-4  md:px-6 py-12 md:py-16 bg-primary/10">
+          <div className="mx-auto max-w-7xl">
+            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
+              <b className={`${poppins.className} text-secondary`}>Our </b> Top
+              Rated{" "}
+              <b className={`${poppins.className} text-secondary`}>
+                Drivers
+              </b>{" "}
+            </h2>
+
+            {guidesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+              </div>
+            ) : topRatedGuides.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  No verified guides available yet. Check back soon!
+                </p>
+              </div>
+            ) : (
+              <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+                {topRatedGuides.map((guide) => (
+                  <div
+                    key={guide.id}
+                    className="
+              min-w-[30%] sm:min-w-[22%] md:min-w-[18%] lg:min-w-[16%]
+              snap-start
+              rounded-xl overflow-hidden hover:shadow-md transition-shadow
+            "
+                  >
+                    <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
+                      {guide.image ? (
+                        <Image
+                          src={guide.image}
+                          alt={guide.name}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <Users className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3 bg-background">
+                      <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary">
+                        {guide.name}
+                      </p>
+                      <div className="flex items-center gap-1 mt-2">
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-3 w-3 ${
+                                i < Math.round(guide.rating)
+                                  ? "fill-secondary text-secondary"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-semibold text-foreground">
+                          {guide.rating.toFixed(1)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {guide.totalReviews || 0} review
+                        {(guide.totalReviews || 0) !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Link href="/tourist/guides">
+              <button className="border border-ring px-4 py-2 rounded-md bg-primary hover:bg-muted text-white hover:text-black mt-4 cursor-pointer">
+                View All Guides
+              </button>
+            </Link>
+          </div>
+        </section>
+
         {/* Our Partners */}
         <section className="px-4 md:px-6 py-12 md:py-16 bg-muted/50">
           <div className="mx-auto max-w-7xl">

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
 import { Guide } from "@/contexts/GuideContext";
 import { assets } from "@/public/assets/assets";
+import { useRouter } from "next/navigation";
 
 interface GuideCardProps {
   guide: Guide;
@@ -37,6 +38,7 @@ function getStatusBadge(isOnline: boolean, isAvailable: boolean) {
 }
 
 export function GuideCard({ guide }: GuideCardProps) {
+  const router = useRouter();
   const statusBadge = getStatusBadge(guide.isOnline, guide.isAvailable);
   const canBook = guide.isAvailable && guide.isOnline;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
@@ -161,19 +163,18 @@ export function GuideCard({ guide }: GuideCardProps) {
         </div>
 
         <div className="mt-6">
-          <Link href={`/tourist/guides/book/${guide.id}`}>
-            <Button className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90">
-              Book Now
-            </Button>
-          </Link>
+          {/* <Link href={`/tourist/guides/book/${guide.id}`}> */}
+          <Button
+            onClick={() => router.push(`/tourist/guides/book/${guide.id}`)}
+            className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90"
+          >
+            Book Now
+          </Button>
+          {/* </Link> */}
         </div>
       </div>
     </Card>
   );
-
-  if (canBook) {
-    return <Link href={`/tourist/guides/book/${guide.id}`}>{cardContent}</Link>;
-  }
 
   return cardContent;
 }

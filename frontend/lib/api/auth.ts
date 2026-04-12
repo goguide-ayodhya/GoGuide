@@ -114,7 +114,13 @@ export const signupUser = async (data: SignupData) => {
   });
 
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Signup failed");
+  if (!res.ok) {
+    throw new ApiError(
+      json.message || "Signup failed",
+      json.errors,
+      res.status,
+    );
+  }
 
   return json.data;
 };
@@ -179,6 +185,17 @@ export const changePassword = async (data: {
   return json.data;
 };
 
+export class ApiError extends Error {
+  constructor(
+    public message: string,
+    public fieldErrors?: Record<string, string>,
+    public statusCode?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export const loginUser = async (payload: any) => {
   const res = await fetch(`${base_url}auth/login`, {
     method: "POST",
@@ -187,10 +204,16 @@ export const loginUser = async (payload: any) => {
     },
     body: JSON.stringify(payload),
   });
+  console.log("pyload", payload);
 
   const result = await res.json();
   if (!res.ok) {
-    throw new Error(result?.message || "Login failed");
+    // Throw custom error with field-level errors if available
+    throw new ApiError(
+      result?.message || "Login failed",
+      result?.errors,
+      res.status,
+    );
   }
   if (!result?.data) {
     throw new Error("Invalid login response");
