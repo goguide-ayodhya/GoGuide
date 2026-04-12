@@ -4,14 +4,29 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDriver } from "@/contexts/DriverContext";
 import { useReview } from "@/contexts/ReviewContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowLeft, Star, Filter, Search } from "lucide-react";
+import { useBooking } from "@/contexts/BookingsContext";
 
 export default function ReviewsPage() {
   const { myDriver } = useDriver();
+  const { bookings } = useBooking();
+
   const { reviews, getDriverReview } = useReview();
   const [filteredReviews, setFilteredReviews] = useState(reviews || []);
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,24 +48,31 @@ export default function ReviewsPage() {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(review =>
-        review.comments.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.bookingId.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (review) =>
+          review.comments.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          review.bookingId.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
     // Rating filter
     if (ratingFilter !== "all") {
-      filtered = filtered.filter(review => review.rating === parseInt(ratingFilter));
+      filtered = filtered.filter(
+        (review) => review.rating === parseInt(ratingFilter),
+      );
     }
 
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         case "oldest":
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
         case "highest":
           return b.rating - a.rating;
         case "lowest":
@@ -93,7 +115,10 @@ export default function ReviewsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-3 text-muted-foreground" />
+              <Search
+                size={16}
+                className="absolute left-3 top-3 text-muted-foreground"
+              />
               <Input
                 placeholder="Search reviews..."
                 value={searchTerm}
@@ -147,7 +172,7 @@ export default function ReviewsPage() {
           <CardTitle>Review History</CardTitle>
           <CardDescription>
             {myDriver?.name
-              ? `Showing ${filteredReviews.length} review${filteredReviews.length !== 1 ? 's' : ''} for ${myDriver.name}`
+              ? `Showing ${filteredReviews.length} review${filteredReviews.length !== 1 ? "s" : ""} for ${myDriver.name}`
               : "Sign in as a driver to see your reviews."}
           </CardDescription>
         </CardHeader>
@@ -161,9 +186,15 @@ export default function ReviewsPage() {
                 >
                   <div className="flex items-center justify-between gap-4 mb-3">
                     <div>
-                      <p className="text-sm text-muted-foreground">Booking ID</p>
-                      <p className="font-medium text-foreground">
+                      <p className="text-sm text-muted-foreground">
+                        Booking ID -
                         {review.bookingId}
+                      </p>
+                      <p className="font-semibold text-foreground">
+                        {bookings.find((b) => b.id === review.bookingId)
+                          ?.touristName
+                          ? `${bookings.find((b) => b.id === review.bookingId)?.touristName}`
+                          : ""}
                       </p>
                     </div>
                     <div className="flex gap-1 text-yellow-400">
@@ -180,7 +211,10 @@ export default function ReviewsPage() {
                   </p>
 
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:justify-between">
-                    <span>Review Date: {new Date(review.createdAt).toLocaleDateString()}</span>
+                    <span>
+                      Review Date:{" "}
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
                     <span>Review Count: {filteredReviews.length}</span>
                   </div>
                 </div>

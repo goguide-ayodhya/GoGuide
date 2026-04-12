@@ -4,13 +4,21 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useGuide } from "@/contexts/GuideContext";
 import { useReview } from "@/contexts/ReviewContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Star } from "lucide-react";
+import { useBooking } from "@/contexts/BookingsContext";
 
 export default function ReviewsPage() {
   const { myGuide } = useGuide();
   const { reviews, getGuideReview } = useReview();
+  const { bookings } = useBooking();
 
   useEffect(() => {
     if (myGuide?.id) {
@@ -58,9 +66,14 @@ export default function ReviewsPage() {
                 >
                   <div className="flex items-center justify-between gap-4 mb-3">
                     <div>
-                      <p className="text-sm text-muted-foreground">Booking ID</p>
-                      <p className="font-medium text-foreground">
-                        {review.bookingId}
+                      <p className="text-sm text-muted-foreground">
+                        Booking ID -{review.bookingId}
+                      </p>
+                      <p className="text-sm font-semibold">
+                        {bookings.find((b) => b.id === review.bookingId)
+                          ?.touristName
+                          ? `${bookings.find((b) => b.id === review.bookingId)?.touristName}`
+                          : ""}
                       </p>
                     </div>
                     <div className="flex gap-1 text-yellow-400">
@@ -77,8 +90,10 @@ export default function ReviewsPage() {
                   </p>
 
                   <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:justify-between">
-                    <span>Review Date: {new Date(review.createdAt).toLocaleDateString()}</span>
-                    <span>Review Count: {reviews.length}</span>
+                    <span>
+                      Review Date:{" "}
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               ))

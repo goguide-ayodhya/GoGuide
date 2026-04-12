@@ -25,6 +25,15 @@ export class CabController {
     });
   }
 
+  async getAllForAdmin(req: AuthRequest, res: Response) {
+    const drivers = await driverService.getAllDriversForAdmin();
+
+    res.status(200).json({
+      success: true,
+      data: drivers,
+    });
+  }
+
   async getById(req: AuthRequest, res: Response) {
     const driver = await driverService.getDriverById(req.userId!);
 

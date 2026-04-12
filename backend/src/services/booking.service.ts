@@ -134,6 +134,22 @@ export class BookingService {
     return this.addReviewStatus(bookings);
   }
 
+  async getAllBookings() {
+    const bookings = await Booking.find({})
+      .populate({
+        path: "guideId",
+        populate: { path: "userId" },
+      })
+      .populate({
+        path: "driverId",
+        populate: { path: "userId" },
+      })
+      .populate("userId")
+      .sort({ bookingDate: -1 });
+
+    return this.addReviewStatus(bookings);
+  }
+
   async getBookingById(bookingId: string) {
     const booking = await Booking.findById(bookingId)
       .populate({

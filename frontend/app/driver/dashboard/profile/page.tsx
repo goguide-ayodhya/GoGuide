@@ -196,7 +196,7 @@ export default function ProfilePage() {
                   value={formData.name}
                   onChange={handleChange}
                   disabled={!isEditing || isDisabled}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
                   value={formData.email}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function ProfilePage() {
                   value={formData.vehicleType}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                   placeholder="e.g., SUV, Sedan, Van"
                 />
               </div>
@@ -279,7 +279,7 @@ export default function ProfilePage() {
                   value={formData.certification}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                   placeholder="Aadhar number"
                 />
               </div>
@@ -296,7 +296,7 @@ export default function ProfilePage() {
                   value={formData.yearsOfExperience}
                   onChange={handleChange}
                   disabled={true}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
               <div>
@@ -309,7 +309,7 @@ export default function ProfilePage() {
                   value={formData.pricePerKm}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-secondary border-border"
+                  className="bg-muted border-border"
                 />
               </div>
             </div>

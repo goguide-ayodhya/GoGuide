@@ -19,16 +19,62 @@ const authHeaders = () => {
   return headers;
 };
 
-// Login
-export const loginUser = async (data: LoginData) => {
-  const res = await fetch(`${base_url}auth/login`, {
+// Send OTP
+export const sendOtp = async (email: string) => {
+  const res = await fetch(`${base_url}auth/send-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ email }),
   });
 
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Login failed");
+  if (!res.ok) throw new Error(json.message || "Failed to send OTP");
+
+  return json.data;
+};
+
+// Verify Email
+export const verifyEmail = async (email: string, otp: string) => {
+  const res = await fetch(`${base_url}auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Email verification failed");
+
+  return json.data;
+};
+
+// Forgot Password
+export const forgotPassword = async (identifier: string) => {
+  const res = await fetch(`${base_url}auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to send reset link");
+
+  return json.data;
+};
+
+// Reset Password
+export const resetPassword = async (
+  email: string,
+  otp: string,
+  newPassword: string,
+) => {
+  const res = await fetch(`${base_url}auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, otp, newPassword }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Password reset failed");
 
   return json.data;
 };
@@ -36,9 +82,11 @@ export const loginUser = async (data: LoginData) => {
 // Signup
 export const signupUser = async (data: SignupData) => {
   const form = new FormData();
+  const { email } = data;
 
   form.append("name", data.name);
-  form.append("email", data.email);
+  form.append("email", email || "");
+  // form.append("email", data.email);
   form.append("password", data.password);
   form.append("role", data.role);
 
@@ -48,7 +96,7 @@ export const signupUser = async (data: SignupData) => {
   if (data.hourlyRate) form.append("hourlyRate", data.hourlyRate);
   if (data.experience) form.append("experience", data.experience);
   if (data.languages) {
-    data.languages.forEach(lang => form.append("languages", lang));
+    data.languages.forEach((lang) => form.append("languages", lang));
   }
   if (data.vehicleType) form.append("vehicleType", data.vehicleType);
   if (data.vehicleName) form.append("vehicleName", data.vehicleName);
@@ -122,11 +170,30 @@ export const changePassword = async (data: {
   if (!res.ok) {
     // Handle validation errors
     if (json.errors) {
-      const errorMessages = Object.values(json.errors).join(', ');
+      const errorMessages = Object.values(json.errors).join(", ");
       throw new Error(errorMessages || json.message);
     }
     throw new Error(json.message);
   }
 
   return json.data;
+};
+
+export const loginUser = async (payload: any) => {
+  const res = await fetch(`${base_url}auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await res.json();
+  if (!res.ok) {
+    throw new Error(result?.message || "Login failed");
+  }
+  if (!result?.data) {
+    throw new Error("Invalid login response");
+  }
+  return result.data;
 };

@@ -3,6 +3,7 @@ import { AuthRequest } from "../middleware/auth";
 import { User } from "../models/User";
 import { authService } from "../services/auth.service";
 import { NotFound } from "../utils/httpException";
+import { settingsService } from "../services/settings.service";
 
 export class SettingsController {
   async getProfile(req: AuthRequest, res: Response) {
@@ -45,6 +46,23 @@ export class SettingsController {
       success: true,
       message: "Password changed successfully",
       data: result,
+    });
+  }
+
+  async getCabPricing(req: AuthRequest, res: Response) {
+    const pricing = await settingsService.getCabPricing();
+    res.status(200).json({
+      success: true,
+      data: pricing,
+    });
+  }
+
+  async updateCabPricing(req: AuthRequest, res: Response) {
+    const pricing = await settingsService.updateCabPricing(req.body);
+    res.status(200).json({
+      success: true,
+      message: "Cab pricing updated successfully",
+      data: pricing,
     });
   }
 }

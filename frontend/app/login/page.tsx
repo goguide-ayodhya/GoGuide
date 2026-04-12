@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { forgotPassword, sendOtp, resetPassword } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,46 +21,86 @@ import { assets } from "@/public/assets/assets";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
 
-    try {
-      if (!email || !password) {
-        setError("Please fill in all fields");
-        return;
-      }
+    if (mode === "login") {
+      try {
+        if (!identifier || !password) {
+          setError("Please fill in all fields");
+          return;
+        }
 
-      const user = await login({ email, password });
-      if (!user) {
-        throw new Error("User not found");
-      }
+        const user = await login({ identifier, password });
+        if (!user) {
+          throw new Error("User not found");
+        }
 
-      if (redirect && redirect.startsWith("/")) {
-        router.push(redirect);
-        return;
-      }
+        if (redirect && redirect.startsWith("/")) {
+          router.push(redirect);
+          return;
+        }
 
-      if (user.role === "GUIDE") {
-        router.push("/guide/dashboard");
-      } else if (user.role === "DRIVER") {
-        router.push("/driver/dashboard");
-      } else {
-        router.push("/");
+        if (user.role === "GUIDE") {
+          router.push("/guide/dashboard");
+        } else if (user.role === "DRIVER") {
+          router.push("/driver/dashboard");
+        } else {
+          router.push("/");
+        }
+      } catch (err: any) {
+        setError(err.message || "Login failed. Please try again.");
       }
-    } catch (err) {
-      setError(`Login failed. Please try again., ${err}`);
-    } finally {
-      setLoading(false);
+    } else if (mode === "forgot") {
+      // Send OTP for password reset
+      try {
+        if (!identifier) {
+          setError("Please enter your email or phone");
+          return;
+        }
+        await forgotPassword(identifier);
+        setSuccess("OTP sent to your email. Please check your inbox.");
+        setMode("reset");
+      } catch (err: any) {
+        setError(err.message || "Failed to send OTP");
+      }
+    } else if (mode === "reset") {
+      // Reset password with OTP
+      try {
+        if (!identifier || !otp || !newPassword) {
+          setError("Please fill in all fields");
+          return;
+        }
+        if (newPassword.length < 6) {
+          setError("Password must be at least 6 characters");
+          return;
+        }
+        await resetPassword(identifier, otp, newPassword);
+        setSuccess("Password reset successfully! Please login with your new password.");
+        setMode("login");
+        setIdentifier("");
+        setPassword("");
+        setOtp("");
+        setNewPassword("");
+      } catch (err: any) {
+        setError(err.message || "Failed to reset password");
+      }
     }
+    setLoading(false);
   };
 
   return (
@@ -83,10 +124,15 @@ export default function LoginPage() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-primary">
-              Welcome Back
+              {mode === "login" ? "Welcome Back" : mode === "forgot" ? "Reset Password" : "Enter OTP"}
             </CardTitle>
             <CardDescription className="text-center">
-              Sign in to your account
+              {mode === "login" 
+                ? "Sign in to your account" 
+                : mode === "forgot"
+                ? "Enter your email or phone to reset password"
+                : "Enter the OTP sent to your email and set new password"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -97,56 +143,151 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-muted border-border"
-                  disabled={loading}
-                />
-              </div>
+              {success && (
+                <div className="p-3 bg-green-500/10 text-green-600 rounded-lg text-sm">
+                  {success}
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-muted"
-                  disabled={loading}
-                />
-              </div>
+              {mode === "login" ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Email or Phone
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Enter your email or phone"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      className="bg-muted border-border"
+                      disabled={loading}
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="rounded" defaultChecked />
-                  <span className="text-foreground">Remember me</span>
-                </label>
-                <Link href="#" className="text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Password
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="bg-muted"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="rounded" defaultChecked />
+                      <span className="text-foreground">Remember me</span>
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                </>
+              ) : mode === "forgot" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Email or Phone
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Enter your email or phone"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="bg-muted border-border"
+                    disabled={loading}
+                  />
+                </div>
+              ) : (
+                // Reset mode
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Email/Phone
+                    </label>
+                    <Input
+                      type="text"
+                      value={identifier}
+                      disabled
+                      className="bg-muted border-border"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      OTP
+                    </label>
+                    <Input
+                      type="text"
+                      placeholder="Enter 6-digit OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="bg-muted border-border"
+                      disabled={loading}
+                      maxLength={6}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      New Password
+                    </label>
+                    <Input
+                      type="password"
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-muted"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
+              )}
 
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90 cursor-pointer text-primary-foreground font-medium"
                 disabled={loading}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading 
+                  ? (mode === "login" ? "Signing in..." : mode === "forgot" ? "Sending..." : "Resetting...") 
+                  : (mode === "login" ? "Sign In" : mode === "forgot" ? "Send OTP" : "Reset Password")
+                }
               </Button>
+
+              {mode === "forgot" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="w-full text-sm text-primary hover:underline"
+                >
+                  Back to login
+                </button>
+              )}
+
+              {mode === "reset" && (
+                <button
+                  type="button"
+                  onClick={() => setMode("forgot")}
+                  className="w-full text-sm text-primary hover:underline"
+                >
+                  Back to email input
+                </button>
+              )}
 
               <p className="text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}
                 <Link
-                  href="/signup"
+                  href="/signup/user"
                   className="text-primary hover:underline font-medium"
                 >
                   Sign up

@@ -83,7 +83,7 @@ export function Header() {
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary flex items-center justify-center overflow-hidden">
               {user.avatar || user.profileImage ? (
                 <Image
-                  src={user.avatar || user.profileImage || ""}
+                  src={user.avatar || user.profileImage || assets.guideImage}
                   alt={user.name}
                   width={40}
                   height={40}

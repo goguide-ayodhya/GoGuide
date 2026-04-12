@@ -1,12 +1,16 @@
 import { Router } from "express";
 import { driverController } from "../controllers/driver.controller";
-import { authenticate } from "../middleware/auth";
+import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
 
 // Public routes
 router.get("/", (req, res, next) => {
   driverController.getAll(req, res).catch(next);
+});
+
+router.get("/admin/all", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  driverController.getAllForAdmin(req, res).catch(next);
 });
 
 router.get("/:id", (req, res, next) => {

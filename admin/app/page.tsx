@@ -1,33 +1,65 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MapPin, Lock, Mail } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const { login, user, isLoggedIn, loading } = useAuth()
+  const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (!loading && isLoggedIn && user?.role === "ADMIN") {
+      router.push("/admin/dashboard")
+    }
+  }, [user, isLoggedIn, loading, router])
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't show login if already authenticated as admin
+  if (isLoggedIn && user?.role === "ADMIN") {
+    return null
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    // Mock authentication
-    if (email === "admin@goguide.com" && password === "goduide123") {
-      setTimeout(() => {
-        router.push("/admin/dashboard")
-      }, 500)
-    } else {
+    try {
+      const user = await login({ identifier, password })
+
+      // Check if user is admin
+      if (user.role !== "ADMIN") {
+        setError("Access denied. Admin privileges required.")
+        return
+      }
+
+      router.push("/admin/dashboard")
+    } catch (error: any) {
+      setError(error.message || "Login failed. Please try again.")
+    } finally {
       setIsLoading(false)
-      setError("Invalid email or password")
     }
   }
 
@@ -52,15 +84,15 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="identifier">Email or Phone</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="admin@goguide.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="identifier"
+                    type="text"
+                    placeholder="Enter your email or phone"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -99,6 +131,9 @@ export default function LoginPage() {
                 <p><span className="font-medium">Email:</span> admin@goguide.com</p>
                 <p><span className="font-medium">Password:</span> goduide123</p>
               </div>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Note: Admin user must be created in the backend database
+              </p>
             </div>
           </CardContent>
         </Card>

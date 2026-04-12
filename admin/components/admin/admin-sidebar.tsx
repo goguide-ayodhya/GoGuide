@@ -15,7 +15,8 @@ import {
   Star,
   Settings,
   MapPin,
-  X
+  X,
+  Package
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -47,9 +48,9 @@ const menuItems = [
     icon: Car
   },
   {
-    title: "Passes",
-    href: "/admin/passes",
-    icon: Ticket
+    title: "Packages",
+    href: "/admin/packages",
+    icon: Package
   },
   {
     title: "Payments",
@@ -60,11 +61,6 @@ const menuItems = [
     title: "Revenue",
     href: "/admin/revenue",
     icon: TrendingUp
-  },
-  {
-    title: "Messages",
-    href: "/admin/messages",
-    icon: MessageSquare
   },
   {
     title: "Reviews",

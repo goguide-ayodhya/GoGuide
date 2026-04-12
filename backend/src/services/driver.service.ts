@@ -21,9 +21,23 @@ export class DriverService {
       verificationStatus: "VERIFIED",
       isAvailable: true,
     };
+
+    if (filters?.all) {
+      delete query.verificationStatus;
+      delete query.isAvailable;
+    }
+
     const drivers = await Driver.find(query)
       .populate("userId", "name avatar email phone")
       .sort({ averageRating: -1 });
+
+    return drivers;
+  }
+
+  async getAllDriversForAdmin() {
+    const drivers = await Driver.find({})
+      .populate("userId", "name avatar email phone")
+      .sort({ createdAt: -1 });
 
     return drivers;
   }

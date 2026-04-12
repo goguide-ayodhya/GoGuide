@@ -70,6 +70,19 @@ export class BookingController {
     }
   }
 
+  async getAllBookings(req: AuthRequest, res: Response) {
+    try {
+      const bookings = await bookingService.getAllBookings();
+      res.status(200).json({
+        success: true,
+        message: "Bookings retrieved successfully",
+        data: bookings,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getDriverBookings(req: AuthRequest, res: Response) {
     try {
       const userId = req.userId!;

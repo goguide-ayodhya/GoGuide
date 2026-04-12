@@ -11,12 +11,12 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
   avatar?: string;
   bio?: string;
   profileImage?: string;
-  phone?: string;
+  phone: string;
   hourlyRate?: number;
   speciality?: string;
   certification?: string;
@@ -25,14 +25,15 @@ export interface User {
   averageRating?: number;
   isAvailable?: boolean;
   isOnline?: boolean;
+  isEmailVerified?: boolean;
 }
 
 export type SignupData = {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   role: string;
-  phone?: string;
+  phone: string;
   avatar?: File;
   speciality?: string;
   hourlyRate?: string;
@@ -50,7 +51,7 @@ export type SignupData = {
 };
 
 export type LoginData = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -85,7 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await validateTokenApi();
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser || null);
       } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -102,8 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       const res = await loginUser(data);
-      setUser(res.user);
+      if (!res || !res.user || !res.token) {
+        throw new Error("Invalid login response");
+      }
 
+      setUser(res.user);
       localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("token", res.token);
 

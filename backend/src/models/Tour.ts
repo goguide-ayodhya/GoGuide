@@ -2,6 +2,7 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface ITourPackage extends Document {
   title: string;
+  image: string;
   location: string;
   price: number;
   duration: number; // days
@@ -15,6 +16,7 @@ export interface ITourPackage extends Document {
 const TourPackageSchema = new Schema<ITourPackage>(
   {
     title: { type: String, required: true },
+    image: { type: String, required: true },
     location: { type: String, required: true },
     price: { type: Number, required: true },
     duration: { type: Number, required: true },

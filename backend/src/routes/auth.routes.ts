@@ -6,6 +6,10 @@ import {
   loginSchema,
   signupSchema,
   changePasswordSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../validations/auth";
 import { upload } from "../middleware/upload";
 
@@ -39,8 +43,20 @@ router.post("/logoutall", authenticate, (req, res, next) => {
   authController.logoutAll(req, res).catch(next);
 });
 
-router.post("/validate-token", authenticate, (req, res, next) => {
-  authController.validateToken(req, res).catch(next);
+router.post("/send-otp", validate(sendOtpSchema), (req, res, next) => {
+  authController.sendOtp(req, res).catch(next);
+});
+
+router.post("/verify-email", validate(verifyOtpSchema), (req, res, next) => {
+  authController.verifyEmail(req, res).catch(next);
+});
+
+router.post("/forgot-password", validate(forgotPasswordSchema), (req, res, next) => {
+  authController.forgotPassword(req, res).catch(next);
+});
+
+router.post("/reset-password", validate(resetPasswordSchema), (req, res, next) => {
+  authController.resetPassword(req, res).catch(next);
 });
 
 // --------------------- User Management ---------------------

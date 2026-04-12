@@ -109,7 +109,16 @@ export const completeBookingApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
-// Admin
+// Admin - Get All Bookings
+export const getAllBookings = async () => {
+  const res = await fetch(`${base_url}bookings/admin/all`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Admin - Mark as Seen
 export const seenBooking = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/seen`, {
     method: "PATCH",

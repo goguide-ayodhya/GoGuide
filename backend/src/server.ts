@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./utils/logger";
 import { connectDB } from "./db/connection";
 import helmet from "helmet";
+import dotenv from "dotenv";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -18,9 +19,10 @@ import cabRoutes from "./routes/cab.routes";
 import driverRoutes from "./routes/driver.routes";
 import passRoutes from "./routes/pass.routes";
 import tourPackageRoutes from "./routes/tourPackage.routes";
-import settingsRoutes from './routes/setting.routes'
+import settingsRoutes from "./routes/setting.routes";
 
 const app: Application = express();
+dotenv.config();
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
@@ -29,7 +31,7 @@ app.use(corsMiddleware);
 app.use(helmet());
 
 // Health check endpoint
-app.get("/health", (req: Request, res: Response) => {
+app.get("/", (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Server is running",
@@ -48,8 +50,8 @@ app.use("/api/adminDashboard", adminDashboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/cabs", cabRoutes);
 app.use("/api/passes", passRoutes);
-app.use("/api/packages", tourPackageRoutes)
-app.use("/api/settings", settingsRoutes);;
+app.use("/api/packages", tourPackageRoutes);
+app.use("/api/settings", settingsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Menu, Bell, LogOut, CalendarDays, CreditCard, Users, XCircle } from "lucide-react"
 import { mockNotifications, type Notification } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface AdminHeaderProps {
   onMenuClick: () => void
@@ -28,6 +29,7 @@ const notificationIcons = {
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const router = useRouter()
+  const { logout, user } = useAuth()
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -42,8 +44,15 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }
 
-  const handleLogout = () => {
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/")
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Still redirect even if logout fails
+      router.push("/")
+    }
   }
 
   const formatDate = (dateString: string) => {

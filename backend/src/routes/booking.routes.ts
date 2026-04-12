@@ -30,6 +30,10 @@ router.get("/driver", authenticate, (req, res, next) => {
   bookingController.getDriverBookings(req, res).catch(next);
 });
 
+router.get("/admin/all", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  bookingController.getAllBookings(req, res).catch(next);
+});
+
 router.get("/:bookingId", authenticate, (req, res, next) => {
   bookingController.getBookingById(req, res).catch(next);
 });

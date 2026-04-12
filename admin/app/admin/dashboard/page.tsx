@@ -12,7 +12,7 @@ import {
   TrendingUp,
   TrendingDown
 } from "lucide-react"
-import { dashboardStats, weeklyBookingsData, monthlyRevenueData, mockBookings } from "@/lib/mock-data"
+import { weeklyBookingsData, monthlyRevenueData, mockBookings } from "@/lib/mock-data"
 import {
   BarChart,
   Bar,
@@ -24,57 +24,8 @@ import {
   AreaChart,
   Area
 } from "recharts"
-
-const statCards = [
-  {
-    title: "Total Bookings",
-    value: dashboardStats.totalBookings,
-    icon: CalendarDays,
-    trend: "+12%",
-    trendUp: true,
-    color: "text-chart-1"
-  },
-  {
-    title: "Pending Bookings",
-    value: dashboardStats.pendingBookings,
-    icon: Clock,
-    trend: "-5%",
-    trendUp: false,
-    color: "text-warning"
-  },
-  {
-    title: "Completed",
-    value: dashboardStats.completedBookings,
-    icon: CheckCircle,
-    trend: "+8%",
-    trendUp: true,
-    color: "text-success"
-  },
-  {
-    title: "Total Guides",
-    value: dashboardStats.totalGuides,
-    icon: Users,
-    trend: "+3",
-    trendUp: true,
-    color: "text-chart-2"
-  },
-  {
-    title: "Active Guides",
-    value: dashboardStats.activeGuides,
-    icon: UserCheck,
-    trend: "+2",
-    trendUp: true,
-    color: "text-primary"
-  },
-  {
-    title: "Total Revenue",
-    value: `₹${(dashboardStats.totalRevenue / 1000).toFixed(0)}K`,
-    icon: IndianRupee,
-    trend: "+18%",
-    trendUp: true,
-    color: "text-chart-4"
-  }
-]
+import { useEffect, useState } from "react"
+import { getAdminDashboard } from "@/lib/api/adminDashboard"
 
 const statusColors: Record<string, string> = {
   Pending: "bg-warning/10 text-warning-foreground border-warning/20",
@@ -85,7 +36,96 @@ const statusColors: Record<string, string> = {
 }
 
 export default function DashboardPage() {
-  const recentBookings = mockBookings.slice(0, 5)
+  const [adminData, setAdminData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const data = await getAdminDashboard()
+        setAdminData(data)
+      } catch (error) {
+        console.error("Failed to fetch admin dashboard data:", error)
+        // Keep mock data as fallback
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  const weeklyBookings = adminData?.weeklyBookings || weeklyBookingsData
+  const monthlyRevenue = adminData?.monthlyRevenue || monthlyRevenueData
+  const recentBookings = adminData?.recentBookings || mockBookings.slice(0, 5)
+
+  // Use real data from API, fallback to mock data structure
+  const dashboardStats = adminData ? {
+    totalBookings: adminData.bookings?.total || 0,
+    pendingBookings: adminData.bookings?.pending || 0,
+    completedBookings: adminData.bookings?.completed || 0,
+    totalGuides: adminData.guides || 0,
+    activeGuides: adminData.activeGuides || 0,
+    totalRevenue: adminData.revenue || 0,
+  } : {
+    totalBookings: 156,
+    pendingBookings: 12,
+    completedBookings: 134,
+    totalGuides: 15,
+    activeGuides: 8,
+    totalRevenue: 450000,
+  }
+
+  const statCards = [
+    {
+      title: "Total Bookings",
+      value: dashboardStats.totalBookings,
+      icon: CalendarDays,
+      trend: "+12%",
+      trendUp: true,
+      color: "text-chart-1"
+    },
+    {
+      title: "Pending Bookings",
+      value: dashboardStats.pendingBookings,
+      icon: Clock,
+      trend: "-5%",
+      trendUp: false,
+      color: "text-warning"
+    },
+    {
+      title: "Completed",
+      value: dashboardStats.completedBookings,
+      icon: CheckCircle,
+      trend: "+8%",
+      trendUp: true,
+      color: "text-success"
+    },
+    {
+      title: "Total Guides",
+      value: dashboardStats.totalGuides,
+      icon: Users,
+      trend: "+3",
+      trendUp: true,
+      color: "text-chart-2"
+    },
+    {
+      title: "Active Guides",
+      value: dashboardStats.activeGuides,
+      icon: UserCheck,
+      trend: "+2",
+      trendUp: true,
+      color: "text-primary"
+    },
+    {
+      title: "Total Revenue",
+      value: `₹${(dashboardStats.totalRevenue / 1000).toFixed(0)}K`,
+      icon: IndianRupee,
+      trend: "+18%",
+      trendUp: true,
+      color: "text-chart-4"
+    }
+  ]
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -127,7 +167,7 @@ export default function DashboardPage() {
           <CardContent className="p-2 sm:p-6 pt-0">
             <div className="h-[200px] sm:h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyBookingsData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <BarChart data={weeklyBookings} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis 
                     dataKey="day" 
@@ -165,7 +205,7 @@ export default function DashboardPage() {
           <CardContent className="p-2 sm:p-6 pt-0">
             <div className="h-[200px] sm:h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyRevenueData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                <AreaChart data={monthlyRevenue} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis 
                     dataKey="month" 
@@ -212,7 +252,7 @@ export default function DashboardPage() {
         <CardContent>
           {/* Mobile View - Cards */}
           <div className="block sm:hidden space-y-3">
-            {recentBookings.map((booking) => (
+            {recentBookings.map((booking: any) => (
               <div key={booking.id} className="p-3 rounded-lg border border-border bg-card">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -248,7 +288,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentBookings.map((booking) => (
+                {recentBookings.map((booking: any) => (
                   <tr key={booking.id} className="border-b border-border last:border-0">
                     <td className="py-3 text-sm font-medium text-foreground">{booking.id}</td>
                     <td className="py-3 text-sm text-foreground">{booking.touristName}</td>

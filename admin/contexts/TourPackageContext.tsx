@@ -4,11 +4,14 @@ import { createContext, useContext, useState } from "react";
 import { getPackages, getPackageById } from "@/lib/api/tourPackages";
 
 // ---------------- TYPES ----------------
-interface Package {
+export interface Package {
   _id: string;
-  name: string;
+  title: string;
+  location: string;
+  duration: number;
   price: number;
-  description?: string;
+  image: string;
+  description: string;
 }
 
 interface PackageContextType {

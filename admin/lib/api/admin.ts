@@ -16,12 +16,29 @@ const authHeaders = () => {
   return headers;
 };
 
+const handleRes = async (res: Response) => {
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "API error");
+  return json.data;
+};
+
+const handleResOrError = async (res: Response) => {
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.message || "API error");
+  return json;
+};
+
 // Get Users
-export const getUsersApi = async () => {
-  const res = await fetch(`${base_url}admin/users`, {
+export const getUsersApi = async (role?: string) => {
+  const params = new URLSearchParams();
+  if (role) params.set("role", role);
+
+  const url = `${base_url}admin/users${params.toString() ? `?${params.toString()}` : ""}`;
+  const res = await fetch(url, {
     headers: authHeaders(),
   });
-  return res.json();
+
+  return handleResOrError(res);
 };
 
 // Block
@@ -30,7 +47,7 @@ export const blockUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  return handleResOrError(res);
 };
 
 // Activate
@@ -39,7 +56,7 @@ export const activateUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  return handleResOrError(res);
 };
 
 // Suspend
@@ -48,7 +65,7 @@ export const suspendUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  return handleResOrError(res);
 };
 
 // Delete
@@ -57,5 +74,34 @@ export const deleteUserApi = async (id: string) => {
     method: "DELETE",
     headers: authHeaders(),
   });
-  return res.json();
+  return handleResOrError(res);
+};
+
+// Get all cabs for admin
+export const getAllCabsApi = async () => {
+  const res = await fetch(`${base_url}drivers/admin/all`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Get cab pricing (or default if not available)
+export const getCabPricingApi = async () => {
+  const res = await fetch(`${base_url}settings/cab-pricing`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Update cab pricing
+export const updateCabPricingApi = async (pricing: { baseFare: number; pricePerKm: number }) => {
+  const res = await fetch(`${base_url}settings/cab-pricing`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(pricing),
+  });
+  return handleRes(res);
 };

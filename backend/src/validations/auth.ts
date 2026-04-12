@@ -1,15 +1,15 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  identifier: z.string().min(1, "Email or phone is required"),
   password: z.string().min(8, "Password must be at least 6 characters"),
 });
 
 export const signupSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().optional(),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
   role: z.enum(["GUIDE", "TOURIST", "DRIVER"]).default("TOURIST"),
   avatar: z.string().optional(),
   profileImage: z.string().optional(),
@@ -123,6 +123,25 @@ export const updateProfileSchema = z.object({
   profileImage: z.string().optional(),
   driverPhoto: z.string().optional(),
   vehiclePhoto: z.string().optional(),
+});
+
+export const sendOtpSchema = z.object({
+  email: z.string().email("Valid email address is required"),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email("Valid email address is required"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+});
+
+export const forgotPasswordSchema = z.object({
+  identifier: z.string().min(1, "Email or phone is required"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Valid email address is required"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

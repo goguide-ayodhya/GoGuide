@@ -142,6 +142,64 @@ export class AuthController {
     });
   }
 
+  async sendOtp(req: AuthRequest, res: Response) {
+    try {
+      const result = await authService.sendOtp(req.body.email);
+
+      res.status(200).json({
+        success: true,
+        message: "OTP sent successfully",
+        data: result,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async verifyEmail(req: AuthRequest, res: Response) {
+    try {
+      const result = await authService.verifyEmail(req.body.email, req.body.otp);
+
+      res.status(200).json({
+        success: true,
+        message: "Email verified successfully",
+        data: result,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+
+
+  async forgotPassword(req: AuthRequest, res: Response) {
+    try {
+      const result = await authService.forgotPassword(req.body.identifier);
+
+      res.status(200).json({
+        success: true,
+        message: "Password reset link sent successfully",
+        data: result,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async resetPassword(req: AuthRequest, res: Response) {
+    try {
+      const result = await authService.resetPassword(req.body.email, req.body.otp, req.body.newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: "Password reset successfully",
+        data: result,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // --------------------- User Management ---------------------
   async getUserById(req: AuthRequest, res: Response) {
     const { id } = req.params;

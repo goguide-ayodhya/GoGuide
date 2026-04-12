@@ -41,7 +41,8 @@ export function GuideCard({ guide }: GuideCardProps) {
   const canBook = guide.isAvailable && guide.isOnline;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
   const bioText =
-    guide.bio?.trim() || guide.specialities?.[0] ||
+    guide.bio?.trim() ||
+    guide.specialities?.[0] ||
     "Friendly local guide with stories and insider tips.";
   const recentReviews = guide.recentReviews?.slice(0, 2) || [];
 
@@ -160,9 +161,11 @@ export function GuideCard({ guide }: GuideCardProps) {
         </div>
 
         <div className="mt-6">
-          <Button className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90">
-            Book Now
-          </Button>
+          <Link href={`/tourist/guides/book/${guide.id}`}>
+            <Button className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90">
+              Book Now
+            </Button>
+          </Link>
         </div>
       </div>
     </Card>

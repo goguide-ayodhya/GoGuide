@@ -4,36 +4,32 @@ import { tourPackageService } from "../services/tourPackage.service";
 
 export class TourPackageController {
   async createPackage(req: AuthRequest, res: Response) {
-    const pkg = await tourPackageService.createPackage(
-      req.userId!,
-      req.body,
-    );
+    const pkg = await tourPackageService.createPackage(req.userId!, req.body);
 
-    res.status(201).json({
-      success: true,
-      message: "Package created",
-      data: pkg,
-    });
+    res.status(201).json(pkg);
   }
 
   async getAllPackages(req: AuthRequest, res: Response) {
-    const packages = await tourPackageService.getAllPackages();
-
-    res.status(200).json({
-      success: true,
-      data: packages,
-    });
+    const data = await tourPackageService.getAllPackages();
+    res.json(data);
   }
 
   async getPackageById(req: AuthRequest, res: Response) {
-    const pkg = await tourPackageService.getPackageById(
-      req.params.packageId,
-    );
+    const data = await tourPackageService.getPackageById(req.params.packageId);
+    res.json(data);
+  }
 
-    res.status(200).json({
-      success: true,
-      data: pkg,
-    });
+  async updatePackage(req: AuthRequest, res: Response) {
+    const data = await tourPackageService.updatePackage(
+      req.params.packageId,
+      req.body,
+    );
+    res.json(data);
+  }
+
+  async deletePackage(req: AuthRequest, res: Response) {
+    const data = await tourPackageService.deletePackage(req.params.packageId);
+    res.json(data);
   }
 }
 

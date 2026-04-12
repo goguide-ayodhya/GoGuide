@@ -11,22 +11,26 @@ import {
 } from "../utils/httpException";
 import { LoginInput, SignupInput } from "../validations/auth";
 import { Driver } from "../models/Driver";
+import { sendEmail } from "../config/email.config";
 
 export class AuthService {
   // --------------------- Authentication ---------------------
   async login(input: LoginInput) {
-    const user = await User.findOne({ email: input.email });
+    // Find user by email or phone
+    const user = await User.findOne({
+      $or: [{ email: input.identifier }, { phone: input.identifier }],
+    });
 
     if (!user) {
-      throw new Unauthorized("Invalid email or password");
+      throw new Unauthorized("Invalid email/phone or password");
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.password);
     if (!isPasswordValid) {
-      throw new Unauthorized("Invalid email or password");
+      throw new Unauthorized("Invalid email/phone or password");
     }
 
-    if (user.role === "GUIDE") {
+    if (user.role === "GUIDE" || user.role === "DRIVER") {
       if (!user.status || user.status !== "ACTIVE") {
         throw new BadRequest("Account is inactive");
       }
@@ -36,7 +40,7 @@ export class AuthService {
       lastLoginAt: new Date(),
     });
 
-    const token = this.generateToken(user._id.toString(), user.email);
+    const token = this.generateToken(user._id.toString(), user.email || "");
 
     return {
       user: {
@@ -44,22 +48,32 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
       },
       token,
     };
   }
 
   async signup(input: SignupInput) {
-    const existingUser = await User.findOne({ email: input.email });
+    // Check for existing user by email if provided
+    if (input.email) {
+      const existingUserByEmail = await User.findOne({ email: input.email });
+      if (existingUserByEmail) {
+        throw new Conflict("Email already registered");
+      }
+    }
 
-    if (existingUser) {
-      throw new Conflict("Email already registered");
+    // Check for existing user by phone
+    const existingUserByPhone = await User.findOne({ phone: input.phone });
+    if (existingUserByPhone) {
+      throw new Conflict("Phone number already registered");
     }
 
     const hashedPassword = await bcrypt.hash(input.password, 10);
 
     const user = await User.create({
-      email: input.email,
+      email: input.email || undefined,
       password: hashedPassword,
       name: input.name,
       phone: input.phone,
@@ -67,6 +81,7 @@ export class AuthService {
       avatar: input.avatar || undefined,
       speciality: input.speciality,
       hourlyRate: input.hourlyRate || 500,
+      status: input.role === "TOURIST" ? "ACTIVE" : "INACTIVE",
     });
 
     if (input.role === "GUIDE") {
@@ -103,7 +118,7 @@ export class AuthService {
         driverAadhar: input.driverAadhar || "",
       });
     }
-    const token = this.generateToken(user._id.toString(), user.email);
+    const token = this.generateToken(user._id.toString(), user.email || "");
 
     return {
       user: {
@@ -160,6 +175,124 @@ export class AuthService {
     await this.logoutAll(userId);
 
     return true;
+  }
+
+  async sendOtp(email: string) {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new NotFound("User not found with this email address");
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    user.otp = hashedOtp;
+    user.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    await user.save();
+
+    await sendEmail(
+      user.email!,
+      "Email Verification OTP - GoGuide",
+      `Your email verification OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nPlease use this OTP to verify your email address.`,
+    );
+
+    return { message: "OTP sent successfully to your email" };
+  }
+
+  async verifyEmail(email: string, otp: string) {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+
+    if (!user.otp || !user.otpExpiresAt) {
+      throw new BadRequest("No OTP found. Please request a new one.");
+    }
+
+    if (user.otpExpiresAt < new Date()) {
+      throw new BadRequest("OTP has expired");
+    }
+
+    const isValid = await bcrypt.compare(otp, user.otp);
+    if (!isValid) {
+      throw new BadRequest("Invalid OTP");
+    }
+
+    // Clear OTP and set email as verified
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    user.isEmailVerified = true;
+    await user.save();
+
+    return { message: "Email verified successfully" };
+  }
+
+  async forgotPassword(identifier: string) {
+    // Find user by email or phone
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { phone: identifier || null }],
+    });
+
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+
+    // Check if user has email
+    if (!user.email) {
+      throw new BadRequest(
+        "No email address associated with this account. Please contact support to reset your password.",
+      );
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hash OTP before storing
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    user.otp = hashedOtp;
+    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    // Send OTP via email
+    await sendEmail(
+      user.email!,
+      "Password Reset OTP - GoGuide",
+      `Your password reset OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.`,
+    );
+
+    return { message: "Password reset OTP sent to your email" };
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+
+    if (!user.otp || !user.otpExpiresAt) {
+      throw new BadRequest("No OTP found. Please request a new one.");
+    }
+
+    if (user.otpExpiresAt < new Date()) {
+      throw new BadRequest("OTP has expired");
+    }
+
+    const isValid = await bcrypt.compare(otp, user.otp);
+    if (!isValid) {
+      throw new BadRequest("Invalid OTP");
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    await user.save();
+
+    return { message: "Password reset successfully" };
   }
 
   private generateToken(userId: string, email: string) {

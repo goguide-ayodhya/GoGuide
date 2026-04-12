@@ -1,10 +1,10 @@
 import { Schema, model, Document } from "mongoose";
 
 export interface IUser extends Document {
-  email: string;
+  email?: string;
   password: string;
   name: string;
-  phone?: string;
+  phone: string;
   bio?: string;
   avatar: string;
   vehiclePhoto?: string;
@@ -17,7 +17,11 @@ export interface IUser extends Document {
   lastLoginAt?: Date;
   isDeleted?: boolean;
 
-  emailVerified: boolean;
+  isEmailVerified: boolean;
+  otp?: string;
+  otpExpiresAt?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,9 +30,9 @@ const UserSchema = new Schema<IUser>(
   {
     email: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
+      sparse: true, // Allow null/undefined values for unique index
     },
     password: {
       type: String,
@@ -38,7 +42,11 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: true,
     },
-    phone: String,
+    phone: { 
+      type: String, 
+      required: true, 
+      unique: true 
+    },
     avatar: String, // avatar as profileImage
     vehiclePhoto: {
       type: String,
@@ -62,10 +70,14 @@ const UserSchema = new Schema<IUser>(
     },
     blockReason: { type: String },
     blockedAt: { type: Date },
-    emailVerified: {
+    isEmailVerified: {
       type: Boolean,
       default: false,
     },
+    otp: String,
+    otpExpiresAt: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
     lastLoginAt: {
       type: Date,
     },

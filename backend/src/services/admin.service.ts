@@ -2,8 +2,14 @@ import { User } from "../models/User";
 import { NotFound, BadRequest } from "../utils/httpException";
 
 export class UserService {
-  async getAllUsers() {
-    return User.find({ isDeleted: false });
+  async getAllUsers(role?: string) {
+    const query: any = { isDeleted: false };
+
+    if (role && ["GUIDE", "DRIVER", "TOURIST", "ADMIN"].includes(role)) {
+      query.role = role;
+    }
+
+    return User.find(query);
   }
 
   async blockUser(userId: string, reason?: string) {
