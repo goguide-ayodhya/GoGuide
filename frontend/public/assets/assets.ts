@@ -1,4 +1,4 @@
-import bgHero from "./main/bgHero.avif";
+import bgHero from "./main/bgHero.webp";
 import guideImage from "./main/guideImage.jpeg";
 import logo from "./main/logo.svg";
 
