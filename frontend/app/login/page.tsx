@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { JSX, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { Suspense } from "react";
+
 import {
   forgotPassword,
   sendOtp,
@@ -29,7 +31,7 @@ import {
   FieldErrors,
 } from "@/lib/errorHandler";
 
-export default function LoginPage() {
+function LoginPageContent(): JSX.Element {
   const router = useRouter();
   const { login } = useAuth();
   const [identifier, setIdentifier] = useState("");
@@ -326,5 +328,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

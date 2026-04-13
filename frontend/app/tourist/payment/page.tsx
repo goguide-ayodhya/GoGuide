@@ -15,8 +15,9 @@ import { SuccessConfirmation } from "@/components/booking/SuccessConfirmation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Lock } from "lucide-react";
+import { Suspense } from "react";
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
@@ -80,12 +81,10 @@ export default function PaymentPage() {
     );
   }
 
-  // ✅ success condition
   if (paymentComplete) {
     return <SuccessConfirmation />;
   }
 
-  // ✅ price calc
   const basePrice = booking?.totalPrice || 0;
   const taxAmount = Math.round(basePrice * 0.18);
   const totalAmount = basePrice + taxAmount;
@@ -104,9 +103,16 @@ export default function PaymentPage() {
     try {
       const paymentResponse = await createPayment(bookingId);
       const paymentId =
-        paymentResponse?.payment?._id || paymentResponse?._id || paymentResponse?.paymentId;
+        paymentResponse?.payment?._id ||
+        paymentResponse?._id ||
+        paymentResponse?.paymentId;
 
-      console.log("Created payment for bookingId:", bookingId, "paymentId:", paymentId);
+      console.log(
+        "Created payment for bookingId:",
+        bookingId,
+        "paymentId:",
+        paymentId,
+      );
 
       if (!paymentId) {
         throw new Error("Payment creation failed");
@@ -184,5 +190,13 @@ export default function PaymentPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }
