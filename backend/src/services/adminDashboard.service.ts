@@ -167,8 +167,8 @@ export class DashboardService {
       id: booking._id.toString(),
       touristName: booking.touristName,
       guideName:
-        booking.guideId?.userId?.name ||
-        booking.driverId?.userId?.name ||
+        (booking.guideId as any)?.userId?.name ||
+        (booking.driverId as any)?.userId?.name ||
         booking.guideName ||
         "N/A",
       tourType: booking.tourType,

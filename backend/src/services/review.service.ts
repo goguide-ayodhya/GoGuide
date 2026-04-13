@@ -110,7 +110,9 @@ export class ReviewService {
     await review.save();
 
     // Recalculate guide rating
-    await guideService.updateAverageRating(review.guideId.toString());
+    if (review.guideId) {
+      await guideService.updateAverageRating(review.guideId.toString());
+    }
 
     return review;
   }
@@ -127,9 +129,11 @@ export class ReviewService {
     }
 
     await Review.deleteOne({ _id: reviewId });
-    
+
     // Recalculate guide rating
-    await guideService.updateAverageRating(review.guideId.toString());
+    if (review.guideId) {
+      await guideService.updateAverageRating(review.guideId.toString());
+    }
 
     return { message: "Review deleted successfully" };
   }

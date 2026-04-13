@@ -1,8 +1,17 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { driverService } from "../services/driver.service";
 
 export class CabController {
+  static async getMyCabs(req: Request, res: Response) {
+    throw new Error("Method not implemented.");
+  }
+  static async cancelCab(req: Request, res: Response) {
+    throw new Error("Method not implemented.");
+  }
+  static async createCab(req: Request, res: Response) {
+    throw new Error("Method not implemented.");
+  }
   async createprofile(req: AuthRequest, res: Response) {
     const driver = await driverService.createDriverProfile(
       req.userId!,
