@@ -10,12 +10,9 @@ const nextConfig: NextConfig = {
     ],
     // domains: [],
   },
-};
-
-export default nextConfig;
-
-module.exports = {
   typescript: {
     ignoreBuildErrors: true,
   },
 };
+
+export default nextConfig;

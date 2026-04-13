@@ -20,15 +20,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <EarningsProvider>
               <ReviewProvider>
                 <GuideProvider>
-                  <PackageProvider>{children}</PackageProvider>
-                  <Toaster />
+                  <PackageProvider>
+                    {children}
+                  </PackageProvider>
                 </GuideProvider>
               </ReviewProvider>
             </EarningsProvider>
           </PaymentProvider>
         </DriverProvider>
-        <Analytics />
       </BookingProvider>
+      <Toaster />
+      <Analytics />
     </AuthProvider>
   );
 }
