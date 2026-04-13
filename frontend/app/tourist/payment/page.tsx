@@ -130,7 +130,6 @@ export default function PaymentPage() {
 
       <div className="flex-1 px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-8">
-          {/* ✅ Booking Summary */}
           <BookingSummaryCard
             itemName={booking?.tourType || ""}
             itemPrice={booking?.totalPrice || 0}
