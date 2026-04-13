@@ -150,7 +150,7 @@ function LoginPageContent(): JSX.Element {
               {mode === "login"
                 ? "Sign in to your account"
                 : mode === "forgot"
-                  ? "Enter your email or phone to reset password"
+                  ? "Enter your email/phone to reset password"
                   : "Enter the OTP sent to your email and set new password"}
             </CardDescription>
           </CardHeader>
