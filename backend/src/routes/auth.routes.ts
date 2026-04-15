@@ -51,13 +51,21 @@ router.post("/verify-email", validate(verifyOtpSchema), (req, res, next) => {
   authController.verifyEmail(req, res).catch(next);
 });
 
-router.post("/forgot-password", validate(forgotPasswordSchema), (req, res, next) => {
-  authController.forgotPassword(req, res).catch(next);
-});
+router.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema),
+  (req, res, next) => {
+    authController.forgotPassword(req, res).catch(next);
+  },
+);
 
-router.post("/reset-password", validate(resetPasswordSchema), (req, res, next) => {
-  authController.resetPassword(req, res).catch(next);
-});
+router.post(
+  "/reset-password",
+  validate(resetPasswordSchema),
+  (req, res, next) => {
+    authController.resetPassword(req, res).catch(next);
+  },
+);
 
 // --------------------- User Management ---------------------
 router.post(
@@ -71,6 +79,10 @@ router.post(
 
 router.get("/user/:id", authenticate, (req, res, next) => {
   authController.getUserById(req, res).catch(next);
+});
+
+router.get("/validate-token", authenticate, (req, res, next) => {
+  authController.validateToken(req, res).catch(next);
 });
 
 export default router;

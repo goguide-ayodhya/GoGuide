@@ -265,8 +265,11 @@ export class AuthService {
     return { message: "Password reset OTP sent to your email" };
   }
 
-  async resetPassword(email: string, otp: string, newPassword: string) {
-    const user = await User.findOne({ email });
+  async resetPassword(identifier: string, otp: string, newPassword: string) {
+    // Find user by email or phone
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { phone: identifier }],
+    });
 
     if (!user) {
       throw new NotFound("User not found");

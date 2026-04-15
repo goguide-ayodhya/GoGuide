@@ -1,10 +1,11 @@
 import { Payment } from "../models/Payment";
 import { Booking } from "../models/Booking";
 import { NotFound, BadRequest, Unauthorized } from "../utils/httpException";
+import { NotificationService } from "./notification.service";
 
 export class PaymentService {
   async createPayment(userId: string, bookingId: string) {
-    // Verify booking exists
+    console.log(`[PAYMENT] Creating payment - userId: ${userId}, bookingId: ${bookingId}`);
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
@@ -71,9 +72,17 @@ export class PaymentService {
 
     // Update booking payment status
     if (data.status === "COMPLETED") {
+      console.log(`[PAYMENT] 💰 Payment Success for paymentId: ${paymentId}, bookingId: ${payment.bookingId}`);
       await Booking.findByIdAndUpdate(payment.bookingId, {
         paymentStatus: "COMPLETED",
       });
+
+      // Send payment success notification (async - don't block response)
+      try {
+        await NotificationService.sendPaymentSuccess(paymentId);
+      } catch (error) {
+        console.warn("Notification send failed (non-blocking):", error);
+      }
     }
 
     return updatedPayment;

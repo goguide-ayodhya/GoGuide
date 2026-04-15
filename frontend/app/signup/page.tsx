@@ -11,7 +11,9 @@ export default function SignupPage() {
           <Image
             src={assets.logo}
             alt="GoGuide - Ayodhya"
-            className="mx-auto h-24 w-auto"
+            width={96}
+            height={96}
+            className="mx-auto"
           />
           <p className="text-muted-foreground pt-2">Book ● Feel ● Remember</p>
         </div>

@@ -6,6 +6,7 @@ import { logger } from "./utils/logger";
 import { connectDB } from "./db/connection";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import "./firebase/admin";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -20,6 +21,7 @@ import driverRoutes from "./routes/driver.routes";
 import passRoutes from "./routes/pass.routes";
 import tourPackageRoutes from "./routes/tourPackage.routes";
 import settingsRoutes from "./routes/setting.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 const app: Application = express();
 dotenv.config();
@@ -52,6 +54,7 @@ app.use("/api/cabs", cabRoutes);
 app.use("/api/passes", passRoutes);
 app.use("/api/packages", tourPackageRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

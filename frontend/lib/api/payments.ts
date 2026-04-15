@@ -14,6 +14,9 @@ const authHeaders = () => {
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+    console.log("[PAYMENT-API] Adding Authorization header, token length:", token.length);
+  } else {
+    console.warn("[PAYMENT-API] No token found for request");
   }
   return headers;
 };

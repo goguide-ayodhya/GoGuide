@@ -10,27 +10,33 @@ import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/toaster";
 import { DriverProvider } from "@/contexts/DriverContext";
 import { PackageProvider } from "@/contexts/TourPackageContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { FCMNotificationProvider } from "@/contexts/FCMNotificationContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <BookingProvider>
-        <DriverProvider>
-          <PaymentProvider>
-            <EarningsProvider>
-              <ReviewProvider>
-                <GuideProvider>
-                  <PackageProvider>
-                    {children}
-                  </PackageProvider>
-                </GuideProvider>
-              </ReviewProvider>
-            </EarningsProvider>
-          </PaymentProvider>
-        </DriverProvider>
-      </BookingProvider>
-      <Toaster />
-      <Analytics />
-    </AuthProvider>
+    <NotificationProvider>
+      <FCMNotificationProvider>
+        <AuthProvider>
+          <BookingProvider>
+            <DriverProvider>
+              <PaymentProvider>
+                <EarningsProvider>
+                  <ReviewProvider>
+                    <GuideProvider>
+                      <PackageProvider>
+                        {children}
+                      </PackageProvider>
+                    </GuideProvider>
+                  </ReviewProvider>
+                </EarningsProvider>
+              </PaymentProvider>
+            </DriverProvider>
+          </BookingProvider>
+          <Toaster />
+          <Analytics />
+        </AuthProvider>
+      </FCMNotificationProvider>
+    </NotificationProvider>
   );
 }

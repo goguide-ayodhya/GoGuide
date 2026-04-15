@@ -14,6 +14,9 @@ const authHeaders = () => {
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+    console.log("[DRIVER-API] Adding Authorization header, token length:", token.length);
+  } else {
+    console.warn("[DRIVER-API] No token found for request");
   }
   return headers;
 };

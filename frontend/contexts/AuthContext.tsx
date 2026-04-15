@@ -51,7 +51,7 @@ export type SignupData = {
 };
 
 export type LoginData = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -76,20 +76,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
-      if (!token || !storedUser || token === "null" || token === "undefined") {
+
+      console.log("[AUTH] Initializing auth - token exists:", !!token, "user exists:", !!storedUser);
+
+      if (token === "null" || token === "undefined") {
+        console.log("[AUTH] Clearing invalid token");
         localStorage.removeItem("token");
+      }
+      if (storedUser === "null" || storedUser === "undefined") {
+        console.log("[AUTH] Clearing invalid user");
         localStorage.removeItem("user");
+      }
+
+      if (!token || !storedUser) {
+        console.log("[AUTH] No token or user - staying logged out");
         setUser(null);
         setLoading(false);
         return;
       }
 
       try {
+        console.log("[AUTH] Validating token with backend...");
         await validateTokenApi();
+        console.log("[AUTH] Token validation successful");
+      } catch (error) {
+        console.warn("[AUTH] Token validation failed, but keeping user logged in:", error);
+
+      }
+
+      try {
         const parsedUser = JSON.parse(storedUser);
+        console.log("[AUTH] Setting user from localStorage:", parsedUser?.id);
         setUser(parsedUser || null);
-      } catch {
-        localStorage.removeItem("token");
+      } catch (parseError) {
+        console.error("[AUTH] Failed to parse stored user:", parseError);
         localStorage.removeItem("user");
         setUser(null);
       } finally {
@@ -103,19 +123,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (data: LoginData) => {
     try {
       setLoading(true);
+      console.log("[AUTH] Logging in user:", data.identifier);
       const res = await loginUser(data);
       if (!res || !res.user || !res.token) {
         throw new Error("Invalid login response");
       }
 
+      console.log("[AUTH] Login successful, saving to localStorage");
       setUser(res.user);
       localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("token", res.token);
+      console.log("[AUTH] User and token saved to localStorage");
 
       return res.user;
     } catch (error: unknown) {
-      console.log(
-        "Login error:",
+      console.error(
+        "[AUTH] Login error:",
         error instanceof Error ? error.message : String(error),
       );
       throw error;
@@ -144,10 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log("[AUTH] Logging out");
       await logoutUser();
     } catch (error) {
-      console.log("Logout error (ignored): ", error);
+      console.warn("[AUTH] Logout error (ignored):", error);
     }
+    console.log("[AUTH] Clearing auth state and localStorage");
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");

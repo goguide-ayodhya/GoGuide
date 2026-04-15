@@ -14,13 +14,12 @@ export function PackageCard({ pkg }: PackageCardProps) {
   return (
     <Card className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg shadow-slate-200/40 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60 cursor-pointer">
       <div className="relative aspect-video overflow-hidden bg-slate-100">
-        <img
+        <Image
           src={pkg.image}
           alt={pkg.title}
-          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Tour+Package";
-          }}
+          fill
+          className="object-cover transition-transform duration-300 hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
       </div>
 

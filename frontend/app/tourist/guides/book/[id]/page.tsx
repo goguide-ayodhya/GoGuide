@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { useRouter, useParams, notFound } from "next/navigation";
+import { useRouter, useParams, usePathname, notFound } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooking } from "@/contexts/BookingsContext";
@@ -16,10 +16,12 @@ import { Circle, Star, AlertCircle } from "lucide-react";
 import { assets } from "@/public/assets/assets";
 import { createBooking } from "@/lib/api/bookings";
 import { poppins } from "@/lib/fonts";
+import { Button } from "@/components/ui/button";
 
 export default function GuideBookingPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { guides, loading } = useGuide();
   const { isLoggedIn } = useAuth();
   const { setCurrentBooking } = useBooking();
@@ -54,6 +56,11 @@ export default function GuideBookingPage() {
   }
 
   const handleProceedToPayment = async (formData: any) => {
+    if (!isLoggedIn) {
+      router.push(`/login?redirect=${encodeURIComponent(pathname || "/")}`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -230,12 +237,28 @@ export default function GuideBookingPage() {
                 </div>
               </div>
 
-              <div className="relative">
-                <GuideBookingForm guideHourlyRate={guide.price} onSubmit={handleProceedToPayment} />
-                {!isGuideAvailable && (
-                  <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-white/70" />
-                )}
-              </div>
+              {!isLoggedIn ? (
+                <div className="space-y-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-8 text-center">
+                  <p className="text-lg font-semibold text-slate-950">Sign in to continue booking</p>
+                  <p className="text-sm leading-6 text-slate-600">
+                    Please sign in to book this guide and continue from this page.
+                  </p>
+                  <Button
+                    variant="default"
+                    className="w-full"
+                    onClick={() => router.push(`/login?redirect=${encodeURIComponent(pathname || "/")}`)}
+                  >
+                    Sign in to book
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <GuideBookingForm guideHourlyRate={guide.price} onSubmit={handleProceedToPayment} />
+                  {!isGuideAvailable && (
+                    <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-white/70" />
+                  )}
+                </div>
+              )}
             </Card>
           </div>
 

@@ -50,7 +50,7 @@ export type SignupData = {
 };
 
 export type LoginData = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -71,21 +71,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = () => {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
-      if (!token || !storedUser || token === "null" || token === "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+      if (!token || !storedUser) {
         setUser(null);
         setLoading(false);
         return;
       }
 
       try {
-        await validateTokenApi();
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
       } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");

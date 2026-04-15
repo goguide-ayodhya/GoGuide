@@ -59,7 +59,7 @@ function LoginPageContent(): JSX.Element {
           return;
         }
 
-        const user = await login({ email: identifier, password });
+        const user = await login({ identifier, password });
         if (!user) {
           throw new Error("User not found");
         }
@@ -129,7 +129,9 @@ function LoginPageContent(): JSX.Element {
               <Image
                 src={assets.logo}
                 alt="GoGuide - Ayodhya"
-                className="mx-auto h-24 w-auto"
+                width={96}
+                height={96}
+                className="mx-auto"
               />
             </div>
           </div>

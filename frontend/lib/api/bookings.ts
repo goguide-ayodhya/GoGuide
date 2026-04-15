@@ -14,6 +14,9 @@ const authHeaders = () => {
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+    console.log("[API] Adding Authorization header, token length:", token.length);
+  } else {
+    console.warn("[API] No token found for request");
   }
   return headers;
 };
@@ -87,6 +90,7 @@ export const cancelBookingApi = async (bookingId: string) => {
 
 // Guide Actions
 export const acceptBookingApi = async (bookingId: string) => {
+  console.log("[BOOKING-API] acceptBookingApi called with bookingId:", bookingId);
   const res = await fetch(`${base_url}bookings/${bookingId}/accept`, {
     method: "PATCH",
     headers: authHeaders(),
@@ -96,6 +100,7 @@ export const acceptBookingApi = async (bookingId: string) => {
 };
 
 export const rejectBookingApi = async (bookingId: string) => {
+  console.log("[BOOKING-API] rejectBookingApi called with bookingId:", bookingId);
   const res = await fetch(`${base_url}bookings/${bookingId}/reject`, {
     method: "PATCH",
     headers: authHeaders(),
@@ -105,6 +110,7 @@ export const rejectBookingApi = async (bookingId: string) => {
 };
 
 export const completeBookingApi = async (bookingId: string) => {
+  console.log("[BOOKING-API] completeBookingApi called with bookingId:", bookingId);
   const res = await fetch(`${base_url}bookings/${bookingId}/complete`, {
     method: "PATCH",
     headers: authHeaders(),

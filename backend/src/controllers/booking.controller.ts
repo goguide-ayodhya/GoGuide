@@ -156,6 +156,8 @@ export class BookingController {
       const userId = req.userId!;
       const { bookingId } = req.params;
 
+      console.log("[BOOKING] acceptBooking - userId:", userId, "bookingId:", bookingId);
+
       const booking = await bookingService.getBookingById(bookingId);
       if (!booking) {
         return res.status(404).json({
@@ -164,25 +166,38 @@ export class BookingController {
         });
       }
 
+      console.log("[BOOKING] Found booking, type:", booking.bookingType);
+
       let actorId: string;
+      // Validate bookingType and get appropriate actor
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
+          console.error("[BOOKING] Guide profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found",
+            message: "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
-      } else {
+        console.log("[BOOKING] Found guide:", guide._id);
+      } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
+          console.error("[BOOKING] Driver profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found",
+            message: "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
+        console.log("[BOOKING] Found driver:", driver._id);
+      } else {
+        console.error("[BOOKING] Invalid booking type:", booking.bookingType);
+        return res.status(400).json({
+          success: false,
+          message: `Invalid booking type: ${booking.bookingType}`,
+        });
       }
 
       const updatedBooking = await bookingService.acceptBooking(
@@ -215,24 +230,35 @@ export class BookingController {
       }
 
       let actorId: string;
+      // Validate bookingType and get appropriate actor
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
+          console.error("[BOOKING] Guide profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found",
+            message: "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
-      } else {
+        console.log("[BOOKING] Found guide for rejection:", guide._id);
+      } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
+          console.error("[BOOKING] Driver profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found",
+            message: "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
+        console.log("[BOOKING] Found driver for rejection:", driver._id);
+      } else {
+        console.error("[BOOKING] Invalid booking type for rejection:", booking.bookingType);
+        return res.status(400).json({
+          success: false,
+          message: `Invalid booking type: ${booking.bookingType}`,
+        });
       }
 
       const updatedBooking = await bookingService.rejectBooking(
@@ -265,24 +291,35 @@ export class BookingController {
       }
 
       let actorId: string;
+      // Validate bookingType and get appropriate actor
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
+          console.error("[BOOKING] Guide profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found",
+            message: "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
-      } else {
+        console.log("[BOOKING] Found guide for completion:", guide._id);
+      } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
+          console.error("[BOOKING] Driver profile not found for userId:", userId);
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found",
+            message: "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
+        console.log("[BOOKING] Found driver for completion:", driver._id);
+      } else {
+        console.error("[BOOKING] Invalid booking type for completion:", booking.bookingType);
+        return res.status(400).json({
+          success: false,
+          message: `Invalid booking type: ${booking.bookingType}`,
+        });
       }
 
       const updatedBooking = await bookingService.completeBooking(

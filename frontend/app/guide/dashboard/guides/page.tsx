@@ -113,7 +113,8 @@ export default function GuidesPage() {
                       src={guide.image || assets.guideImage}
                       alt={guide.name}
                       fill
-                      className="object-cover w-f ull h-full"
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                     {/* ) : (
                       <div>No Image</div>

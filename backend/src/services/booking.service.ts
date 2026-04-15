@@ -6,10 +6,15 @@ import { Review } from "../models/Review";
 import { NotFound, BadRequest } from "../utils/httpException";
 import { CreateBookingInput } from "../validations/booking";
 import { paymentService } from "./payment.service";
+import { NotificationService } from "./notification.service";
 
 export class BookingService {
   async createBooking(userId: string, input: CreateBookingInput) {
     let entity: any;
+    let assignedUserId: string | undefined;
+    console.log(
+      `[BOOKING] Creating booking - userId: ${userId}, bookingType: ${input.bookingType}`,
+    );
     if (input.bookingType === "GUIDE") {
       const guide = await Guide.findById(input.guideId);
       if (!guide) {
@@ -26,6 +31,8 @@ export class BookingService {
       }
 
       entity = guide;
+      assignedUserId = guide.userId?.toString();
+      console.log(`[BOOKING] Guide verified: ${guide._id}`);
     }
 
     if (input.bookingType === "DRIVER") {
@@ -44,6 +51,8 @@ export class BookingService {
       }
 
       entity = driver;
+      assignedUserId = driver.userId?.toString();
+      console.log(`[BOOKING] Driver verified: ${driver._id}`);
     }
 
     if (!entity) {
@@ -54,6 +63,33 @@ export class BookingService {
       ...input,
       userId,
     });
+
+    console.log(
+      `[BOOKING] Booking created successfully: ${booking._id}, bookingType: ${booking.bookingType}`,
+    );
+
+    if (assignedUserId) {
+      console.log(
+        `[BOOKING] Sending booking creation notification to assigned user ${assignedUserId}`,
+      );
+      try {
+        await NotificationService.sendNotification(
+          assignedUserId,
+          "New Booking Assigned",
+          `A new booking has been assigned to you. Booking ID: ${booking._id}`,
+          {
+            bookingId: booking._id.toString(),
+            type: "booking_assigned",
+          },
+        );
+      } catch (error) {
+        console.warn("Notification send failed (non-blocking):", error);
+      }
+    } else {
+      console.warn(
+        `[BOOKING] No assigned guide/driver user found for booking ${booking._id}`,
+      );
+    }
 
     const populatedBooking = await Booking.findById(booking._id)
       .populate({
@@ -87,11 +123,13 @@ export class BookingService {
   }
 
   async getBookingsByGuide(guideId: string, filters?: { status?: string }) {
-    const query: any = { guideId };
+    const query: any = { guideId, bookingType: "GUIDE" };
 
     if (filters?.status) {
       query.status = filters.status;
     }
+
+    console.log(`[BOOKING] Fetching guide bookings - guideId: ${guideId}, query:`, query);
 
     const bookings = await Booking.find(query)
       .populate({
@@ -105,11 +143,13 @@ export class BookingService {
   }
 
   async getBookingsByDriver(driverId: string, filters?: { status?: string }) {
-    const query: any = { driverId };
+    const query: any = { driverId, bookingType: "DRIVER" };
 
     if (filters?.status) {
       query.status = filters.status;
     }
+
+    console.log(`[BOOKING] Fetching driver bookings - driverId: ${driverId}, query:`, query);
 
     const bookings = await Booking.find(query)
       .populate({
@@ -156,6 +196,10 @@ export class BookingService {
         path: "guideId",
         populate: { path: "userId" },
       })
+      .populate({
+        path: "driverId",
+        populate: { path: "userId" },
+      })
       .populate("userId");
 
     if (!booking) {
@@ -195,6 +239,13 @@ export class BookingService {
 
     if (!booking) throw new NotFound("Booking not found");
 
+    // Validate bookingType matches
+    if (booking.bookingType !== bookingType) {
+      throw new BadRequest(
+        `Booking type mismatch. Expected ${booking.bookingType}, got ${bookingType}`,
+      );
+    }
+
     if (
       bookingType === "GUIDE"
         ? booking.guideId?.toString() !== actorId
@@ -208,6 +259,10 @@ export class BookingService {
 
     await booking.save();
 
+    console.log(
+      `[BOOKING] 📦 Booking Accepted: ${bookingId}, bookingType: ${bookingType}`,
+    );
+
     const existingPayment = await Payment.findOne({ bookingId });
 
     if (!existingPayment) {
@@ -215,6 +270,16 @@ export class BookingService {
         booking.userId.toString(),
         booking._id.toString(),
       );
+    }
+
+    // Send notification to user (async - don't block response)
+    try {
+      await NotificationService.sendBookingStatusUpdate(
+        bookingId.toString(),
+        "ACCEPTED",
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
     }
 
     return booking;
@@ -233,6 +298,13 @@ export class BookingService {
 
     if (!booking) throw new NotFound("Booking not found");
 
+    // Validate bookingType matches
+    if (booking.bookingType !== bookingType) {
+      throw new BadRequest(
+        `Booking type mismatch. Expected ${booking.bookingType}, got ${bookingType}`,
+      );
+    }
+
     if (
       bookingType === "GUIDE"
         ? booking.guideId?.toString() !== actorId
@@ -245,6 +317,20 @@ export class BookingService {
     booking.isSeenByAdmin = false;
 
     await booking.save();
+
+    console.log(
+      `[BOOKING] ❌ Booking Rejected: ${bookingId}, bookingType: ${bookingType}`,
+    );
+
+    // Send notification to user (async - don't block response)
+    try {
+      await NotificationService.sendBookingStatusUpdate(
+        bookingId.toString(),
+        "REJECTED",
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
+    }
 
     return booking;
   }
@@ -262,6 +348,13 @@ export class BookingService {
 
     if (!booking) throw new NotFound("Booking not found");
 
+    // Validate bookingType matches
+    if (booking.bookingType !== bookingType) {
+      throw new BadRequest(
+        `Booking type mismatch. Expected ${booking.bookingType}, got ${bookingType}`,
+      );
+    }
+
     if (
       bookingType === "GUIDE"
         ? booking.guideId?.toString() !== actorId
@@ -274,6 +367,20 @@ export class BookingService {
     }
     booking.status = "COMPLETED";
     await booking.save();
+
+    console.log(
+      `[BOOKING] ✅ Booking Completed: ${bookingId}, bookingType: ${bookingType}`,
+    );
+
+    // Send notification to user (async - don't block response)
+    try {
+      await NotificationService.sendBookingStatusUpdate(
+        bookingId.toString(),
+        "COMPLETED",
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
+    }
 
     return booking;
   }

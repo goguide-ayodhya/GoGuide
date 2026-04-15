@@ -324,6 +324,7 @@ export default function ProfilePage() {
                 alt={user.name}
                 fill
                 className="object-cover"
+                sizes="96px"
               />
             </div>
             <div className="flex-1">

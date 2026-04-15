@@ -1,18 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
-import { Manrope } from "next/font/google";
-
+import { manrope } from "@/lib/fonts";
 import "./globals.css";
-const manrope = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  // maximumScale: 1,
-};
 
 export const metadata: Metadata = {
   title: "Ayodhya Tourism | Book Cabs, Tours & Guides",

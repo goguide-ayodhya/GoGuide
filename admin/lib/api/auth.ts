@@ -38,7 +38,7 @@ export const signupUser = async (data: SignupData) => {
   const form = new FormData();
 
   form.append("name", data.name);
-  form.append("email", data.email);
+  if (data.email) form.append("email", data.email);
   form.append("password", data.password);
   form.append("role", data.role);
 
@@ -48,7 +48,7 @@ export const signupUser = async (data: SignupData) => {
   if (data.hourlyRate) form.append("hourlyRate", data.hourlyRate);
   if (data.experience) form.append("experience", data.experience);
   if (data.languages) {
-    data.languages.forEach(lang => form.append("languages", lang));
+    data.languages.forEach((lang) => form.append("languages", lang));
   }
   if (data.vehicleType) form.append("vehicleType", data.vehicleType);
   if (data.vehicleName) form.append("vehicleName", data.vehicleName);
@@ -95,11 +95,13 @@ export const validateTokenApi = async () => {
   const headers = authHeaders();
 
   const res = await fetch(`${base_url}auth/validate-token`, {
-    method: "POST",
     headers,
   });
 
   const json = await res.json();
+  console.log("STATUS:", res.status);
+  console.log("RESPONSE:", json);
+
   if (!res.ok) {
     throw new Error("Validate Token Failed");
   }
@@ -122,7 +124,7 @@ export const changePassword = async (data: {
   if (!res.ok) {
     // Handle validation errors
     if (json.errors) {
-      const errorMessages = Object.values(json.errors).join(', ');
+      const errorMessages = Object.values(json.errors).join(", ");
       throw new Error(errorMessages || json.message);
     }
     throw new Error(json.message);

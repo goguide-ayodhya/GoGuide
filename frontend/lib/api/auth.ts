@@ -15,6 +15,9 @@ const authHeaders = () => {
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+    console.log("[AUTH-API] Adding Authorization header, token length:", token.length);
+  } else {
+    console.warn("[AUTH-API] No token found for request");
   }
   return headers;
 };
@@ -63,14 +66,14 @@ export const forgotPassword = async (identifier: string) => {
 
 // Reset Password
 export const resetPassword = async (
-  email: string,
+  identifier: string,
   otp: string,
   newPassword: string,
 ) => {
   const res = await fetch(`${base_url}auth/reset-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, otp, newPassword }),
+    body: JSON.stringify({ identifier, otp, newPassword }),
   });
 
   const json = await res.json();
@@ -149,7 +152,6 @@ export const validateTokenApi = async () => {
   const headers = authHeaders();
 
   const res = await fetch(`${base_url}auth/validate-token`, {
-    method: "POST",
     headers,
   });
 

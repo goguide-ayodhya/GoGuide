@@ -164,6 +164,7 @@ export default function Home() {
                       alt={item.name}
                       fill
                       className="object-cover hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 640px) 120px, (max-width: 768px) 176px, (max-width: 1024px) 144px, 128px"
                     />
                   </div>
 
@@ -215,6 +216,7 @@ export default function Home() {
                           alt={guide.name}
                           fill
                           className="object-cover hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 640px) 120px, (max-width: 768px) 176px, (max-width: 1024px) 144px, 128px"
                         />
                       ) : (
                         <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -288,6 +290,7 @@ export default function Home() {
                         alt={item.name}
                         fill
                         className="object-cover hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 640px) 240px, (max-width: 768px) 160px, (max-width: 1024px) 200px, 144px"
                       />
                     </div>
 
