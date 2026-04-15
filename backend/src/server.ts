@@ -6,6 +6,7 @@ import { logger } from "./utils/logger";
 import { connectDB } from "./db/connection";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import cors from "cors";
 import "./firebase/admin";
 
 // Import routes
@@ -29,8 +30,26 @@ dotenv.config();
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
-app.use(corsMiddleware);
 app.use(helmet());
+
+const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps/postman)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.log("Blocked by CORS:", origin);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
 
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
