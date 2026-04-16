@@ -24,6 +24,7 @@ export interface IUser extends Document {
   resetPasswordExpires?: Date;
   fcmToken?: string;
   fcmTokenUpdatedAt?: Date;
+  cancellationCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -85,6 +86,10 @@ const UserSchema = new Schema<IUser>(
     },
     fcmToken: String,
     fcmTokenUpdatedAt: Date,
+    cancellationCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );

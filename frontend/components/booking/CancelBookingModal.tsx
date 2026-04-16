@@ -10,27 +10,39 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { AlertCircle, Loader2 } from 'lucide-react'
 
 interface CancelBookingModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  onConfirm: (reason: string) => void
 }
 
 export function CancelBookingModal({ open, onOpenChange, onConfirm }: CancelBookingModalProps) {
+  const [reason, setReason] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleConfirm = async () => {
+    if (!reason.trim()) {
+      return
+    }
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    onConfirm()
+    await onConfirm(reason.trim())
     setIsLoading(false)
     onOpenChange(false)
+    setReason('')
+  }
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setReason('')
+    }
+    onOpenChange(newOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -39,13 +51,25 @@ export function CancelBookingModal({ open, onOpenChange, onConfirm }: CancelBook
           </div>
           <DialogDescription>
             Are you sure you want to cancel this booking? This action cannot be undone.
+            Please provide a reason for cancellation.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Cancellation Reason</label>
+          <Textarea
+            placeholder="Please provide a reason for cancellation..."
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className="min-h-[80px]"
+            disabled={isLoading}
+          />
+        </div>
 
         <DialogFooter className="flex gap-2 justify-end">
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isLoading}
           >
             Keep Booking
@@ -53,7 +77,7 @@ export function CancelBookingModal({ open, onOpenChange, onConfirm }: CancelBook
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || !reason.trim()}
           >
             {isLoading ? (
               <>

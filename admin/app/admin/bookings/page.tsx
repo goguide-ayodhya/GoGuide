@@ -97,15 +97,13 @@ const convertApiBookingToUi = (apiBooking: any): Booking => {
     REJECTED: "Cancelled",
   };
 
-  const bookingType = apiBooking.isVip
-    ? "VIP"
-    : apiBooking.bookingType === "GUIDE"
-      ? "Guide"
-      : apiBooking.bookingType === "DRIVER"
-        ? "Driver"
-        : apiBooking.bookingType === "TOKEN"
-          ? "Token"
-          : "Normal";
+  const bookingType = apiBooking.bookingType === "GUIDE"
+    ? "Guide"
+    : apiBooking.bookingType === "DRIVER"
+      ? "Driver"
+      : apiBooking.bookingType === "TOKEN"
+        ? "Token"
+        : "Normal";
 
   return {
     id: apiBooking._id || apiBooking.id,

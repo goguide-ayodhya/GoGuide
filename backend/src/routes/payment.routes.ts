@@ -8,6 +8,10 @@ router.post("/booking/:bookingId", authenticate, (req, res, next) => {
   paymentController.createPayment(req, res).catch(next);
 });
 
+router.post("/booking/:bookingId/skip", authenticate, (req, res, next) => {
+  paymentController.skipPayment(req, res).catch(next);
+});
+
 router.post("/:paymentId/process", authenticate, (req, res, next) => {
   paymentController.processPayment(req, res).catch(next);
 });

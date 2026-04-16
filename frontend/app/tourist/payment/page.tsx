@@ -22,7 +22,7 @@ function PaymentPageContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
 
-  const { processPayment, createPayment } = usePayment();
+  const { processPayment, createPayment, skipPayment } = usePayment();
   const { currentBooking, setCurrentBooking, setPaymentMethod } = useBooking();
 
   const [bookingDetails, setBookingDetails] = useState<any>(null);
@@ -130,6 +130,24 @@ function PaymentPageContent() {
     }
   };
 
+  const handleSkipPayment = async () => {
+    if (!bookingId) return;
+
+    setIsProcessing(true);
+
+    try {
+      await skipPayment(bookingId);
+      setPaymentComplete(true);
+      router.push("/tourist/bookings");
+    } catch (error) {
+      console.log("Error skipping payment for bookingId:", bookingId, error);
+      // Still navigate forward even if skip fails
+      router.push("/tourist/bookings");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col bg-background">
       <Header showBack={true} />
@@ -184,6 +202,16 @@ function PaymentPageContent() {
             ) : (
               `Pay ₹${totalAmount}`
             )}
+          </Button>
+
+          {/* ✅ Skip Payment Button */}
+          <Button
+            onClick={handleSkipPayment}
+            variant="outline"
+            className="w-full h-12 text-base font-semibold cursor-pointer"
+            disabled={isProcessing}
+          >
+            Skip Payment
           </Button>
         </div>
       </div>

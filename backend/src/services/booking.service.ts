@@ -1,6 +1,7 @@
 import { Booking } from "../models/Booking";
 import { Driver } from "../models/Driver";
 import { Guide } from "../models/Guide";
+import { User } from "../models/User";
 import { Payment } from "../models/Payment";
 import { Review } from "../models/Review";
 import { NotFound, BadRequest } from "../utils/httpException";
@@ -209,11 +210,15 @@ export class BookingService {
     return booking;
   }
 
-  async cancelBooking(bookingId: string, reason?: string) {
+  async cancelBooking(bookingId: string, reason?: string, cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER") {
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
       throw new NotFound("Booking not found");
+    }
+
+    if (!reason) {
+      throw new BadRequest("Cancellation reason is required");
     }
 
     if (["COMPLETED", "CANCELLED"].includes(booking.status)) {
@@ -221,8 +226,24 @@ export class BookingService {
         `Cannot cancel a ${booking.status.toLowerCase()} booking`,
       );
     }
+
     booking.status = "CANCELLED";
+    booking.cancellationReason = reason;
+    booking.cancelledBy = cancelledBy;
+    booking.cancelledAt = new Date();
     await booking.save();
+
+    // Track cancellation count for the user
+    if (cancelledBy === "TOURIST") {
+      await User.findByIdAndUpdate(booking.userId, { $inc: { cancellationCount: 1 } });
+      
+      // Check if user should be suspended
+      const user = await User.findById(booking.userId);
+      if (user && (user.cancellationCount || 0) + 1 >= 3) {
+        await User.findByIdAndUpdate(booking.userId, { status: "SUSPENDED" });
+      }
+    }
+
     return booking;
   }
 

@@ -48,7 +48,6 @@ export interface Booking {
   createdAt: string;
   notes?: string;
   paymentMethod?: string;
-  isVip: boolean;
   avatar: string;
   reviewed?: boolean;
 }
@@ -131,7 +130,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           createdAt: b.createdAt,
           notes: b.notes,
           paymentMethod: b.paymentMethod,
-          isVip: b.isVip || false,
           avatar: b.userId?.avatar || b.userId?.profileImage || "",
           reviewed: b.reviewed || false,
         }));

@@ -52,6 +52,21 @@ export class PaymentController {
     }
   }
 
+  async skipPayment(req: AuthRequest, res: Response) {
+    try {
+      const { bookingId } = req.params;
+      const result = await paymentService.skipPayment(req.userId!, bookingId);
+
+      res.status(200).json({
+        success: true,
+        message: "Payment skipped successfully",
+        data: result,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getMyPayments(req: AuthRequest, res: Response) {
     try {
       const payments = await paymentService.getPaymentsByUser(req.userId!);

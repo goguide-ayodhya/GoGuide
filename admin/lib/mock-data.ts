@@ -23,7 +23,7 @@ export interface Booking {
   tourType: string
   date: string
   meetingPoint: string
-  bookingType: 'Normal' | 'VIP'
+  bookingType: 'Normal'
   price: number
   status: 'Pending' | 'Confirmed' | 'On the Way' | 'Completed' | 'Cancelled'
   createdAt: string
@@ -49,7 +49,7 @@ export interface Pass {
   description: string
   validity: string
   price: number
-  category: 'token' | 'vip'
+  category: 'token'
 }
 
 export interface Payment {
@@ -183,7 +183,7 @@ export const mockBookings: Booking[] = [
     tourType: 'Temple Tour',
     date: '2024-03-15',
     meetingPoint: 'Hotel Entrance',
-    bookingType: 'VIP',
+    bookingType: 'Normal',
     price: 5000,
     status: 'Confirmed',
     createdAt: '2024-03-10'
@@ -225,7 +225,7 @@ export const mockBookings: Booking[] = [
     tourType: 'Historical Monuments',
     date: '2024-03-13',
     meetingPoint: 'Airport',
-    bookingType: 'VIP',
+    bookingType: 'Normal',
     price: 7500,
     status: 'Completed',
     createdAt: '2024-03-08'
@@ -313,28 +313,12 @@ export const mockPasses: Pass[] = [
     category: 'token'
   },
   {
-    id: 'PS002',
-    name: 'VIP Darshan Pass',
-    description: 'Premium VIP access with special darshan privileges',
-    validity: '1 Day',
-    price: 2000,
-    category: 'vip'
-  },
-  {
     id: 'PS003',
     name: 'Priority Entry Pass',
     description: 'Priority entry to all heritage sites and monuments',
     validity: '3 Days',
     price: 1500,
     category: 'token'
-  },
-  {
-    id: 'PS004',
-    name: 'Weekend VIP Bundle',
-    description: 'Complete VIP experience for the entire weekend',
-    validity: '2 Days',
-    price: 3500,
-    category: 'vip'
   }
 ]
 

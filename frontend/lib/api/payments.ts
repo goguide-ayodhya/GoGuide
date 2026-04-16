@@ -37,6 +37,16 @@ export const createPaymentApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
+// Skip Payment
+export const skipPaymentApi = async (bookingId: string) => {
+  const res = await fetch(`${base_url}payments/booking/${bookingId}/skip`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
 // Process Payment
 export const processPaymentApi = async (paymentId: string) => {
   const res = await fetch(`${base_url}payments/${paymentId}/process`, {

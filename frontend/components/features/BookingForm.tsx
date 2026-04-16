@@ -25,7 +25,6 @@ export interface BookingData {
   time: string
   duration: number
   meetingPoint: string
-  vipPass: boolean
   specialRequests: string
 }
 
@@ -35,7 +34,6 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
     time: '',
     duration: 2,
     meetingPoint: '',
-    vipPass: false,
     specialRequests: '',
   })
 
@@ -46,7 +44,7 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
     }
   }
 
-  const totalPrice = (guide.price * formData.duration) + (formData.vipPass ? 500 : 0)
+  const totalPrice = (guide.price * formData.duration)
 
   return (
     <Card className="p-6">
@@ -114,23 +112,6 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
           </Select>
         </div>
 
-        {/* VIP Pass */}
-        <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border">
-          <Checkbox
-            id="vip-pass"
-            checked={formData.vipPass}
-            onCheckedChange={(checked) => setFormData({ ...formData, vipPass: checked as boolean })}
-          />
-          <div className="flex-grow">
-            <label htmlFor="vip-pass" className="text-sm font-medium text-foreground cursor-pointer">
-              Add VIP Pass (+₹500)
-            </label>
-            <p className="text-xs text-muted-foreground mt-1">
-              Skip lines and get priority access at all temples
-            </p>
-          </div>
-        </div>
-
         {/* Special Requests */}
         <div>
           <label className="block text-sm font-medium text-foreground mb-2">Special Requests (Optional)</label>
@@ -150,12 +131,6 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
               <span>Guide fee ({formData.duration}h × ₹{guide.price}/h)</span>
               <span>₹{guide.price * formData.duration}</span>
             </div>
-            {formData.vipPass && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>VIP Pass</span>
-                <span>₹500</span>
-              </div>
-            )}
             <div className="flex justify-between text-lg font-bold text-foreground pt-2 border-t border-border">
               <span>Total</span>
               <span className="text-primary">₹{totalPrice}</span>

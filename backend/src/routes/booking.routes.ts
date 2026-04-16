@@ -5,6 +5,7 @@ import { validate } from "../middleware/validation";
 import {
   createBookingSchema,
   updateBookingStatusSchema,
+  cancelBookingSchema,
 } from "../validations/booking";
 
 const router = Router();
@@ -38,7 +39,7 @@ router.get("/:bookingId", authenticate, (req, res, next) => {
   bookingController.getBookingById(req, res).catch(next);
 });
 
-router.patch("/:bookingId/cancel", authenticate, (req, res, next) => {
+router.patch("/:bookingId/cancel", authenticate, validate(cancelBookingSchema), (req, res, next) => {
   bookingController.cancelBooking(req, res).catch(next);
 });
 

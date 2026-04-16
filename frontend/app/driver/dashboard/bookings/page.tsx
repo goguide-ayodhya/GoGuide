@@ -41,7 +41,6 @@ type RawDriverBooking = {
   createdAt: string;
   notes?: string;
   paymentMethod?: string;
-  isVip?: boolean;
   reviewed?: boolean;
   userId?: {
     avatar?: string;
@@ -85,7 +84,6 @@ export default function BookingsPage() {
           createdAt: b.createdAt,
           notes: b.notes,
           paymentMethod: b.paymentMethod,
-          isVip: b.isVip || false,
           avatar: b.userId?.avatar || b.userId?.profileImage || "",
           reviewed: b.reviewed || false,
         }));

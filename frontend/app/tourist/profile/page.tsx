@@ -31,7 +31,8 @@ export default function ProfilePage() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
-  const [emailVerificationLoading, setEmailVerificationLoading] = useState(false);
+  const [emailVerificationLoading, setEmailVerificationLoading] =
+    useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -300,69 +301,6 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto py-6 px-4">
         {/* Header */}
 
-        {/* Profile Picture */}
-        <Card className="bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
-            <CardDescription>
-              Upload or change your profile photo
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-border">
-                <Image
-                  src={
-                    previewImage
-                      ? previewImage
-                      : user.avatar
-                        ? user.avatar
-                        : assets.guideImage
-                  }
-                  alt={user.name}
-                  fill
-                  className="object-cover"
-                  sizes="96px"
-                />
-              </div>
-              <div className="flex-1">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload size={18} />
-                    Upload New Picture
-                  </Button>
-
-                  {selectedImage && (
-                    <Button
-                      onClick={handleSaveAvatar}
-                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      <Save size={18} />
-                      Save Avatar
-                    </Button>
-                  )}
-                </div>
-
-                <p className="text-xs text-muted-foreground mt-2">
-                  JPG, PNG or GIF (max 5MB)
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Basic Information */}
         <Card className="bg-card border border-border">
           <CardHeader>
@@ -545,7 +483,9 @@ export default function ProfilePage() {
                   <div>
                     <h4 className="font-medium">Email Verification</h4>
                     <p className="text-sm text-muted-foreground">
-                      {user.isEmailVerified ? "Your email is verified" : "Verify your email for better security"}
+                      {user.isEmailVerified
+                        ? "Your email is verified"
+                        : "Verify your email for better security"}
                     </p>
                   </div>
                   {user.isEmailVerified ? (

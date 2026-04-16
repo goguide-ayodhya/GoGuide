@@ -42,6 +42,7 @@ type GuideContextType = {
   setGuides: React.Dispatch<React.SetStateAction<Guide[]>>;
   myGuide: Guide | null;
   loading: boolean;
+  activeGuidesCount: number;
   updateGuideData: (id: string, data: any) => Promise<any>;
   setAvailability: (id: string, status: boolean) => Promise<any>;
   setOnlineStatus: (id: string, status: boolean) => Promise<any>;
@@ -92,7 +93,18 @@ export const GuideProvider = ({ children }: any) => {
         }
 
         const formattedData = data.map((guide: any) => mapGuide(guide));
-        setGuides(formattedData);
+        
+        // Sort guides: active guides first, then by rating
+        const sortedData = formattedData.sort((a: Guide, b: Guide) => {
+          // Active guides come first
+          if (a.isAvailable && !b.isAvailable) return -1;
+          if (!a.isAvailable && b.isAvailable) return 1;
+          
+          // If both have same availability status, sort by rating (highest first)
+          return b.rating - a.rating;
+        });
+        
+        setGuides(sortedData);
       } catch (error) {
         console.error("Failed to fetch guides", error);
         setGuides([]);
@@ -210,6 +222,8 @@ export const GuideProvider = ({ children }: any) => {
     return updated;
   };
 
+  const activeGuidesCount = guides.filter(guide => guide.isAvailable).length;
+
   return (
     <GuideContext.Provider
       value={{
@@ -217,6 +231,7 @@ export const GuideProvider = ({ children }: any) => {
         loading,
         setGuides,
         myGuide,
+        activeGuidesCount,
         // getGuide,
         updateGuideData,
         setAvailability,

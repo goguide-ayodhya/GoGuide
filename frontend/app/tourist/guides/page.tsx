@@ -19,7 +19,7 @@ import { poppins } from "@/lib/fonts";
 type SortOption = "rating" | "price-low" | "price-high" | "experience";
 
 export default function GuidesPage() {
-  const { guides, loading } = useGuide();
+  const { guides, loading, activeGuidesCount } = useGuide();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [languageFilter, setLanguageFilter] = useState<string>("");
@@ -246,10 +246,18 @@ export default function GuidesPage() {
             )}
           </section>
 
-          <section className="grid gap-6 md:grid-cols-3">
+          <section className="grid gap-6 md:grid-cols-4">
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                Expert guides
+                Active guides
+              </p>
+              <p className="mt-3 text-3xl font-semibold text-slate-950">
+                {activeGuidesCount}
+              </p>
+            </div>
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                Total guides
               </p>
               <p className="mt-3 text-3xl font-semibold text-slate-950">
                 {totalGuides}

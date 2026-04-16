@@ -29,7 +29,7 @@ export function ConfirmationModal({
   if (!bookingData) return null;
 
   const totalPrice =
-    guide.price * bookingData.duration + (bookingData.vipPass ? 500 : 0);
+    guide.price * bookingData.duration;
   const bookingId = `BK-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 
   return (
@@ -134,22 +134,6 @@ export function ConfirmationModal({
             </div>
           </div>
 
-          {/* Add-ons */}
-          {bookingData.vipPass && (
-            <div className="border-b border-border pb-6">
-              <h3 className="font-semibold text-foreground mb-3">Add-ons</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-secondary/20 text-secondary border-0">
-                    VIP
-                  </Badge>
-                  <span className="text-foreground">VIP Pass</span>
-                </div>
-                <span className="font-medium text-foreground">₹500</span>
-              </div>
-            </div>
-          )}
-
           {/* Price Breakdown */}
           <div className="bg-primary/5 p-4 rounded-lg">
             <div className="space-y-2">
@@ -159,12 +143,6 @@ export function ConfirmationModal({
                   ₹{guide.price * bookingData.duration}
                 </span>
               </div>
-              {bookingData.vipPass && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">VIP Pass</span>
-                  <span className="text-foreground">₹500</span>
-                </div>
-              )}
               <div className="flex justify-between text-lg font-bold pt-2 border-t border-primary/20">
                 <span className="text-foreground">Total Amount</span>
                 <span className="text-primary">₹{totalPrice}</span>

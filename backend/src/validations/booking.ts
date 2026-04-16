@@ -44,7 +44,12 @@ export const updateBookingStatusSchema = z.object({
   status: z.enum(["PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"]),
 });
 
+export const cancelBookingSchema = z.object({
+  reason: z.string().min(1, "Cancellation reason is required"),
+});
+
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type UpdateBookingStatusInput = z.infer<
   typeof updateBookingStatusSchema
 >;
+export type CancelBookingInput = z.infer<typeof cancelBookingSchema>;

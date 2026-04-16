@@ -48,7 +48,6 @@ export interface Booking {
   createdAt: string;
   notes?: string;
   paymentMethod?: string;
-  isVip: boolean;
   avatar: string;
   reviewed?: boolean;
 }
@@ -63,7 +62,7 @@ interface BookingContextType {
   bookings: Booking[];
   loading: boolean;
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
-  cancelBooking: (bookingId: string) => void;
+  cancelBooking: (bookingId: string, reason: string) => void;
   setPaymentMethod: (method: "upi" | "card") => void;
   currentBooking: Booking | null;
 
@@ -108,14 +107,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           user?.role === "GUIDE"
             ? await getGuideBookings()
             : user?.role === "DRIVER"
-            ? await getDriverBookings()
-            : await getMyBookings();
+              ? await getDriverBookings()
+              : await getMyBookings();
 
         console.log("API response data:", data);
         const formattedData = data.map((b: any) => ({
           id: b._id,
           guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
-          driverId: typeof b.driverId === "object" ? b.driverId._id : b.driverId,
+          driverId:
+            typeof b.driverId === "object" ? b.driverId._id : b.driverId,
           touristName: b.touristName,
           email: b.email,
           phone: b.phone,
@@ -131,7 +131,6 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           createdAt: b.createdAt,
           notes: b.notes,
           paymentMethod: b.paymentMethod,
-          isVip: b.isVip || false,
           avatar: b.userId?.avatar || b.userId?.profileImage || "",
           reviewed: b.reviewed || false,
         }));
@@ -159,7 +158,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     } else if (status === "COMPLETED") {
       await completeBookingApi(bookingId);
     } else if (status === "CANCELLED") {
-      await cancelBookingApi(bookingId);
+      await cancelBookingApi(bookingId, "Cancelled");
     }
 
     setBookings((prev) =>
@@ -167,8 +166,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const cancelBooking = async (bookingId: string) => {
-    await cancelBookingApi(bookingId);
+  const cancelBooking = async (bookingId: string, reason: string) => {
+    await cancelBookingApi(bookingId, reason);
 
     setBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b)),

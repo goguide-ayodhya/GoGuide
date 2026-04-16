@@ -400,15 +400,6 @@ const initializeDatabase = (): Database => {
       discount: 25,
     },
     {
-      name: "VIP Heritage Pass",
-      type: PassType.VIP,
-      description: "Skip-the-line access to premium monuments",
-      price: 2000,
-      validityDays: 7,
-      maxUsage: -1,
-      discount: 30,
-    },
-    {
       name: "Premium Annual Pass",
       type: PassType.PREMIUM,
       description: "Unlimited access to all monuments for a year",

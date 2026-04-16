@@ -92,14 +92,15 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   return (
     <main className="min-h-screen flex flex-col bg-background">
-      {loading && (
-        <div className="text-center">
-          <div className="w-12 h-screen border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      )}
       <Header />
 
       <div className="flex-grow">

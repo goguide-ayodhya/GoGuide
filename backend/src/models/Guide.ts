@@ -6,6 +6,8 @@ export interface IGuide extends Document {
   bio?: string;
   hourlyRate: number;
   certification?: string;
+  certificateName?: string;
+  certificateImage?: string;
   yearsOfExperience: number;
   languages: string[];
   averageRating: number;
@@ -37,6 +39,8 @@ const GuideSchema = new Schema<IGuide>(
       // required: true,
     },
     certification: String,
+    certificateName: String,
+    certificateImage: String,
     yearsOfExperience: {
       type: Number,
       default: 0,

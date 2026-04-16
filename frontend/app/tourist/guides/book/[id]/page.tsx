@@ -225,18 +225,6 @@ export default function GuideBookingPage() {
                 </div>
               </div>
 
-              <div className="mt-6 space-y-4">
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Price per hour</p>
-                  <p className="mt-2 text-3xl font-semibold text-slate-950">₹{guide.price}</p>
-                </div>
-
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Rating</p>
-                  <p className="mt-2 text-xl font-semibold text-slate-950">{guide.rating?.toFixed(1) ?? "0.0"} / 5</p>
-                </div>
-              </div>
-
               {!isLoggedIn ? (
                 <div className="space-y-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-8 text-center">
                   <p className="text-lg font-semibold text-slate-950">Sign in to continue booking</p>

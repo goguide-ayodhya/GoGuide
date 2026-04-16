@@ -1,6 +1,7 @@
 import { useContext, createContext, useState } from "react";
 import {
   createPaymentApi,
+  skipPaymentApi,
   processPaymentApi,
   getGuidePaymentsApi,
   getMyPaymentsApi,
@@ -33,6 +34,7 @@ interface PaymentContextType {
   fetchStats: () => Promise<void>;
 
   createPayment: (bookingId: string) => Promise<any>;
+  skipPayment: (bookingId: string) => Promise<any>;
   processPayment: (paymentId: string) => Promise<any>;
 }
 
@@ -92,6 +94,15 @@ export const PaymentProvider = ({
     }
   };
 
+  const skipPayment = async (bookingId: string) => {
+    try {
+      const data = await skipPaymentApi(bookingId);
+      return data;
+    } catch (error) {
+      console.log("Error Skipping Payment", error);
+    }
+  };
+
   const processPayment = async (paymentId: string) => {
     try {
       const data = await processPaymentApi(paymentId);
@@ -117,6 +128,7 @@ export const PaymentProvider = ({
         fetchMyPayments,
         fetchStats,
         createPayment,
+        skipPayment,
         processPayment,
       }}
     >

@@ -29,6 +29,9 @@ export interface IBooking extends Document {
 
   paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
   notes?: string;
+  cancellationReason?: string;
+  cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER";
+  cancelledAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   paymentMethod: string;
@@ -121,6 +124,12 @@ const BookingSchema = new Schema<IBooking>(
       enum: ["UPI", "COD", "CARD"],
     },
     notes: String,
+    cancellationReason: String,
+    cancelledBy: {
+      type: String,
+      enum: ["GUIDE", "TOURIST", "DRIVER"],
+    },
+    cancelledAt: Date,
   },
   { timestamps: true },
 );

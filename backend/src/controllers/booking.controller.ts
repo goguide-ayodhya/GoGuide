@@ -3,6 +3,8 @@ import { AuthRequest } from "../middleware/auth";
 import { bookingService } from "../services/booking.service";
 import { Guide } from "../models/Guide";
 import { Driver } from "../models/Driver";
+import { User } from "../models/User";
+import { Unauthorized } from "../utils/httpException";
 
 export class BookingController {
   async createBooking(req: AuthRequest, res: Response) {
@@ -137,9 +139,20 @@ export class BookingController {
   async cancelBooking(req: AuthRequest, res: Response) {
     try {
       const { bookingId } = req.params;
+      const userId = req.userId!;
+
+      // Get user to determine role
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Unauthorized("User not found");
+      }
+
+      const cancelledBy = user.role as "GUIDE" | "TOURIST" | "DRIVER";
+
       const booking = await bookingService.cancelBooking(
         bookingId,
         req.body.reason,
+        cancelledBy,
       );
 
       res.status(200).json({

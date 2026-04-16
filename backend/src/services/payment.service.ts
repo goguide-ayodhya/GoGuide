@@ -42,6 +42,26 @@ export class PaymentService {
     return populatedPayment;
   }
 
+  async skipPayment(userId: string, bookingId: string) {
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+      throw new NotFound("Booking not found");
+    }
+
+    if (booking.userId.toString() !== userId) {
+      throw new Unauthorized("Not authorized to skip payment for this booking");
+    }
+
+    if (booking.paymentStatus !== "PENDING") {
+      throw new BadRequest("Payment is not in pending state");
+    }
+
+    // Keep payment status as PENDING, just mark that user chose to skip
+    // Could add a field to track this, but for now, just return success
+    return { message: "Payment skipped successfully" };
+  }
+
   async processPayment(paymentId: string, data: any, userId: string) {
     const payment = await Payment.findById(paymentId);
 

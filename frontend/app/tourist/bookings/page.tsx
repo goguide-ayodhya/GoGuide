@@ -147,8 +147,8 @@ export default function BookingsPage() {
     return statusMatch && reviewMatch && searchMatch;
   });
 
-  const handleCancel = (bookingId: string) => {
-    cancelBooking(bookingId);
+  const handleCancel = (bookingId: string, reason: string) => {
+    cancelBooking(bookingId, reason);
     setCancellingId(null);
   };
 
@@ -487,7 +487,7 @@ export default function BookingsPage() {
                       <BookingCard
                         key={booking.id}
                         booking={booking}
-                        onCancel={handleCancel}
+                        onCancel={(bookingId) => setCancellingId(bookingId)}
                         onLeaveReview={handleLeaveReview}
                         onViewReview={handleViewReview}
                       />
@@ -504,7 +504,7 @@ export default function BookingsPage() {
       <CancelBookingModal
         open={!!cancellingId}
         onOpenChange={(open) => !open && setCancellingId(null)}
-        onConfirm={() => cancellingId && handleCancel(cancellingId)}
+        onConfirm={(reason) => cancellingId && handleCancel(cancellingId, reason)}
       />
 
       {/* View Review Modal */}

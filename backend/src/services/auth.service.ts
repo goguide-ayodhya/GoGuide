@@ -16,13 +16,11 @@ import { sendEmail } from "../config/email.config";
 export class AuthService {
   // --------------------- Authentication ---------------------
   async login(input: LoginInput) {
-    // Find user by email or phone
-    const user = await User.findOne({
-      $or: [{ email: input.identifier }, { phone: input.identifier }],
-    });
+    // Find user by phone only
+    const user = await User.findOne({ phone: input.identifier });
 
     if (!user) {
-      throw new Unauthorized("Invalid email/phone or password");
+      throw new Unauthorized("Invalid phone or password");
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.password);
@@ -56,15 +54,12 @@ export class AuthService {
   }
 
   async signup(input: SignupInput) {
-    // Check for existing user by email if provided
-    if (input.email) {
-      const existingUserByEmail = await User.findOne({ email: input.email });
-      if (existingUserByEmail) {
-        throw new Conflict("Email already registered");
-      }
+    // Require both email and phone and enforce uniqueness
+    const existingUserByEmail = await User.findOne({ email: input.email });
+    if (existingUserByEmail) {
+      throw new Conflict("Email already registered");
     }
 
-    // Check for existing user by phone
     const existingUserByPhone = await User.findOne({ phone: input.phone });
     if (existingUserByPhone) {
       throw new Conflict("Phone number already registered");
@@ -119,6 +114,11 @@ export class AuthService {
       });
     }
     const token = this.generateToken(user._id.toString(), user.email || "");
+
+    // Send email verification if email is provided
+    if (user.email) {
+      await this.sendOtp(user.email);
+    }
 
     return {
       user: {
@@ -186,11 +186,13 @@ export class AuthService {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     const hashedOtp = await bcrypt.hash(otp, 10);
-    user.otp = hashedOtp;
-    user.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await user.save();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await User.updateOne(
+      { _id: user._id },
+      { otp: hashedOtp, otpExpiresAt },
+    );
 
     await sendEmail(
       user.email!,
@@ -230,32 +232,20 @@ export class AuthService {
   }
 
   async forgotPassword(identifier: string) {
-    // Find user by email or phone
-    const user = await User.findOne({
-      $or: [{ email: identifier }, { phone: identifier || null }],
-    });
+    const user = await User.findOne({ email: identifier });
 
     if (!user) {
       throw new NotFound("User not found");
     }
 
-    // Check if user has email
-    if (!user.email) {
-      throw new BadRequest(
-        "No email address associated with this account. Please contact support to reset your password.",
-      );
-    }
-
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Hash OTP before storing
     const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
     user.otp = hashedOtp;
-    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    // Send OTP via email
     await sendEmail(
       user.email!,
       "Password Reset OTP - GoGuide",
@@ -266,10 +256,7 @@ export class AuthService {
   }
 
   async resetPassword(identifier: string, otp: string, newPassword: string) {
-    // Find user by email or phone
-    const user = await User.findOne({
-      $or: [{ email: identifier }, { phone: identifier }],
-    });
+    const user = await User.findOne({ email: identifier });
 
     if (!user) {
       throw new NotFound("User not found");

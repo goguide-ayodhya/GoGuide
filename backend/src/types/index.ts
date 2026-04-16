@@ -44,7 +44,6 @@ export enum MessageStatus {
 
 export enum PassType {
   TOKEN = 'Token',
-  VIP = 'VIP',
   PREMIUM = 'Premium',
 }
 
