@@ -35,8 +35,10 @@ type GuideFormData = {
   password: string;
   confirmPassword: string;
   phone: string;
-  speciality: string;
-  hourlyRate: string;
+  specialities: string[];
+  locations: string[];
+  price: string;
+  duration: string;
   experience: string;
   languages: string[];
   profileImage: File | null;
@@ -77,8 +79,10 @@ export default function GuideForm() {
     password: "",
     confirmPassword: "",
     phone: "",
-    speciality: "",
-    hourlyRate: "",
+    specialities: [],
+    locations: [],
+    price: "",
+    duration: "4 hours",
     experience: "",
     languages: [],
     profileImage: null,
@@ -86,6 +90,8 @@ export default function GuideForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [currentLanguage, setCurrentLanguage] = useState("");
+  const [currentSpeciality, setCurrentSpeciality] = useState("");
+  const [currentLocation, setCurrentLocation] = useState("");
 
   const passwordStrength = {
     hasLength: formData.password.length >= 8,
@@ -123,6 +129,40 @@ export default function GuideForm() {
     }));
   };
 
+  const addSpeciality = () => {
+    if (currentSpeciality && !formData.specialities.includes(currentSpeciality)) {
+      setFormData((prev) => ({
+        ...prev,
+        specialities: [...prev.specialities, currentSpeciality],
+      }));
+      setCurrentSpeciality("");
+    }
+  };
+
+  const removeSpeciality = (speciality: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specialities: prev.specialities.filter((spec) => spec !== speciality),
+    }));
+  };
+
+  const addLocation = () => {
+    if (currentLocation && !formData.locations.includes(currentLocation)) {
+      setFormData((prev) => ({
+        ...prev,
+        locations: [...prev.locations, currentLocation],
+      }));
+      setCurrentLocation("");
+    }
+  };
+
+  const removeLocation = (location: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      locations: prev.locations.filter((loc) => loc !== location),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -141,8 +181,10 @@ export default function GuideForm() {
         password: formData.password,
         phone: formData.phone,
         role: "GUIDE",
-        speciality: formData.speciality,
-        hourlyRate: formData.hourlyRate,
+        specialities: formData.specialities,
+        locations: formData.locations,
+        price: formData.price,
+        duration: formData.duration,
         experience: formData.experience,
         languages: formData.languages,
         profileImage: formData.profileImage,
@@ -223,37 +265,52 @@ export default function GuideForm() {
                 />
               </div>
 
-              <div className="space-y-4">
-                <Label htmlFor="speciality">Speciality</Label>
-                <Select
-                  value={formData.speciality}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, speciality: value }))
-                  }
-                >
-                  <SelectTrigger className="bg-muted">
-                    <SelectValue placeholder="Select your speciality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIALITIES.map((speciality) => (
-                      <SelectItem key={speciality} value={speciality}>
+              <div className="space-y-2">
+                <Label htmlFor="specialities">Specialities</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="specialities"
+                    type="text"
+                    placeholder="Enter a speciality (e.g., Historical Tours)"
+                    value={currentSpeciality}
+                    onChange={(e) => setCurrentSpeciality(e.target.value)}
+                    className="bg-muted flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpeciality())}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="cursor-pointer bg-secondary text-white"
+                    onClick={addSpeciality}
+                  >
+                    Add
+                  </Button>
+                </div>
+                {formData.specialities.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.specialities.map((speciality) => (
+                      <Badge key={speciality} variant="secondary" className="flex items-center gap-1">
                         {speciality}
-                      </SelectItem>
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => removeSpeciality(speciality)}
+                        />
+                      </Badge>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                <Label htmlFor="price">Price (₹)</Label>
                 <Input
-                  id="hourlyRate"
-                  name="hourlyRate"
+                  id="price"
+                  name="price"
                   type="number"
-                  placeholder="50"
-                  value={formData.hourlyRate}
+                  placeholder="500"
+                  value={formData.price}
                   onChange={handleInputChange}
                   className="bg-muted"
                   required
@@ -261,18 +318,75 @@ export default function GuideForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="experience">Years of Experience</Label>
-                <Input
-                  id="experience"
-                  name="experience"
-                  type="number"
-                  placeholder="5"
-                  value={formData.experience}
-                  onChange={handleInputChange}
-                  className="bg-muted"
-                  required
-                />
+                <Label htmlFor="duration">Duration</Label>
+                <Select
+                  value={formData.duration}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, duration: value }))
+                  }
+                >
+                  <SelectTrigger className="bg-muted">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2 hours">2 hours</SelectItem>
+                    <SelectItem value="4 hours">4 hours</SelectItem>
+                    <SelectItem value="6 hours">6 hours</SelectItem>
+                    <SelectItem value="8 hours">8 hours</SelectItem>
+                    <SelectItem value="Full day">Full day</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="locations">Locations</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="locations"
+                  type="text"
+                  placeholder="Enter a location (e.g., Ram Mandir)"
+                  value={currentLocation}
+                  onChange={(e) => setCurrentLocation(e.target.value)}
+                  className="bg-muted flex-1"
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation())}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="cursor-pointer bg-secondary text-white"
+                  onClick={addLocation}
+                >
+                  Add
+                </Button>
+              </div>
+              {formData.locations.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.locations.map((location) => (
+                    <Badge key={location} variant="secondary" className="flex items-center gap-1">
+                      {location}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeLocation(location)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="experience">Years of Experience</Label>
+              <Input
+                id="experience"
+                name="experience"
+                type="number"
+                placeholder="5"
+                value={formData.experience}
+                onChange={handleInputChange}
+                className="bg-muted"
+                required
+              />
             </div>
 
             <div className="space-y-2">
@@ -331,7 +445,7 @@ export default function GuideForm() {
                 />
                 <Label
                   htmlFor="profileImage"
-                  className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 bg-muted"
                 >
                   <Upload className="h-4 w-4" />
                   {formData.profileImage

@@ -17,7 +17,6 @@ export interface User {
   bio?: string;
   profileImage?: string;
   phone: string;
-  hourlyRate?: number;
   speciality?: string;
   certification?: string;
   yearsOfExperience?: number;
@@ -35,8 +34,14 @@ export type SignupData = {
   role: string;
   phone: string;
   avatar?: File;
+  // Guide fields
+  specialities?: string[];
+  locations?: string[];
+  price?: string;
+  duration?: string;
+  certificates?: (File | { name: string; image: File })[];
+  // Driver & legacy fields
   speciality?: string;
-  hourlyRate?: string;
   experience?: string;
   languages?: string[];
   vehicleType?: string;

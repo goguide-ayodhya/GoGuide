@@ -12,8 +12,8 @@ interface GuideCardProps {
   guide: Guide;
 }
 
-function getStatusBadge(isOnline: boolean, isAvailable: boolean) {
-  if (isOnline && isAvailable) {
+function getStatusBadge(isAvailable: boolean) {
+  if (isAvailable) {
     return {
       label: "Available Now",
       variant: "default" as const,
@@ -21,16 +21,8 @@ function getStatusBadge(isOnline: boolean, isAvailable: boolean) {
       dotColor: "text-green-500",
     };
   }
-  if (isOnline && !isAvailable) {
-    return {
-      label: "Busy",
-      variant: "default" as const,
-      color: "bg-yellow-500/20 text-yellow-700 border-yellow-200",
-      dotColor: "text-yellow-500",
-    };
-  }
   return {
-    label: "Offline",
+    label: "Unavailable",
     variant: "default" as const,
     color: "bg-gray-500/20 text-gray-700 border-gray-200",
     dotColor: "text-gray-500",
@@ -39,13 +31,14 @@ function getStatusBadge(isOnline: boolean, isAvailable: boolean) {
 
 export function GuideCard({ guide }: GuideCardProps) {
   const router = useRouter();
-  const statusBadge = getStatusBadge(guide.isOnline, guide.isAvailable);
-  const canBook = guide.isAvailable && guide.isOnline;
+  const statusBadge = getStatusBadge(guide.isAvailable);
+  const canBook = guide.isAvailable;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
   const bioText =
     guide.bio?.trim() ||
-    guide.specialities?.[0] ||
-    "Friendly local guide with stories and insider tips.";
+    (guide.specialities && guide.specialities.length > 0
+      ? guide.specialities[0]
+      : "Friendly local guide with stories and insider tips.");
   const recentReviews = guide.recentReviews?.slice(0, 2) || [];
 
   const cardContent = (
@@ -58,7 +51,7 @@ export function GuideCard({ guide }: GuideCardProps) {
       ].join(" ")}
     >
       <div className="p-5">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="flex gap-5 sm:flex-row sm:items-start">
           <div className="flex-shrink-0">
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/20 bg-muted">
               <Image
@@ -78,51 +71,59 @@ export function GuideCard({ guide }: GuideCardProps) {
                   {guide.name}
                 </h3>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                  {bioText}
+                  {bioText.slice(0, 40)}.....
                 </p>
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs font-semibold text-foreground">
-                  <span
-                    className={`h-2 w-2 rounded-full bg-current ${statusBadge.dotColor}`}
-                  />
-                  {statusBadge.label}
-                </div>
               </div>
 
               <div className="flex items-center gap-2 rounded-full bg-secondary/10 px-3 py-2 text-sm font-semibold text-secondary-foreground">
                 <Star className="h-4 w-4 fill-secondary text-secondary" />
-                <span>{guide.rating?.toFixed(1) ?? "0.0"}</span>
-                <span className="text-xs text-muted-foreground">
-                  {guide.totalReviews ?? 0} reviews
+                <span className="text-secondary">
+                  {guide.rating?.toFixed(1) ?? "0.0"}
                 </span>
               </div>
-            </div>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
-                {guide.experience} yrs experience
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
-                ₹{guide.price}/hr
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
-                {guide.languages?.length ?? 0} languages
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(guide.languages || []).map((lang: string) => (
-                <Badge
-                  key={lang}
-                  variant="secondary"
-                  className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
-                >
-                  {lang}
-                </Badge>
-              ))}
             </div>
           </div>
         </div>
 
+        <div className="p-4">
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs font-semibold text-foreground">
+            <span
+              className={`h-2 w-2 rounded-full bg-current border border-secondary ${statusBadge.dotColor}`}
+            />
+            {statusBadge.label}
+          </div>
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+              {guide.experience} yrs experience
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+              ₹{guide.price} <br /> for {guide.duration}
+            </div>
+            <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
+              {guide.languages
+                ?.slice(0, 3)
+                .map((lang) => lang.slice(0, 3))
+                .join(" ")}{" "}
+              <br />
+              {guide.languages?.length ?? 0} languages
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <p className="text-xs pt-1">Specialities:</p>
+            {(guide.specialities || []).map((spec: string) => (
+              <Badge
+                key={spec}
+                variant="secondary"
+                className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
+              >
+                {spec}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Reviews */}
         <div className="mt-6 rounded-3xl border border-border/70 bg-background/80 p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h4 className="text-sm font-semibold text-foreground">

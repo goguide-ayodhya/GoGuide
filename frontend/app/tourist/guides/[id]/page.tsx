@@ -53,11 +53,15 @@ export default function GuideDetailsPage() {
           experience: data.yearsOfExperience || data.experience || 0,
           rating: data.averageRating || data.rating || 0,
           languages: Array.isArray(data.languages) ? data.languages : [],
-          specialities: data.speciality ? [data.speciality] : [],
-          price: data.hourlyRate || data.price || 0,
+          specialities: Array.isArray(data.specialities) ? data.specialities : (data.speciality ? [data.speciality] : []),
+          locations: Array.isArray(data.locations) ? data.locations : [],
+          price: data.price || 0,
+          duration: data.duration || "hour",
           isAvailable: data.isAvailable ?? false,
-          isOnline: data.isOnline ?? false,
-          hourlyRate: data.hourlyRate || data.price || 0,
+          // isOnline: data.isOnline ?? false,
+          certificates: Array.isArray(data.certificates) ? data.certificates : [],
+          yearsOfExperience: data.yearsOfExperience || data.experience || 0,
+          totalReviews: data.totalReviews || 0,
           verificationStatus: data.verificationStatus as "PENDING" | "VERIFIED" | "REJECTED",
         };
 
@@ -98,7 +102,7 @@ export default function GuideDetailsPage() {
     : [];
 
   const specialties = guide.specialities || [];
-  const isAvailable = guide.isAvailable && guide.isOnline;
+  const isAvailable = guide.isAvailable;
 
   const handleBookingSubmit = (data: BookingData) => {
     setBookingData(data);
@@ -148,12 +152,12 @@ export default function GuideDetailsPage() {
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between">
                           <div className="text-xl font-bold text-primary">
                             ₹{guide.price}
                           </div>
                           <span className="text-sm text-muted-foreground">
-                            /hour
+                            /{guide.duration || "hour"}
                           </span>
                         </div>
                       </div>
@@ -215,6 +219,37 @@ export default function GuideDetailsPage() {
                       )}
                     </div>
                   </Card>
+
+                  {/* Certificates */}
+                  {guide.certificates && guide.certificates.length > 0 && (
+                    <Card className="p-6">
+                      <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Award className="h-5 w-5 text-accent" />
+                        Certificates
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {guide.certificates.map((cert: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer"
+                            onClick={() => cert.image && window.open(cert.image, "_blank")}
+                          >
+                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                              <Award className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {cert.name || `Certificate ${index + 1}`}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Click to view
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
                 </div>
               </div>
             </div>

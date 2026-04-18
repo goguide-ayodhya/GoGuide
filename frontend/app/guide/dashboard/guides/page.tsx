@@ -175,9 +175,9 @@ export default function GuidesPage() {
                     {/* Details */}
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p>
-                        📍 Experience: {guide.yearsOfExperience ?? 0}+ years
+                        Experience: {guide.experience ?? guide.yearsOfExperience ?? 0}+ years
                       </p>
-                      <p>💰 Rs.{guide.hourlyRate ?? 500}/hour</p>
+                      <p>Rs{(guide.price ?? 500)}/ {guide.duration || "hour"}</p>
                     </div>
 
                     {/* Actions */}

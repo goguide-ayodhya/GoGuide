@@ -2,7 +2,6 @@
 
 import { useGuide } from "@/contexts/GuideContext";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { useReview } from "@/contexts/ReviewContext";
 import {
   Card,
   CardContent,
@@ -10,12 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
-import { GuideStatusCard } from "@/components/guide-status-card";
-import { Upload, Save, Star, Lock } from "lucide-react";
+import { Upload, Save, Lock, X } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
@@ -29,18 +27,23 @@ export default function ProfilePage() {
   const isDisabled = myGuide?.verificationStatus === "REJECTED";
   const [formData, setFormData] = useState({
     bio: myGuide?.bio || "",
-    speciality: Array.isArray(myGuide?.specialities)
-      ? myGuide?.specialities[0] || ""
-      : myGuide?.specialities || "",
-    certification: myGuide?.certification || "",
+    specialities: myGuide?.specialities || [],
+    locations: myGuide?.locations || [],
+    price: myGuide?.price || 0,
+    duration: myGuide?.duration || "4 hours",
+    certificates: myGuide?.certificates || [],
     yearsOfExperience: myGuide?.yearsOfExperience || 0,
     languages: (myGuide?.languages || []) as string[],
-    hourlyRate: myGuide?.hourlyRate || 0,
     reviews: myGuide?.totalReviews,
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState("");
+  const [newSpeciality, setNewSpeciality] = useState("");
+  const [newLocation, setNewLocation] = useState("");
+  const [newCertificateName, setNewCertificateName] = useState("");
+  const [selectedCertificateImage, setSelectedCertificateImage] =
+    useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -52,42 +55,34 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
-  const { reviews, getGuideReview } = useReview();
 
   // Sync form as soon as guide profile is available
   useEffect(() => {
     if (!myGuide) return;
     setFormData({
       bio: myGuide.bio || "",
-      speciality: Array.isArray(myGuide.specialities)
-        ? myGuide.specialities[0] || ""
-        : myGuide.specialities?.[0] || "",
-      certification: myGuide.certification || "",
+      specialities: myGuide.specialities || [],
+      locations: myGuide.locations || [],
+      price: myGuide.price || 0,
+      duration: myGuide.duration || "4 hours",
+      certificates: myGuide.certificates || [],
       yearsOfExperience: myGuide.yearsOfExperience || 0,
       languages: myGuide.languages || [],
-      hourlyRate: myGuide.hourlyRate || 0,
       reviews: myGuide.totalReviews,
     });
   }, [myGuide]);
 
-  useEffect(() => {
-    if (myGuide?.id) {
-      getGuideReview(myGuide.id).catch((error) => {
-        console.error("Unable to load guide reviews", error);
-      });
-    }
-  }, [myGuide?.id, getGuideReview]);
-
   const handleSave = async () => {
     if (!myGuide) return;
 
-    if (formData.hourlyRate < 0) return;
+    if (formData.price < 0) return;
 
     const updateData = {
-      speciality: formData.speciality,
+      specialities: formData.specialities,
+      locations: formData.locations,
+      price: formData.price,
+      duration: formData.duration,
       bio: formData.bio,
-      certification: formData.certification,
-      hourlyRate: formData.hourlyRate,
       yearsOfExperience: formData.yearsOfExperience,
       languages: formData.languages,
       avatar: selectedImage,
@@ -100,15 +95,24 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "yearsOfExperience" || name === "hourlyRate"
+        name === "yearsOfExperience" || name === "price"
           ? parseInt(value)
           : value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -127,6 +131,99 @@ export default function ProfilePage() {
       ...prev,
       languages: prev.languages.filter((l) => l !== lang),
     }));
+  };
+
+  const addSpeciality = () => {
+    if (newSpeciality && !formData.specialities.includes(newSpeciality)) {
+      setFormData((prev) => ({
+        ...prev,
+        specialities: [...prev.specialities, newSpeciality],
+      }));
+      setNewSpeciality("");
+    }
+  };
+
+  const removeSpeciality = (spec: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specialities: prev.specialities.filter((s) => s !== spec),
+    }));
+  };
+
+  const addLocation = () => {
+    if (newLocation && !formData.locations.includes(newLocation)) {
+      setFormData((prev) => ({
+        ...prev,
+        locations: [...prev.locations, newLocation],
+      }));
+      setNewLocation("");
+    }
+  };
+
+  const removeLocation = (loc: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      locations: prev.locations.filter((l) => l !== loc),
+    }));
+  };
+
+  const addCertificate = async () => {
+    if (newCertificateName && selectedCertificateImage) {
+      try {
+        if (!myGuide) return;
+
+        const result = await updateGuideData(myGuide.id, {
+          certificates: [
+            {
+              name: newCertificateName,
+              image: selectedCertificateImage,
+            },
+          ],
+        });
+
+        setFormData((prev) => ({
+          ...prev,
+          certificates: [
+            ...prev.certificates,
+            {
+              name: newCertificateName,
+              image:
+                result.certificates?.slice(-1)[0]?.image ||
+                prev.certificates?.slice(-1)[0]?.image ||
+                "",
+            },
+          ],
+        }));
+
+        setNewCertificateName("");
+        setSelectedCertificateImage(null);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  const removeCertificate = async (index: number) => {
+    if (!myGuide) return;
+
+    try {
+      const updatedCertificates = formData.certificates.filter(
+        (_, i) => i !== index,
+      );
+
+      // Update backend
+      await updateGuideData(myGuide.id, {
+        certificates: updatedCertificates,
+      });
+
+      // Update local state
+      setFormData((prev) => ({
+        ...prev,
+        certificates: updatedCertificates,
+      }));
+    } catch (error) {
+      console.error("Failed to remove certificate:", error);
+    }
   };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -182,14 +279,6 @@ export default function ProfilePage() {
       setAvatarLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (myGuide?.id) {
-      getGuideReview(myGuide.id).catch((error) => {
-        console.error("Unable to load guide reviews", error);
-      });
-    }
-  }, [myGuide?.id, getGuideReview]);
 
   const handleChangePassword = async () => {
     if (
@@ -437,44 +526,109 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Speciality
-                </label>
-                <Input
-                  name="speciality"
-                  value={formData.speciality}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="bg-muted border-border"
-                  placeholder="e.g., Historical Tours"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Certification
-                </label>
-                <Input
-                  name="certification"
-                  value={formData.certification}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="bg-muted border-border"
-                  placeholder="e.g., IFTA Certified"
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-foreground block mb-2">
+                Specialities
+              </label>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newSpeciality}
+                      onChange={(e) => setNewSpeciality(e.target.value)}
+                      className="bg-muted border-border flex-1"
+                      placeholder="Enter a speciality"
+                      onKeyPress={(e) => e.key === "Enter" && addSpeciality()}
+                    />
+                    <Button onClick={addSpeciality} variant="outline">
+                      Add
+                    </Button>
+                  </div>
+                  {formData.specialities.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.specialities.map((spec) => (
+                        <Badge
+                          key={spec}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {spec}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => removeSpeciality(spec)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {formData.specialities.map((spec) => (
+                    <Badge key={spec} variant="secondary">
+                      {spec}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground block mb-2">
+                Locations
+              </label>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newLocation}
+                      onChange={(e) => setNewLocation(e.target.value)}
+                      className="bg-muted border-border flex-1"
+                      placeholder="Enter a location"
+                      onKeyPress={(e) => e.key === "Enter" && addLocation()}
+                    />
+                    <Button onClick={addLocation} variant="outline">
+                      Add
+                    </Button>
+                  </div>
+                  {formData.locations.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.locations.map((loc) => (
+                        <Badge
+                          key={loc}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          {loc}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => removeLocation(loc)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {formData.locations.map((loc) => (
+                    <Badge key={loc} variant="secondary">
+                      {loc}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
-                  Years of Experience
+                  Price (₹)
                 </label>
                 <Input
-                  name="yearsOfExperience"
+                  name="price"
                   type="number"
-                  value={formData.yearsOfExperience}
+                  value={formData.price}
                   onChange={handleChange}
                   disabled={!isEditing}
                   className="bg-muted border-border"
@@ -482,17 +636,36 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
-                  Hourly Rate ($)
+                  Duration
                 </label>
-                <Input
-                  name="hourlyRate"
-                  type="number"
-                  value={formData.hourlyRate}
+                <select
+                  name="duration"
+                  value={formData.duration}
                   onChange={handleChange}
                   disabled={!isEditing}
-                  className="bg-muted border-border"
-                />
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md"
+                >
+                  <option value="2 hours">2 hours</option>
+                  <option value="4 hours">4 hours</option>
+                  <option value="6 hours">6 hours</option>
+                  <option value="8 hours">8 hours</option>
+                  <option value="Full day">Full day</option>
+                </select>
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-foreground block mb-2">
+                Years of Experience
+              </label>
+              <Input
+                name="yearsOfExperience"
+                type="number"
+                value={formData.yearsOfExperience}
+                onChange={handleChange}
+                disabled={!isEditing}
+                className="bg-muted border-border"
+              />
             </div>
 
             {isEditing && (
@@ -504,6 +677,75 @@ export default function ProfilePage() {
                   <Save size={18} />
                   {loading ? "Saving..." : "Save Changes"}
                 </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Certificates */}
+      <Card className="bg-card border border-border">
+        <CardHeader>
+          <CardTitle>Certificates</CardTitle>
+          <CardDescription>Your professional certifications</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {isEditing && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    value={newCertificateName}
+                    onChange={(e) => setNewCertificateName(e.target.value)}
+                    className="bg-muted border-border"
+                    placeholder="Certificate name"
+                  />
+                  <div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setSelectedCertificateImage(e.target.files?.[0] || null)
+                      }
+                      className="bg-muted border-border"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={addCertificate}
+                  variant="outline"
+                  disabled={!newCertificateName || !selectedCertificateImage}
+                >
+                  Add Certificate
+                </Button>
+              </div>
+            )}
+
+            {formData.certificates.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {formData.certificates.map((cert, index) => (
+                  <div
+                    key={index}
+                    className="border border-border rounded-lg p-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">{cert.name}</h4>
+                        <img
+                          src={cert.image}
+                          alt={cert.name}
+                          className="w-20 h-20 object-cover mt-2 rounded"
+                        />
+                      </div>
+                      {isEditing && (
+                        <X
+                          className="h-4 w-4 cursor-pointer text-destructive"
+                          onClick={() => removeCertificate(index)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -652,74 +894,6 @@ export default function ProfilePage() {
                     Cancel
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reviews Section */}
-      <Card className="bg-card border border-border">
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle>Tourist Reviews</CardTitle>
-            <CardDescription>
-              Feedback from tourists who booked your tours
-            </CardDescription>
-          </div>
-          <Link href="/guide/dashboard/reviews">
-            <Button size="sm" variant="outline" className="gap-2">
-              View All Reviews
-            </Button>
-          </Link>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {reviews && reviews.length > 0 ? (
-              reviews.map((review) => (
-                <div
-                  key={review.id}
-                  className="pb-6 border-b border-border last:border-0 last:pb-0"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Tourist Review
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Booking ID: {review.bookingId}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Review Date: {new Date(review.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={16}
-                          className={
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-muted-foreground"
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {review.comments}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No reviews yet. Complete some tours to receive feedback!
-                </p>
               </div>
             )}
           </div>

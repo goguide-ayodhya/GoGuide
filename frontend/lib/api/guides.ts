@@ -50,24 +50,47 @@ export const getGuideById = async (id: string) => {
 export const updateGuide = async (data: any) => {
   const formData = new FormData();
 
-  // Append all non-file data
-  Object.keys(data).forEach(key => {
-    if (key !== 'avatar' && data[key] !== null && data[key] !== undefined) {
-      if (Array.isArray(data[key])) {
-        // Handle arrays like languages
-        data[key].forEach((item: any) => {
-          formData.append(`${key}[]`, item);
-        });
-      } else {
-        formData.append(key, String(data[key]));
-      }
-    }
-  });
+  Object.keys(data).forEach((key) => {
+    const value = data[key];
 
-  // Append avatar file if present
-  if (data.avatar && data.avatar instanceof File) {
-    formData.append('avatar', data.avatar);
-  }
+    if (value === null || value === undefined) {
+      return;
+    }
+
+    if (key === "certificates" && Array.isArray(value)) {
+      value.forEach((cert: any, index: number) => {
+        const imageFile =
+          cert instanceof File
+            ? cert
+            : cert?.image instanceof File
+            ? cert.image
+            : null;
+
+        if (imageFile) {
+          formData.append("certificates", imageFile);
+          formData.append(
+            "certificateNames",
+            cert.name || `Certificate ${index + 1}`,
+          );
+        }
+      });
+      return;
+    }
+
+    if (key === "avatar" && value instanceof File) {
+      formData.append("avatar", value);
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item: any) => {
+        formData.append(`${key}[]`, String(item));
+      });
+      return;
+    }
+
+    formData.append(key, String(value));
+  });
 
   const token = getToken();
   const headers: Record<string, string> = {};
@@ -96,15 +119,15 @@ export const setAvailabilityApi = async (isAvailable: boolean) => {
 };
 
 // Online
-export const setOnlineStatusApi = async (isOnline: boolean) => {
-  const res = await fetch(`${base_url}guides/me/online-status`, {
-    method: "PATCH",
-    headers: authHeaders(),
-    body: JSON.stringify({ isOnline }),
-  });
+// export const setOnlineStatusApi = async (isOnline: boolean) => {
+//   const res = await fetch(`${base_url}guides/me/online-status`, {
+//     method: "PATCH",
+//     headers: authHeaders(),
+//     body: JSON.stringify({ isOnline }),
+//   });
 
-  return handleRes(res);
-};
+//   return handleRes(res);
+// };
 
 // ADMIN
 export const verifyGuide = async (id: string) => {

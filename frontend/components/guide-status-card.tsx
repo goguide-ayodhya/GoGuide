@@ -7,13 +7,13 @@ import { Circle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 export function GuideStatusCard() {
-  const { myGuide, setOnlineStatus } = useGuide();
+  const { myGuide } = useGuide();
 
   if (!myGuide) return null;
 
-  const handleToggle = (checked: boolean) => {
-    setOnlineStatus(myGuide.id, checked);
-  };
+  // const handleToggle = (checked: boolean) => {
+  //   setOnlineStatus(myGuide.id, checked);
+  // };
 
   return (
     <Card className="bg-card border border-border">
@@ -22,7 +22,7 @@ export function GuideStatusCard() {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-muted-foreground">
             Online Status
           </span>
@@ -46,7 +46,7 @@ export function GuideStatusCard() {
               onCheckedChange={handleToggle}
             />
           </div>
-        </div>
+        </div> */}
 
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <span className="text-sm font-medium text-muted-foreground">

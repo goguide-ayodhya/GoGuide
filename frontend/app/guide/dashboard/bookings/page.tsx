@@ -152,6 +152,9 @@ export default function BookingsPage() {
                     Status
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">
+                    Payment Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -183,7 +186,7 @@ export default function BookingsPage() {
                         {booking.groupSize} people
                       </td>
                       <td className="py-3 px-4 font-semibold text-foreground">
-                        ${booking.totalPrice}
+                        ₹{booking.totalPrice}
                       </td>
                       <td className="py-3 px-4">
                         <BookingStatusBadge
@@ -196,6 +199,17 @@ export default function BookingsPage() {
                               | "CANCELLED"
                           }
                         />
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          booking.paymentStatus === 'COMPLETED'
+                            ? 'bg-green-100 text-green-800'
+                            : booking.paymentStatus === 'PENDING'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {booking.paymentStatus}
+                        </span>
                       </td>
                       <td className="py-3 px-4 space-y-2">
                         <button

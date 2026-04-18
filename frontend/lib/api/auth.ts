@@ -95,8 +95,28 @@ export const signupUser = async (data: SignupData) => {
 
   if (data.phone) form.append("phone", data.phone);
   if (data.avatar) form.append("avatar", data.avatar);
-  if (data.speciality) form.append("speciality", data.speciality);
-  if (data.hourlyRate) form.append("hourlyRate", data.hourlyRate);
+
+  // Updated fields for guides
+  if (data.specialities) {
+    data.specialities.forEach((spec) => form.append("specialities", spec));
+  }
+  if (data.price) form.append("price", data.price.toString());
+  if (data.duration) form.append("duration", data.duration);
+  if (data.locations) {
+    data.locations.forEach((loc) => form.append("locations", loc));
+  }
+  if (data.certificates && Array.isArray(data.certificates)) {
+    data.certificates.forEach((cert) => {
+      // Certificates can be either File objects or { name, image } objects
+      if (cert instanceof File) {
+        form.append("certificates", cert);
+      } else if (cert && typeof cert === 'object' && 'image' in cert && cert.image instanceof File) {
+        form.append("certificates", cert.image);
+      }
+    });
+  }
+
+  // Legacy fields for drivers (keeping for backward compatibility)
   if (data.experience) form.append("experience", data.experience);
   if (data.languages) {
     data.languages.forEach((lang) => form.append("languages", lang));

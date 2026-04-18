@@ -117,7 +117,7 @@ export default function DashboardPage() {
       } else if (newStatus === "COMPLETED") {
         await completeBookingApi(bookingId);
       } else if (newStatus === "CANCELLED") {
-        await cancelBookingApi(bookingId);
+        await cancelBookingApi(bookingId, "Cancelled by guide");
       }
 
       setBookings((prev) =>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
       <div>
         <div className="w-full flex space-between items-center">
           <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground">
-            Dashboard
+            {myGuide?.name}
           </h1>
           {/* Status Cards */}
           <div className="absolute right-2">
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         </div>
 
         <p className="text-muted-foreground text-sm mt-2">
-          Dear <b>{myGuide?.name}</b>, Best of Luck from{" "}
+          Dear, Best of Luck from{" "}
           <b className="text-secondary">GoGuide</b> Team{" "}
         </p>
       </div>

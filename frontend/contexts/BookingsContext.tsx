@@ -37,12 +37,16 @@ export interface Booking {
   email: string;
   phone: string;
   groupSize: number;
+  participants?: number;
   bookingDate: string;
+  date?: string;
   startTime: string;
   tourType: string;
   meetingPoint: string;
+  location?: string;
   dropoffLocation: string;
   totalPrice: number;
+  totalAmount?: number;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
   paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
   createdAt: string;
@@ -50,6 +54,7 @@ export interface Booking {
   paymentMethod?: string;
   avatar: string;
   reviewed?: boolean;
+  hours?: number;
 }
 
 export interface BookingReview {

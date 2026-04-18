@@ -46,11 +46,11 @@ export default function GuidesPage() {
   const sortedGuides = [...filteredGuides].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price;
+        return (a.price || 0) - (b.price || 0);
       case "price-high":
-        return b.price - a.price;
+        return (b.price || 0) - (a.price || 0);
       case "experience":
-        return b.experience - a.experience;
+        return (b.experience || 0) - (a.experience || 0);
       case "rating":
       default:
         return (b.rating || 0) - (a.rating || 0);
