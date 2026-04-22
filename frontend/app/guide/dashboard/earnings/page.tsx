@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -26,13 +26,33 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  Banknote,
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
+import {
+  getPayoutSummaryApi,
+  getPayoutHistoryApi,
+  confirmPayoutApi,
+  type PayoutWalletSummary,
+} from "@/lib/api/payout";
+import { Badge } from "@/components/ui/badge";
 
 export default function EarningsPage() {
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
   const [timeframe, setTimeframe] = useState<"week" | "month">("month");
+  const [wallet, setWallet] = useState<PayoutWalletSummary | null>(null);
+  const [payoutRows, setPayoutRows] = useState<
+    Array<{
+      _id: string;
+      amount: number;
+      status: string;
+      createdAt: string;
+      confirmedAt?: string;
+    }>
+  >([]);
+  const [payoutLoading, setPayoutLoading] = useState(true);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const monthlyData = earningsContext?.monthlyData ?? [];
   const weeklyData = earningsContext?.weeklyData ?? [];
@@ -59,15 +79,160 @@ export default function EarningsPage() {
     ? chartData.reduce((sum, item) => sum + item.revenue, 0)
     : 0;
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [s, h] = await Promise.all([
+          getPayoutSummaryApi(),
+          getPayoutHistoryApi(),
+        ]);
+        if (!cancelled) {
+          setWallet(s);
+          setPayoutRows(Array.isArray(h) ? h : []);
+        }
+      } catch (e) {
+        console.error("Payout summary failed", e);
+      } finally {
+        if (!cancelled) setPayoutLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleConfirmPayout = async (payoutId: string) => {
+    setConfirmingId(payoutId);
+    try {
+      await confirmPayoutApi(payoutId);
+      const [s, h] = await Promise.all([
+        getPayoutSummaryApi(),
+        getPayoutHistoryApi(),
+      ]);
+      setWallet(s);
+      setPayoutRows(Array.isArray(h) ? h : []);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
         <p className="text-muted-foreground mt-2">
-          Track your revenue and payment history
+          Track your revenue and payment history (70% guide share after full payment).
         </p>
       </div>
+
+      {/* Platform payout wallet */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Banknote className="h-5 w-5 text-primary" />
+            Payouts (70% share)
+          </CardTitle>
+          <CardDescription>
+            Admin sends transfers; confirm here when you receive the payment.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {payoutLoading ? (
+            <p className="text-sm text-muted-foreground">Loading payout info…</p>
+          ) : wallet ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">Total earnings (accrued)</p>
+                <p className="text-2xl font-bold text-foreground">
+                  ₹{wallet.totalEarnings.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">
+                  Available for next payout
+                </p>
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  ₹{wallet.availableForPayout.toLocaleString("en-IN")}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Admin can send up to this (70% share, minus pending sends)
+                </p>
+              </div>
+              <div className="rounded-xl border border-border p-4">
+                <p className="text-xs text-muted-foreground">Paid out</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
+                  ₹{wallet.paidOut.toLocaleString("en-IN")}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {wallet && wallet.pendingConfirmation > 0 && (
+            <p className="text-sm text-amber-800 dark:text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+              ₹{wallet.pendingConfirmation.toLocaleString("en-IN")} in payouts
+              waiting for your confirmation.
+            </p>
+          )}
+
+          {payoutRows.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-left">
+                    <th className="p-3 font-medium">Amount</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Sent</th>
+                    <th className="p-3 font-medium">Confirmed</th>
+                    <th className="p-3 font-medium w-[180px]"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payoutRows.map((row) => (
+                    <tr key={row._id} className="border-b border-border/60">
+                      <td className="p-3 font-semibold">
+                        ₹{row.amount.toLocaleString("en-IN")}
+                      </td>
+                      <td className="p-3">
+                        <Badge
+                          variant={
+                            row.status === "COMPLETED" ? "default" : "secondary"
+                          }
+                        >
+                          {row.status}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {new Date(row.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-3 text-muted-foreground">
+                        {row.confirmedAt
+                          ? new Date(row.confirmedAt).toLocaleString()
+                          : "—"}
+                      </td>
+                      <td className="p-3">
+                        {row.status === "PENDING" && (
+                          <Button
+                            size="sm"
+                            className="bg-primary"
+                            disabled={confirmingId === row._id}
+                            onClick={() => handleConfirmPayout(row._id)}
+                          >
+                            {confirmingId === row._id
+                              ? "Confirming…"
+                              : "Confirm payment received"}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

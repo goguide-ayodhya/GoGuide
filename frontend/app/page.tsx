@@ -1,29 +1,3 @@
-// import { redirect } from "next/navigation";
-
-// export default function Page() {
-//   if (process.env.NODE_ENV === "production") {
-//     redirect("/home");
-//   }
-
-//   // In development, show a simple landing page
-//   return (
-//     <div className="min-h-screen flex items-center justify-center">
-//       <div className="text-center">
-//         <h1 className="text-4xl font-bold mb-4">Ayodhya Tourism</h1>
-//         <p className="text-lg text-muted-foreground mb-8">
-//           Discover the sacred city with ease
-//         </p>
-//         <a
-//           href="/home"
-//           className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
-//         >
-//           Explore Ayodhya
-//         </a>
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client";
 
 import { useEffect } from "react";
@@ -34,28 +8,32 @@ import { useGuide } from "@/contexts/GuideContext";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { ServiceCard } from "@/components/common/ServiceCard";
-import Link from "next/link";
 import { Car, MapPin, Ticket, Users, Star } from "lucide-react";
+
+import Features from "@/components/home/Features";
+import HowItWorks from "@/components/home/HowItWorks";
+import Testimonials from "@/components/home/Testimonials";
+import CTABanner from "@/components/home/CTABanner";
+import Link from "next/link";
 import { assets } from "@/public/assets/assets";
 
 import { poppins, manrope } from "@/lib/fonts";
 import Image from "next/image";
+import FAQSection from "@/components/home/FAQs";
 
 export default function Home() {
   const router = useRouter();
   const { user, loading, isLoggedIn } = useAuth();
   const { guides, loading: guidesLoading } = useGuide();
 
-  // Calculate top-rated guides
+  // Calculate top-rated guides (unchanged logic)
   const topRatedGuides = guides
     .filter((guide) => guide.verificationStatus === "VERIFIED")
-    .sort((a, b) => {
-      // Sort by rating first (descending), then by number of reviews (descending)
-      if (b.rating !== a.rating) {
-        return b.rating - a.rating;
-      }
-      return (b.totalReviews || 0) - (a.totalReviews || 0);
-    })
+    .sort((a, b) =>
+      b.rating !== a.rating
+        ? b.rating - a.rating
+        : (b.totalReviews || 0) - (a.totalReviews || 0),
+    )
     .slice(0, 6);
 
   const destinations = [
@@ -68,111 +46,118 @@ export default function Home() {
   ];
 
   const partners = [
-    { name: "Ram Mandir", image: assets.img_01 },
-    { name: "Guptar Ghar", image: assets.img_02 },
-    { name: "Surya Kund", image: assets.img_03 },
-    { name: "Hanuman Garhi", image: assets.img_04 },
-    { name: "Bharat Kund", image: assets.img_05 },
-    { name: "Ayodhya", image: assets.img_06 },
+    { name: "Ayodhya Tourism", image: assets.p_01 },
+    { name: "GoCabs", image: assets.p_02 },
+    { name: "Local Guides Co-op", image: assets.p_03 },
+    { name: "Ayodhya Passes", image: assets.p_04 },
+    { name: "Temple Tickets", image: assets.p_01 },
+    { name: "City Tours Inc.", image: assets.p_02 },
+    { name: "Local Guides Co-op", image: assets.p_03 },
+    { name: "Ayodhya Passes", image: assets.p_04 },
   ];
 
   useEffect(() => {
     if (isLoggedIn) {
-      if (user?.role === "GUIDE") {
-        router.push("/guide/dashboard");
-      }
-
-      if (user?.role === "DRIVER") {
-        router.push("/driver/dashboard");
-      }
-
-      if (user?.role === "TOURIST") {
-        router.push("/");
-      }
+      if (user?.role === "GUIDE") router.push("/guide/dashboard");
+      if (user?.role === "DRIVER") router.push("/driver/dashboard");
+      if (user?.role === "TOURIST") router.push("/");
     }
   }, [user, loading, router]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div
+          className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"
+          aria-hidden="true"
+        ></div>
+        <span className="sr-only">Loading</span>
       </div>
     );
   }
+
   return (
-    <main className="min-h-screen flex flex-col bg-background">
+    <main className="min-h-screen flex flex-col bg-gradient-to-b from-white via-slate-50 to-slate-100 text-slate-900">
       <Header />
 
       <div className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative flex items-center justify-center h-screen px-4 md:px-6 py-12 md:py-16">
-          <div className="absolute inset-0">
-            <Image
-              src={assets.bgHero}
-              alt="ayodhyaTouristHeroImage"
-              fill
-              priority
-              className="object-cover"
-              sizes="100vw"
-            />
+        {/* Hero */}
+        <section className="relative flex items-center justify-center py-20 px-4 sm:px-6 lg:px-8">
+          <div className="absolute inset-0 overflow-hidden">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute w-full h-full object-cover"
+            >
+              <source src="/assets/main/goguideHero.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white"></div>
           </div>
-          <div className="absolute inset-0 bg-black/60"></div>
-          <div className="relative mx-auto max-w-7xl">
-            <div className="mb-12 md:mb-16 flex flex-col items-center justify-center">
-              <h1
-                className={`${poppins.className} text-5xl md:text-8xl lg:text-9xl font-bold text-foreground mb-4 text-center text-white`}
-              >
-                Explore Ayodhya
-              </h1>
-              <p className="text-lg text-white text-center md:text-xl text-muted-foreground max-w-2xl text-pretty">
-                Discover the sacred city with ease. Book cabs, guided tours,
-                passes, and connect with local experts.
-              </p>
-            </div>
 
-            {/* Services Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <ServiceCard
-                title="Find a Guide"
-                description="Connect with experienced local guides"
-                href="/tourist/guides"
-                icon={<Users className="h-8 w-8" />}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
-              <ServiceCard
-                title="Cabs"
-                description="Fast and reliable transportation throughout the city"
-                href="/tourist/cabs"
-                icon={<Car className="h-8 w-8" />}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
+          <div className="relative z-10 mx-auto w-full max-w-6xl">
+            <div className="rounded-3xl  backdrop-blur-sm shadow-lg ring-1 ring-slate-200 overflow-hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8 md:p-12 items-center">
+                <div>
+                  <h1
+                    className={`${poppins.className} text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight text-slate-900`}
+                  >
+                    Explore Ayodhya
+                  </h1>
+                  <p className="mt-4 text-lg text-slate-700 max-w-xl">
+                    Discover the sacred city with ease. Book cabs, guided tours,
+                    passes, and connect with local experts.
+                  </p>
 
-              <ServiceCard
-                title="Tour Packages"
-                description="Curated experiences and guided tours of sacred sites"
-                href="/tourist/packages"
-                icon={<MapPin className="h-8 w-8" />}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Link href="/tourist/guides" aria-label="Find a Guide">
+                      <p className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-sky-500 text-white px-5 py-3 rounded-full shadow-md hover:scale-[1.02] transform transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                        Find a Guide
+                      </p>
+                    </Link>
+                    <Link href="/tourist/packages" aria-label="Explore Ayodhya">
+                      <p className="inline-flex items-center gap-2 border border-slate-200 text-slate-800 px-4 py-2 rounded-full bg-white hover:shadow-sm transition">
+                        Explore Packages
+                      </p>
+                    </Link>
+                  </div>
+                </div>
 
-              <ServiceCard
-                title="Contact Us"
-                description="Purchase tickets and passes for attractions"
-                href="/contact-us"
-                icon={<Ticket className="h-8 w-8" />}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
+                <div className="grid grid-cols-2 gap-3">
+                  <ServiceCard
+                    title="Find a Guide"
+                    description="Connect with experienced local guides"
+                    href="/tourist/guides"
+                    icon={<Users className="h-6 w-6 text-indigo-600" />}
+                  />
+                  <ServiceCard
+                    title="Cabs"
+                    description="Reliable transportation across the city"
+                    href="/tourist/cabs"
+                    icon={<Car className="h-6 w-6 text-sky-500" />}
+                  />
+                  <ServiceCard
+                    title="Tour Packages"
+                    description="Curated experiences and guided tours"
+                    href="/tourist/packages"
+                    icon={<MapPin className="h-6 w-6 text-emerald-500" />}
+                  />
+                  <ServiceCard
+                    title="Contact Us"
+                    description="Purchase tickets and passes"
+                    href="/contact-us"
+                    icon={<Ticket className="h-6 w-6 text-amber-500" />}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Info Section */}
-        <section className="px-4 md:px-6 py-12 md:py-16 bg-muted/50">
-          <div className="mx-auto max-w-7xl">
+        {/* Destinations */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl">
             <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
               Popular{" "}
               <b className={`${poppins.className} text-destructive`}>
@@ -190,151 +175,167 @@ export default function Home() {
               rounded-xl overflow-hidden hover:shadow-sm
             "
                 >
-                  <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
+                  <div className="relative h-32 sm:h-40 md:h-48 lg:h-56">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 120px, (max-width: 768px) 176px, (max-width: 1024px) 144px, 128px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 640px) 120px, 240px"
                     />
                   </div>
-
-                  <p className="text-center text-sm font-semibold py-2">
-                    {item.name}
-                  </p>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-slate-800">
+                      {item.name}
+                    </p>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="flex items-center justify-center">
+              <Link href="/tourist/packages">
+                <p className="w-24 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
+                  View all
+                </p>
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* Top Guides Section */}
-        <section className="px-4  md:px-6 py-12 md:py-16 bg-primary/10">
-          <div className="mx-auto max-w-7xl">
+        {/* Top Guides */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl">
             <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
-              <b className={`${poppins.className} text-secondary`}>Our </b> Top
-              Rated{" "}
-              <b className={`${poppins.className} text-secondary`}>
+              Popular{" "}
+              <b className={`${poppins.className} text-destructive`}>
                 Guides
               </b>{" "}
             </h2>
 
             {guidesLoading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <div
+                  className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"
+                  aria-hidden
+                ></div>
               </div>
             ) : topRatedGuides.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  No verified guides available yet. Check back soon!
-                </p>
+              <div className="text-center py-12 text-slate-600">
+                No verified guides available yet. Check back soon!
               </div>
             ) : (
-              <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
                 {topRatedGuides.map((guide) => (
-                  <div
+                  <article
                     key={guide.id}
-                    className="
-              min-w-[30%] sm:min-w-[22%] md:min-w-[18%] lg:min-w-[16%]
-              snap-start
-              rounded-xl overflow-hidden hover:shadow-md transition-shadow
-            "
+                    className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 overflow-hidden"
                   >
-                    <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
+                    <div className="relative h-48 bg-slate-100">
                       {guide.image ? (
                         <Image
                           src={guide.image}
                           alt={guide.name}
                           fill
-                          className="object-cover hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 120px, (max-width: 768px) 176px, (max-width: 1024px) 144px, 128px"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <Users className="h-12 w-12 text-muted-foreground" />
+                        <div className="w-full h-full flex items-center justify-center text-slate-400">
+                          {" "}
+                          <Users className="h-12 w-12" />
                         </div>
                       )}
-                    </div>
 
-                    <div className="p-3 bg-background">
-                      <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary">
+                      <div className="absolute left-3 top-3 bg-white/80 text-slate-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                        {guide.verificationStatus === "VERIFIED"
+                          ? "Verified"
+                          : "Unverified"}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-slate-900 truncate">
                         {guide.name}
-                      </p>
-                      <div className="flex items-center gap-1 mt-2">
-                        <div className="flex items-center gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-3 w-3 ${
-                                i < Math.round(guide.rating)
-                                  ? "fill-secondary text-secondary"
-                                  : "text-muted-foreground"
-                              }`}
-                            />
-                          ))}
+                      </h3>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-0.5 text-amber-400">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${i < Math.round(guide.rating) ? "text-amber-400" : "text-slate-300"}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm font-medium text-slate-700">
+                            {guide.rating.toFixed(1)}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold text-foreground">
-                          {guide.rating.toFixed(1)}
+                        <span className="text-sm text-slate-500">
+                          {guide.totalReviews || 0} reviews
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {guide.totalReviews || 0} review
-                        {(guide.totalReviews || 0) !== 1 ? "s" : ""}
-                      </p>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             )}
+          </div>
+          <div className="flex justify-center">
             <Link href="/tourist/guides">
-              <button className="border border-ring px-4 py-2 rounded-md bg-primary hover:bg-muted text-white hover:text-black mt-4 cursor-pointer">
-                View All Guides
-              </button>
+              <p className="w-24 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
+                View all
+              </p>
             </Link>
           </div>
         </section>
 
-        {/* Our Partners */}
-        <section className="px-4 md:px-6 py-12 md:py-16 bg-muted/50">
-          <div className="mx-auto max-w-7xl">
-            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
-              Our{" "}
-              <b className={`${poppins.className} text-destructive`}>
-                Partners
-              </b>{" "}
-            </h2>
+        {/* CTA Banner */}
+        <CTABanner />
 
-            {/* SCROLLER */}
-            <div className="overflow-hidden w-full">
-              <div className="flex gap-4 w-max auto-scroll">
-                {[...partners, ...partners].map((item, index) => (
-                  <div
-                    key={index}
-                    className="
-              min-w-[60%] sm:min-w-[40%] md:min-w-[25%] lg:min-w-[18%]
+        {/* Testimonials */}
+        {/* <Testimonials /> */}
+
+        {/* Features */}
+        <Features />
+
+        {/* How it works */}
+        <HowItWorks />
+
+        <FAQSection />
+
+        {/* Partners */}
+        <div className="overflow-hidden w-full py-12 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
+            Our{" "}
+            <b className={`${poppins.className} text-destructive`}>
+              Partners
+            </b>{" "}
+          </h2>
+          <div className="flex gap-4 w-max auto-scroll">
+            {[...partners, ...partners].map((item, index) => (
+              <div
+                key={index}
+                className="
+              min-w-[5%] sm:min-w-[10%] md:min-w-[12%] lg:min-w-[15%]
               rounded-xl overflow-hidden hover:shadow-md transition-all
             "
-                  >
-                    <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 640px) 240px, (max-width: 768px) 160px, (max-width: 1024px) 200px, 144px"
-                      />
-                    </div>
+              >
+                <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-cover hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 640px) 240px, (max-width: 768px) 160px, (max-width: 1024px) 200px, 144px"
+                  />
+                </div>
 
-                    <p className="text-center text-sm font-semibold py-2">
-                      {item.name}
-                    </p>
-                  </div>
-                ))}
+                <p className="text-center text-sm font-semibold py-2">
+                  {item.name}
+                </p>
               </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
       </div>
 
       <Footer />

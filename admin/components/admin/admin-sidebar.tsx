@@ -16,7 +16,8 @@ import {
   Settings,
   MapPin,
   X,
-  Package
+  Package,
+  HandCoins
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -56,6 +57,11 @@ const menuItems = [
     title: "Payments",
     href: "/admin/payments",
     icon: CreditCard
+  },
+  {
+    title: "Guide payouts",
+    href: "/admin/guide-payouts",
+    icon: HandCoins
   },
   {
     title: "Revenue",
