@@ -7,6 +7,7 @@ import { Star } from "lucide-react";
 import { Guide } from "@/contexts/GuideContext";
 import { assets } from "@/public/assets/assets";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface GuideCardProps {
   guide: Guide;
@@ -31,6 +32,7 @@ function getStatusBadge(isAvailable: boolean) {
 
 export function GuideCard({ guide }: GuideCardProps) {
   const router = useRouter();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const statusBadge = getStatusBadge(guide.isAvailable);
   const canBook = guide.isAvailable;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
@@ -39,7 +41,7 @@ export function GuideCard({ guide }: GuideCardProps) {
     (guide.specialities && guide.specialities.length > 0
       ? guide.specialities[0]
       : "Friendly local guide with stories and insider tips.");
-  const recentReviews = guide.recentReviews?.slice(0, 2) || [];
+  const recentReviews = guide.recentReviews?.slice(0, 3) || [];
 
   const cardContent = (
     <Card
@@ -86,12 +88,33 @@ export function GuideCard({ guide }: GuideCardProps) {
         </div>
 
         <div className="p-4">
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs font-semibold text-foreground">
-            <span
-              className={`h-2 w-2 rounded-full bg-current border border-secondary ${statusBadge.dotColor}`}
-            />
-            {statusBadge.label}
+          <div className="w-full mt-3 flex justify-between inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-1 text-xs font-semibold text-foreground">
+            <div className="flex items-center gap-2">
+              <span
+                className={`h-2 w-2 rounded-full bg-current border border-secondary ${statusBadge.dotColor}`}
+              />
+              {statusBadge.label}
+            </div>
+
+            <div>
+              {guide.verificationStatus === "VERIFIED" ? (
+                <Badge
+                  variant="outline"
+                  className="ml-2 text-xs bg-green-500/20 text-green-700 border-green-200"
+                >
+                  Verified Guide
+                </Badge>
+              ) : (
+                <Badge
+                  variant="destructive"
+                  className="ml-2 text-xs bg-red-500/20 text-red-700 border-red-200"
+                >
+                  Not Verified
+                </Badge>
+              )}
+            </div>
           </div>
+
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
               {guide.experience} yrs experience
@@ -121,46 +144,40 @@ export function GuideCard({ guide }: GuideCardProps) {
               </Badge>
             ))}
           </div>
-        </div>
 
-        {/* Reviews */}
-        <div className="mt-6 rounded-3xl border border-border/70 bg-background/80 p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="text-sm font-semibold text-foreground">
-              Recent Reviews
-            </h4>
-            <span className="text-xs text-muted-foreground">
-              {recentReviews.length}/2
-            </span>
-          </div>
-
-          {recentReviews.length > 0 ? (
-            <div className="space-y-3">
-              {recentReviews.map((review, index) => (
-                <div
-                  key={index}
-                  className="rounded-2xl border border-border/70 bg-muted p-4"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-foreground">
-                      {review.reviewer || "Guest"}
-                    </span>
-                    <div className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2 py-1 text-xs font-semibold text-secondary-foreground">
-                      <Star className="h-3.5 w-3.5 fill-secondary text-secondary" />
-                      <span>{review.rating?.toFixed(1) ?? "0.0"}</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {review.comment || "No review text available."}
-                  </p>
+          <div>
+            <div className="mt-4">
+              {guide.certificates && guide.certificates.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {guide.certificates.map((cert, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(cert.image)}
+                      className="px-3 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition"
+                    >
+                      {cert.name}
+                    </button>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p className="text-xs text-muted-foreground">No certificates</p>
+              )}
+
+              {/* Modal */}
+              {selectedImage && (
+                <div
+                  className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+                  onClick={() => setSelectedImage(null)}
+                >
+                  <img
+                    src={selectedImage}
+                    alt="certificate"
+                    className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
+                  />
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-sm leading-6 text-muted-foreground">
-              No reviews yet
-            </p>
-          )}
+          </div>
         </div>
 
         <div className="mt-6">
