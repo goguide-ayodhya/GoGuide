@@ -209,15 +209,16 @@ function PaymentPageContent() {
   // GST is now included in finalDisplay
   const totalWithGst = finalDisplay;
 
+  const roundedOriginal = Math.round(originalPrice);
+  const roundedPaid = Math.round(paidAmount);
+  const roundedDiscount = Math.round(discountDisplay || 0);
+  const roundedTotal = Math.round(finalDisplay || 0);
+
   const priceItems: { label: string; amount: number }[] = [
-    { label: "Service (after any offer)", amount: Math.round(finalDisplay) },
+    { label: "Original price", amount: roundedOriginal },
+    ...(roundedDiscount > 0 ? [{ label: "Discount", amount: -roundedDiscount }] : []),
+    { label: "Paid", amount: roundedPaid },
   ];
-  if (discountDisplay > 0) {
-    priceItems.push({
-      label: "Full payment offer (−10%)",
-      amount: -Math.round(discountDisplay),
-    });
-  }
   // GST is included in the service amount
 
   const handlePay = async () => {
@@ -386,7 +387,7 @@ function PaymentPageContent() {
         <div className="max-w-2xl mx-auto space-y-8">
           <BookingSummaryCard
             itemName={booking?.tourType || ""}
-            itemPrice={finalDisplay}
+            itemPrice={roundedTotal}
             itemType="guide"
           />
 
@@ -439,7 +440,7 @@ function PaymentPageContent() {
               </div>
               <div className="flex justify-between font-semibold">
                 <span className="text-muted-foreground">Remaining</span>
-                <span>₹{formatRupee(remainingAmount)}</span>
+                <span>₹{formatRupee(finalDisplay - paidAmount)}</span>
               </div>
               {discountDisplay > 0 && (
                 <p className="text-sm text-green-600 dark:text-green-400 pt-2">
@@ -453,13 +454,10 @@ function PaymentPageContent() {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Price breakdown</h3>
             <PriceBreakdown
-              items={[
-                { label: "Original price", amount: booking.originalPrice },
-                { label: "Paid", amount: booking.paidAmount },
-              ]}
-              total={booking.finalPrice}
+              items={priceItems}
+              total={roundedTotal}
               paymentStatus={booking.paymentStatus}
-              remainingAmount={booking.remainingAmount}
+              remainingAmount={Math.round(remainingAmount)}
             />
           </Card>
 

@@ -18,7 +18,9 @@ export function PriceBreakdown({
       {items.map((item, idx) => (
         <div key={idx} className="flex justify-between text-sm">
           <span className="text-muted-foreground">{item.label}</span>
-          <span className="text-foreground font-medium">₹{item.amount}</span>
+          <span className="text-foreground font-medium">
+            {item.amount < 0 ? "-" : ""}₹{Math.abs(item.amount).toLocaleString("en-IN")}
+          </span>
         </div>
       ))}
 
@@ -28,7 +30,7 @@ export function PriceBreakdown({
         </span>
 
         <span className="text-secondary text-lg">
-          ₹{isPartial ? remainingAmount : total}
+          ₹{(isPartial ? (remainingAmount ?? 0) : (total ?? 0)).toLocaleString("en-IN")}
         </span>
       </div>
     </div>
