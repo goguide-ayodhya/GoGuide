@@ -107,14 +107,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           user?.role === "GUIDE"
             ? await getGuideBookings()
             : user?.role === "DRIVER"
-            ? await getDriverBookings()
-            : await getMyBookings();
+              ? await getDriverBookings()
+              : await getMyBookings();
 
         console.log("API response data:", data);
         const formattedData = data.map((b: any) => ({
           id: b._id,
           guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
-          driverId: typeof b.driverId === "object" ? b.driverId._id : b.driverId,
+          driverId:
+            typeof b.driverId === "object" ? b.driverId._id : b.driverId,
           touristName: b.touristName,
           email: b.email,
           phone: b.phone,

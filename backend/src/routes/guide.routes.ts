@@ -17,16 +17,20 @@ router.get("/:guideId", (req, res, next) => {
   guideController.getGuideById(req, res).catch(next);
 });
 
-router.put("/me", authenticate, upload.single("avatar"), (req, res, next) => {
-  guideController.updateGuideProfile(req, res).catch(next);
-});
+router.put(
+  "/me",
+  authenticate,
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "certificates", maxCount: 5 },
+  ]),
+  (req, res, next) => {
+    guideController.updateGuideProfile(req, res).catch(next);
+  },
+);
 
 router.patch("/me/availability", authenticate, (req, res, next) => {
   guideController.setAvailability(req, res).catch(next);
-});
-
-router.patch("/me/online-status", authenticate, (req, res, next) => {
-  guideController.setOnlineStatus(req, res).catch(next);
 });
 
 router.patch(
@@ -35,6 +39,15 @@ router.patch(
   authorize(["ADMIN"]),
   (req, res, next) => {
     guideController.verifyGuide(req, res).catch(next);
+  },
+);
+
+router.patch(
+  "/:guideId/reject",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    guideController.rejectGuide(req, res).catch(next);
   },
 );
 

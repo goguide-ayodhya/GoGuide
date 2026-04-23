@@ -46,7 +46,7 @@ export default function Home() {
   ];
 
   const partners = [
-    { name: "Ayodhya Tourism", image: assets.p_01 },
+    { name: "GoGuide | Ayodhya", image: assets.p_01 },
     { name: "GoCabs", image: assets.p_02 },
     { name: "Local Guides Co-op", image: assets.p_03 },
     { name: "Ayodhya Passes", image: assets.p_04 },

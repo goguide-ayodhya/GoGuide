@@ -12,7 +12,7 @@ import {
   TrendingUp,
   TrendingDown
 } from "lucide-react"
-import { weeklyBookingsData, monthlyRevenueData, mockBookings } from "@/lib/mock-data"
+
 import {
   BarChart,
   Bar,
@@ -46,7 +46,6 @@ export default function DashboardPage() {
         setAdminData(data)
       } catch (error) {
         console.error("Failed to fetch admin dashboard data:", error)
-        // Keep mock data as fallback
       } finally {
         setLoading(false)
       }
@@ -55,25 +54,17 @@ export default function DashboardPage() {
     fetchDashboardData()
   }, [])
 
-  const weeklyBookings = adminData?.weeklyBookings || weeklyBookingsData
-  const monthlyRevenue = adminData?.monthlyRevenue || monthlyRevenueData
-  const recentBookings = adminData?.recentBookings || mockBookings.slice(0, 5)
+  const weeklyBookings = adminData?.weeklyBookings || []
+  const monthlyRevenue = adminData?.monthlyRevenue || []
+  const recentBookings = adminData?.recentBookings || []
 
-  // Use real data from API, fallback to mock data structure
-  const dashboardStats = adminData ? {
-    totalBookings: adminData.bookings?.total || 0,
-    pendingBookings: adminData.bookings?.pending || 0,
-    completedBookings: adminData.bookings?.completed || 0,
-    totalGuides: adminData.guides || 0,
-    activeGuides: adminData.activeGuides || 0,
-    totalRevenue: adminData.revenue || 0,
-  } : {
-    totalBookings: 156,
-    pendingBookings: 12,
-    completedBookings: 134,
-    totalGuides: 15,
-    activeGuides: 8,
-    totalRevenue: 450000,
+  const dashboardStats = {
+    totalBookings: adminData?.bookings?.total || 0,
+    pendingBookings: adminData?.bookings?.pending || 0,
+    completedBookings: adminData?.bookings?.completed || 0,
+    totalGuides: adminData?.guides || 0,
+    activeGuides: adminData?.activeGuides || 0,
+    totalRevenue: adminData?.revenue || 0,
   }
 
   const statCards = [

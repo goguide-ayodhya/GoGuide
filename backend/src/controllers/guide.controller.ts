@@ -56,35 +56,76 @@ export class GuideController {
 
   async updateGuideProfile(req: AuthRequest, res: Response) {
     try {
+      const files = req.files as {
+        avatar?: Express.Multer.File[];
+        certificates?: Express.Multer.File[];
+      };
+      const avatarFile = files?.avatar?.[0];
+      const certificateFiles = files?.certificates;
+
       let avatarUrl = "";
-      if (req.file) {
+      let certificateData: { name: string; image: string }[] = [];
+
+      const updateData: any = {
+        ...req.body,
+      };
+      delete updateData.isOnline;
+
+      // 🔹 AVATAR UPLOAD
+      if (avatarFile) {
         const result = await new Promise<{ secure_url: string }>(
           (resolve, reject) => {
             cloudinary.uploader
-              .upload_stream(
-                {
-                  resource_type: "image",
-                },
-                (err, result) => {
-                  if (err) reject(err);
-                  else if (result) resolve(result);
-                  else reject(new Error("Upload failed: no result returned"));
-                },
-              )
-              .end(req.file?.buffer);
+              .upload_stream({ resource_type: "image" }, (err, result) => {
+                if (err) reject(err);
+                else if (result) resolve(result);
+                else reject(new Error("Upload failed"));
+              })
+              .end(avatarFile.buffer);
           },
         );
+
         avatarUrl = result.secure_url;
+        updateData.avatar = avatarUrl;
+
+        // user avatar update
+        await User.findByIdAndUpdate(req.userId, { avatar: avatarUrl });
       }
 
-      const updateData = {
-        ...req.body,
-        ...(avatarUrl && { avatar: avatarUrl }),
-      };
+      // 🔹 CERTIFICATES UPLOAD
+      if (certificateFiles?.length) {
+        const names = Array.isArray(req.body.certificateNames)
+          ? req.body.certificateNames
+          : [req.body.certificateNames];
 
-      // Update the user's avatar if a new one was uploaded
-      if (avatarUrl) {
-        await User.findByIdAndUpdate(req.userId, { avatar: avatarUrl });
+        for (let i = 0; i < certificateFiles.length; i++) {
+          const file = certificateFiles[i];
+
+          const result = await new Promise<{ secure_url: string }>(
+            (resolve, reject) => {
+              cloudinary.uploader
+                .upload_stream({ resource_type: "image" }, (err, result) => {
+                  if (err) reject(err);
+                  else if (result) resolve(result);
+                  else reject(new Error("Upload failed"));
+                })
+                .end(file.buffer);
+            },
+          );
+
+          certificateData.push({
+            name: names?.[i] || "Certificate",
+            image: result.secure_url,
+          });
+        }
+
+        const existingGuide = await guideService.getGuideByUserId(req.userId!);
+        updateData.certificates = [
+          ...(Array.isArray(existingGuide.certificates)
+            ? existingGuide.certificates
+            : []),
+          ...certificateData,
+        ];
       }
 
       const guide = await guideService.updateGuideProfile(
@@ -94,11 +135,12 @@ export class GuideController {
 
       res.status(200).json({
         success: true,
-        message: "Guide profile updated successfully",
+        message: "Profile updated successfully",
         data: guide,
       });
     } catch (error) {
-      throw error;
+      console.error(error);
+      res.status(500).json({ message: "Update failed" });
     }
   }
 
@@ -119,22 +161,23 @@ export class GuideController {
     }
   }
 
-  async setOnlineStatus(req: AuthRequest, res: Response) {
-    try {
-      const guideId = req.userId!;
-      const { isOnline } = req.body;
+  // async setOnlineStatus(req: AuthRequest, res: Response) {
+  //   try {
+  //     const guideId = req.userId!;
+  //     const { isOnline } = req.body;
 
-      const guide = await guideService.setOnlineStatus(guideId, isOnline);
+  //     const guide = await guideService.setOnlineStatus(guideId, isOnline);
 
-      res.status(200).json({
-        success: true,
-        message: "Online status updated",
-        data: guide,
-      });
-    } catch (error) {
-      throw error;
-    }
-  }
+  //     res.status(200).json({
+  //       success: true,
+  //       message: "Online status updated",
+  //       data: guide,
+  //     });
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
+
   async verifyGuide(req: AuthRequest, res: Response) {
     const guide = await guideService.verifyGuide(req.params.guideId);
     res.json(guide);

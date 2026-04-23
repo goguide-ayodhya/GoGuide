@@ -14,7 +14,7 @@ export default function PaymentFailedPage() {
   const { currentBooking } = useBooking();
 
   const handleRetry = () => {
-    router.push("/payment");
+    router.push("/tourist/payment");
   };
 
   return (
@@ -86,7 +86,7 @@ export default function PaymentFailedPage() {
                 href="mailto:support@ayodhyatourism.com"
                 className="text-primary font-semibold hover:underline"
               >
-                support@ayodhyatourism.com
+                support@goguide.com
               </a>
             </p>
           </Card>

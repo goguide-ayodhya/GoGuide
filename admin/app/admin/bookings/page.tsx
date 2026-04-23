@@ -42,11 +42,29 @@ import {
   User,
   IndianRupee,
 } from "lucide-react";
-import { mockBookings, type Booking } from "@/lib/mock-data";
+interface AdminBooking {
+  id: string;
+  touristName: string;
+  touristEmail?: string;
+  touristPhone?: string;
+  guideName?: string;
+  guideId?: string;
+  tourType?: string;
+  date?: string;
+  meetingPoint?: string;
+  bookingType?: string;
+  price?: number;
+  status?: string;
+  paymentStatus?: string;
+  notes?: string;
+  isSeenByAdmin?: boolean;
+  createdAt?: string;
+}
 import {
   getAllBookings,
   acceptBookingApi,
   cancelBookingApi,
+  seenBooking,
 } from "@/lib/api/bookings";
 import type { Booking as ApiBooking } from "@/contexts/BookingsContext";
 
@@ -85,7 +103,7 @@ const getAssignedName = (booking: any) => {
 };
 
 // Helper function to convert API booking to UI booking format
-const convertApiBookingToUi = (apiBooking: any): Booking => {
+const convertApiBookingToUi = (apiBooking: any): AdminBooking => {
   const statusMap: Record<
     string,
     "Pending" | "Confirmed" | "On the Way" | "Completed" | "Cancelled"
@@ -97,40 +115,56 @@ const convertApiBookingToUi = (apiBooking: any): Booking => {
     REJECTED: "Cancelled",
   };
 
-  const bookingType = apiBooking.bookingType === "GUIDE"
-    ? "Guide"
-    : apiBooking.bookingType === "DRIVER"
-      ? "Driver"
-      : apiBooking.bookingType === "TOKEN"
-        ? "Token"
-        : "Normal";
+  const bookingType =
+    apiBooking.bookingType === "GUIDE"
+      ? "Guide"
+      : apiBooking.bookingType === "DRIVER"
+        ? "Driver"
+        : apiBooking.bookingType === "TOKEN"
+          ? "Token"
+          : "Normal";
+
+  const rawDate =
+    apiBooking.bookingDate ?? apiBooking.date ?? apiBooking.createdAt;
+  const dateStr = rawDate ? new Date(rawDate).toLocaleDateString() : "";
+  const priceVal =
+    typeof apiBooking.totalPrice === "number"
+      ? apiBooking.totalPrice
+      : Number(apiBooking.totalPrice) || 0;
 
   return {
     id: apiBooking._id || apiBooking.id,
-    touristName: apiBooking.touristName,
-    touristEmail: apiBooking.email,
+    touristName: apiBooking.touristName || apiBooking.touristName || "",
+    touristEmail: apiBooking.email || apiBooking.touristEmail || "",
+    touristPhone: apiBooking.phone || apiBooking.touristPhone || "",
     guideName: getAssignedName(apiBooking),
     guideId:
       apiBooking.guideId && typeof apiBooking.guideId === "object"
         ? apiBooking.guideId._id
         : apiBooking.guideId,
-    tourType: apiBooking.tourType,
-    date: new Date(apiBooking.bookingDate).toLocaleDateString(),
-    meetingPoint: apiBooking.meetingPoint,
-    bookingType: apiBooking.bookingType,
-    price: apiBooking.totalPrice,
+    tourType: apiBooking.tourType || "",
+    date: dateStr,
+    meetingPoint: apiBooking.meetingPoint || "",
+    bookingType: apiBooking.bookingType || "",
+    price: priceVal,
     status: statusMap[apiBooking.status] || ("Pending" as const),
+    paymentStatus: apiBooking.paymentStatus || "PENDING",
+    notes: apiBooking.notes || "",
+    isSeenByAdmin: !!apiBooking.isSeenByAdmin,
     createdAt: apiBooking.createdAt,
   };
 };
 
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [filterPayment, setFilterPayment] = useState<string>("all");
+  const [selectedBooking, setSelectedBooking] = useState<AdminBooking | null>(
+    null,
+  );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   // Fetch bookings on component mount
@@ -139,18 +173,20 @@ export default function BookingsPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getAllBookings();
+        const raw = await getAllBookings();
+        const list = Array.isArray(raw)
+          ? raw
+          : (raw && (raw.data || raw.items)) || [];
 
-        // Convert API bookings to UI format
-        const uiBookings = data.map((booking: ApiBooking) =>
+        // Convert API bookings to UI format (defensive)
+        const uiBookings = list.map((booking: ApiBooking | any) =>
           convertApiBookingToUi(booking),
         );
         setBookings(uiBookings);
       } catch (err: any) {
         console.error("Failed to fetch bookings:", err);
-        setError(err.message || "Failed to load bookings");
-        // Fallback to mock data if API fails
-        setBookings(mockBookings);
+        setError(err?.message || "Failed to load bookings");
+        setBookings([]);
       } finally {
         setLoading(false);
       }
@@ -160,16 +196,21 @@ export default function BookingsPage() {
   }, []);
 
   const filteredBookings = bookings.filter((booking) => {
+    const q = searchQuery.trim().toLowerCase();
+    const id = (booking.id || "").toString().toLowerCase();
+    const tourist = (booking.touristName || "").toLowerCase();
+    const guide = (booking.guideName || "").toLowerCase();
+
     const matchesSearch =
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.touristName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.guideName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter =
+      !q || id.includes(q) || tourist.includes(q) || guide.includes(q);
+    const matchesStatus =
       filterStatus === "all" || booking.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    const matchesPayment =
+      filterPayment === "all" || booking.paymentStatus === filterPayment;
+    return matchesSearch && matchesStatus && matchesPayment;
   });
 
-  const handleApprove = async (booking: Booking) => {
+  const handleApprove = async (booking: AdminBooking) => {
     try {
       await acceptBookingApi(booking.id);
       setBookings((prev) =>
@@ -183,9 +224,26 @@ export default function BookingsPage() {
     }
   };
 
-  const handleCancel = async (booking: Booking) => {
+  const handleMarkSeen = async (booking: AdminBooking) => {
     try {
-      await cancelBookingApi(booking.id);
+      await seenBooking(booking.id);
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === booking.id ? { ...b, isSeenByAdmin: true } : b,
+        ),
+      );
+    } catch (err: any) {
+      console.error("Failed to mark booking seen:", err);
+      setError(err.message || "Failed to mark booking as seen");
+    }
+  };
+
+  const handleCancel = async (booking: AdminBooking) => {
+    try {
+      await cancelBookingApi(
+        booking.id,
+        booking.status === "Pending" ? "PENDING" : "CANCELLED",
+      );
       setBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, status: "Cancelled" } : b,
@@ -197,7 +255,7 @@ export default function BookingsPage() {
     }
   };
 
-  const viewDetails = (booking: Booking) => {
+  const viewDetails = (booking: AdminBooking) => {
     setSelectedBooking(booking);
     setDetailsDialogOpen(true);
   };
@@ -257,6 +315,22 @@ export default function BookingsPage() {
                     <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+                <div>
+                  <Select
+                    value={filterPayment}
+                    onValueChange={setFilterPayment}
+                  >
+                    <SelectTrigger className="w-full h-11">
+                      <SelectValue placeholder="Filter by payment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Payments</SelectItem>
+                      <SelectItem value="PENDING">PENDING</SelectItem>
+                      <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                      <SelectItem value="FAILED">FAILED</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -293,9 +367,9 @@ export default function BookingsPage() {
                       </div>
                       <Badge
                         variant="outline"
-                        className={`text-[10px] shrink-0 ${statusColors[booking.status]}`}
+                        className={`text-[10px] shrink-0 ${statusColors[booking.status ?? "Pending"]}`}
                       >
-                        {booking.status}
+                        {booking.status ?? "Pending"}
                       </Badge>
                     </div>
 
@@ -320,8 +394,14 @@ export default function BookingsPage() {
                         <span className="text-muted-foreground">Price:</span>
                         <span className="text-foreground font-medium flex items-center gap-0.5">
                           <IndianRupee className="w-3 h-3" />
-                          {booking.price.toLocaleString()}
+                          {(booking.price ?? 0).toLocaleString()}
                         </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Payment:</span>
+                        <Badge variant="outline" className="text-xs">
+                          {booking.paymentStatus}
+                        </Badge>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Type:</span>
@@ -402,6 +482,9 @@ export default function BookingsPage() {
                         Price
                       </th>
                       <th className="text-left text-xs font-medium text-muted-foreground py-3">
+                        Payment Status
+                      </th>
+                      <th className="text-left text-xs font-medium text-muted-foreground py-3">
                         Status
                       </th>
                       <th className="text-left text-xs font-medium text-muted-foreground py-3">
@@ -455,15 +538,20 @@ export default function BookingsPage() {
                         <td className="py-3 text-sm font-medium text-foreground">
                           <span className="flex items-center gap-0.5">
                             <IndianRupee className="w-3 h-3" />
-                            {booking.price.toLocaleString()}
+                            {(booking.price ?? 0).toLocaleString()}
                           </span>
+                        </td>
+                        <td className="py-3">
+                          <Badge variant="outline" className="text-xs">
+                            {booking.paymentStatus}
+                          </Badge>
                         </td>
                         <td className="py-3">
                           <Badge
                             variant="outline"
-                            className={`text-xs ${statusColors[booking.status]}`}
+                            className={`text-xs ${statusColors[booking.status ?? "Pending"]}`}
                           >
-                            {booking.status}
+                            {booking.status ?? "Pending"}
                           </Badge>
                         </td>
                         <td className="py-3">
@@ -484,6 +572,14 @@ export default function BookingsPage() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              {!booking.isSeenByAdmin && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMarkSeen(booking)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Mark as Seen
+                                </DropdownMenuItem>
+                              )}
                               {booking.status === "Pending" && (
                                 <>
                                   <DropdownMenuItem
@@ -536,6 +632,22 @@ export default function BookingsPage() {
               {selectedBooking && (
                 <div className="space-y-4 py-2 sm:py-4">
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        Email
+                      </p>
+                      <p className="text-xs sm:text-sm font-medium">
+                        {selectedBooking.touristEmail}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        Phone
+                      </p>
+                      <p className="text-xs sm:text-sm font-medium">
+                        {selectedBooking.touristPhone || "-"}
+                      </p>
+                    </div>
                     <div className="space-y-1">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">
                         Tourist
@@ -610,7 +722,7 @@ export default function BookingsPage() {
                       <div className="flex items-center gap-1">
                         <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                         <p className="text-xs sm:text-sm font-medium">
-                          {selectedBooking.price.toLocaleString()}
+                          {(selectedBooking.price ?? 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -620,12 +732,33 @@ export default function BookingsPage() {
                       </p>
                       <Badge
                         variant="outline"
-                        className={`text-[10px] sm:text-xs ${statusColors[selectedBooking.status]}`}
+                        className={`text-[10px] sm:text-xs ${statusColors[selectedBooking.status ?? "Pending"]}`}
                       >
-                        {selectedBooking.status}
+                        {selectedBooking.status ?? "Pending"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        Payment
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] sm:text-xs"
+                      >
+                        {selectedBooking.paymentStatus}
                       </Badge>
                     </div>
                   </div>
+                  {selectedBooking.notes && (
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        Notes
+                      </p>
+                      <p className="text-xs sm:text-sm">
+                        {selectedBooking.notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </DialogContent>

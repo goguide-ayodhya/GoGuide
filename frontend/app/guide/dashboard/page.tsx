@@ -11,6 +11,7 @@ import {
   completeBookingApi,
   cancelBookingApi,
 } from "@/lib/api/bookings";
+import { completeCodPaymentApi } from "@/lib/api/payments";
 import {
   Card,
   CardContent,
@@ -56,7 +57,7 @@ export default function DashboardPage() {
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
   const monthlyData = earningsContext?.monthlyData;
-  const { bookings } = useBooking();
+  const { bookings, setBookings, refreshBookings } = useBooking();
   const { reviews, getGuideReview } = useReview();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -107,7 +108,6 @@ export default function DashboardPage() {
     setSelectedBooking(booking);
     setIsModalOpen(true);
   };
-  const { setBookings } = useBooking();
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
       if (newStatus === "ACCEPTED") {
@@ -129,6 +129,27 @@ export default function DashboardPage() {
       console.log("Status update failed", err);
     }
   };
+
+  const handleCashCollected = async (bookingId: string) => {
+    const data = await completeCodPaymentApi(bookingId);
+    const patch = {
+      paymentStatus: data.paymentStatus as Booking["paymentStatus"],
+      paidAmount: data.paidAmount,
+      remainingAmount: data.remainingAmount,
+      paymentType: data.paymentType as Booking["paymentType"],
+      discount: data.discount,
+      finalPrice: data.finalPrice,
+      originalPrice: data.originalPrice,
+    };
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, ...patch } : b)),
+    );
+    setSelectedBooking((prev) =>
+      prev?.id === bookingId ? { ...prev, ...patch } : prev,
+    );
+    await refreshBookings();
+  };
+
   useEffect(() => {
     earningsContext?.fetchEarnings();
     earningsContext?.fetchMonthlyEarnings();
@@ -545,6 +566,7 @@ export default function DashboardPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onStatusChange={handleStatusChange}
+        onCashCollected={handleCashCollected}
       />
     </div>
   );

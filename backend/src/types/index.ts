@@ -82,7 +82,7 @@ export interface Guide extends BaseEntity {
   languages: string[];
   specializations: string[];
   experience: number; // Years
-  hourlyRate: number;
+  price: number;
   rating: number;
   totalReviews: number;
   totalBookings: number;
@@ -238,7 +238,7 @@ export interface Review extends BaseEntity {
   touristId: string;
   touristName: string;
   rating: number; // 1-5
-  comment: string;
+  comments: string;
   images?: string[];
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
   isVisible: boolean;

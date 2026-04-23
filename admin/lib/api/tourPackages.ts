@@ -64,6 +64,28 @@ export const updatePackage = async (id: string, data: any) => {
   return handleRes(res);
 };
 
+// ---------------- CREATE (FORM-DATA with files) ----------------
+export const createPackageForm = async (formData: FormData) => {
+  const headers = authHeaders();
+  const res = await fetch(`${base_url}packages`, {
+    method: "POST",
+    headers: headers, // browser will set Content-Type including boundary
+    body: formData,
+  });
+  return handleRes(res);
+};
+
+// ---------------- UPDATE (FORM-DATA with files) ----------------
+export const updatePackageForm = async (id: string, formData: FormData) => {
+  const headers = authHeaders();
+  const res = await fetch(`${base_url}packages/${id}`, {
+    method: "PUT",
+    headers: headers,
+    body: formData,
+  });
+  return handleRes(res);
+};
+
 // ---------------- DELETE (ADMIN) ----------------
 export const deletePackage = async (id: string) => {
   const res = await fetch(`${base_url}packages/${id}`, {

@@ -62,6 +62,15 @@ export const getBookingReviewApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
+// Get all reviews (admin)
+export const getAllReviewsApi = async () => {
+  const res = await fetch(`${base_url}reviews`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
 // Update
 export const updateReviewApi = async (reviewId: string, data: any) => {
   const res = await fetch(`${base_url}reviews/${reviewId}`, {

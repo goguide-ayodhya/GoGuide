@@ -12,6 +12,8 @@ import {
   User,
   Star,
   LogOut,
+  Wallet,
+  RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,8 @@ export function SidebarNav() {
       { href: `${basePath}/bookings`, label: "Bookings", icon: Calendar },
       { href: `${basePath}/guides`, label: professionalLabel, icon: Users },
       { href: `${basePath}/earnings`, label: "Earnings", icon: PieChart },
+      { href: `${basePath}/payouts`, label: "Payouts", icon: Wallet },
+      { href: `${basePath}/refunds`, label: "Refund History", icon: RotateCcw },
       { href: `${basePath}/reviews`, label: "Reviews", icon: Star },
       { href: `${basePath}/profile`, label: "Profile", icon: User },
     ];

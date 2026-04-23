@@ -1,13 +1,15 @@
 import { Booking } from "../models/Booking";
+import { Payment } from "../models/Payment";
 import { Driver } from "../models/Driver";
 import { Guide } from "../models/Guide";
 import { User } from "../models/User";
-import { Payment } from "../models/Payment";
 import { Review } from "../models/Review";
 import { NotFound, BadRequest } from "../utils/httpException";
 import { CreateBookingInput } from "../validations/booking";
 import { paymentService } from "./payment.service";
 import { NotificationService } from "./notification.service";
+import { roundMoney } from "../utils/bookingPricing";
+import { applyPlatformSplitToBooking } from "./bookingCommission.service";
 
 export class BookingService {
   async createBooking(userId: string, input: CreateBookingInput) {
@@ -60,9 +62,18 @@ export class BookingService {
       throw new BadRequest("Invalid booking type or entity not found");
     }
 
+    const totalPrice = input.totalPrice;
     const booking = await Booking.create({
       ...input,
       userId,
+      originalPrice: totalPrice,
+      discount: 0,
+      finalPrice: totalPrice,
+      paidAmount: 0,
+      remainingAmount: totalPrice,
+      partialDiscountApplied: false,
+      guideEarning: 0,
+      adminCommission: 0,
     });
 
     console.log(
@@ -210,7 +221,12 @@ export class BookingService {
     return booking;
   }
 
-  async cancelBooking(bookingId: string, reason?: string, cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER") {
+  async cancelBooking(
+    bookingId: string,
+    reason?: string,
+    cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER",
+    actorUserId?: string,
+  ) {
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
@@ -227,11 +243,46 @@ export class BookingService {
       );
     }
 
+    if (actorUserId) {
+      if (cancelledBy === "TOURIST" && booking.userId.toString() !== actorUserId) {
+        throw new BadRequest("Only booking owner can cancel as tourist");
+      }
+      if (cancelledBy === "GUIDE") {
+        const guide = await Guide.findOne({ userId: actorUserId });
+        if (!guide || booking.guideId?.toString() !== guide._id.toString()) {
+          throw new BadRequest("Only assigned guide can cancel this booking");
+        }
+      }
+      if (cancelledBy === "DRIVER") {
+        const driver = await Driver.findOne({ userId: actorUserId });
+        if (!driver || booking.driverId?.toString() !== driver._id.toString()) {
+          throw new BadRequest("Only assigned driver can cancel this booking");
+        }
+      }
+    }
+
     booking.status = "CANCELLED";
     booking.cancellationReason = reason;
     booking.cancelledBy = cancelledBy;
     booking.cancelledAt = new Date();
     await booking.save();
+
+    let refundAmount = 0;
+    if ((booking.paidAmount ?? 0) > 0 && actorUserId) {
+      try {
+        const refunds = await paymentService.createCancellationRefunds(
+          actorUserId,
+          booking._id.toString(),
+          reason,
+        );
+        refundAmount = refunds.reduce((sum, r) => sum + r.amount, 0);
+      } catch (error) {
+        console.warn(
+          `[BOOKING] cancellation refund failed for booking ${booking._id}:`,
+          error,
+        );
+      }
+    }
 
     // Track cancellation count for the user
     if (cancelledBy === "TOURIST") {
@@ -244,7 +295,7 @@ export class BookingService {
       }
     }
 
-    return booking;
+    return { booking, refundAmount };
   }
 
   async acceptBooking(
@@ -284,14 +335,10 @@ export class BookingService {
       `[BOOKING] 📦 Booking Accepted: ${bookingId}, bookingType: ${bookingType}`,
     );
 
-    const existingPayment = await Payment.findOne({ bookingId });
-
-    if (!existingPayment) {
-      await paymentService.createPayment(
-        booking.userId.toString(),
-        booking._id.toString(),
-      );
-    }
+    await paymentService.ensureInitialPayment(
+      booking.userId.toString(),
+      booking._id.toString(),
+    );
 
     // Send notification to user (async - don't block response)
     try {
@@ -386,6 +433,48 @@ export class BookingService {
     if (booking.status !== "ACCEPTED") {
       throw new BadRequest("Only accepted bookings can be completed");
     }
+    // Prevent marking booking as completed until payment is successfully collected.
+    // Allow completion for COD or free bookings.
+    const finalPrice = booking.finalPrice ?? booking.totalPrice;
+    const isCod = booking.paymentType === "COD" || booking.paymentMethod === "COD";
+    if (!isCod && (typeof finalPrice === "number" && finalPrice > 0)) {
+      // Reconciliation: check completed payment rows and correct booking paymentStatus if possible.
+      const completedPayments = await Payment.find({
+        bookingId: booking._id,
+        status: "COMPLETED",
+      }).lean();
+
+      const sumCompleted = (completedPayments || []).reduce((s: number, p: any) => {
+        const line = p.amountPaid != null && p.amountPaid > 0 ? p.amountPaid : p.amount ?? 0;
+        return s + Number(line || 0);
+      }, 0);
+
+      if (sumCompleted >= (finalPrice - 0.01)) {
+        // Payments cover the final price; update booking to reflect actual captured amount.
+        booking.paidAmount = roundMoney(sumCompleted);
+        booking.remainingAmount = roundMoney(Math.max(0, finalPrice - booking.paidAmount));
+        booking.paymentStatus = "COMPLETED";
+        applyPlatformSplitToBooking(booking);
+        await booking.save();
+      } else {
+        // If booking thought it was completed but payments don't match, correct booking and block completion.
+        if (booking.paymentStatus === "COMPLETED") {
+          booking.paidAmount = roundMoney(sumCompleted);
+          booking.remainingAmount = roundMoney(Math.max(0, finalPrice - sumCompleted));
+          booking.paymentStatus = booking.paidAmount > 0 ? "PARTIAL" : "PENDING";
+          applyPlatformSplitToBooking(booking);
+          await booking.save();
+          throw new BadRequest(
+            `Booking payment inconsistent; corrected to ${booking.paymentStatus}. Cannot complete until payment is collected.`,
+          );
+        }
+
+        throw new BadRequest(
+          "Cannot complete booking until payment is successfully collected",
+        );
+      }
+    }
+
     booking.status = "COMPLETED";
     await booking.save();
 

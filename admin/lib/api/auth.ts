@@ -44,8 +44,9 @@ export const signupUser = async (data: SignupData) => {
 
   if (data.phone) form.append("phone", data.phone);
   if (data.avatar) form.append("avatar", data.avatar);
-  if (data.speciality) form.append("speciality", data.speciality);
-  if (data.hourlyRate) form.append("hourlyRate", data.hourlyRate);
+  if (data.specialities) {
+    data.specialities.forEach((spec) => form.append("speciality", spec));
+  }
   if (data.experience) form.append("experience", data.experience);
   if (data.languages) {
     data.languages.forEach((lang) => form.append("languages", lang));

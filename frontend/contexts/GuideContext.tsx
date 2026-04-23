@@ -34,7 +34,7 @@ export type Guide = {
   totalReviews?: number;
   recentReviews?: {
     rating: number;
-    comment: string;
+    comments: string;
     reviewer?: string;
     date?: string;
   }[];

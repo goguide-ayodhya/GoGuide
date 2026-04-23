@@ -1,34 +1,43 @@
 import { Router } from "express";
 import { tourPackageController } from "../controllers/tourPackage.controller";
 import { authenticate, authorize } from "../middleware/auth";
+import { upload } from "../middleware/upload";
 
 const router = Router();
 
-// ADMIN
-router.post("/", authenticate, authorize(["ADMIN"]), (req, res, next) => {
-  tourPackageController.createPackage(req, res).catch(next);
-});
-
-// PUBLIC
+// Public - list packages
 router.get("/", (req, res, next) => {
   tourPackageController.getAllPackages(req, res).catch(next);
 });
 
+// Public - get single package
 router.get("/:packageId", (req, res, next) => {
   tourPackageController.getPackageById(req, res).catch(next);
 });
 
-// UPDATE
+// Admin - create package (supports multipart uploads)
+router.post(
+  "/",
+  authenticate,
+  authorize(["ADMIN"]),
+  upload.fields([{ name: "images", maxCount: 10 }]),
+  (req, res, next) => {
+    tourPackageController.createPackage(req, res).catch(next);
+  },
+);
+
+// Admin - update package
 router.put(
   "/:packageId",
   authenticate,
   authorize(["ADMIN"]),
+  upload.fields([{ name: "images", maxCount: 10 }]),
   (req, res, next) => {
     tourPackageController.updatePackage(req, res).catch(next);
   },
 );
 
-// DELETE
+// Admin - delete package
 router.delete(
   "/:packageId",
   authenticate,

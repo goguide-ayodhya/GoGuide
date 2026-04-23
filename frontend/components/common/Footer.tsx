@@ -9,22 +9,26 @@ export function Footer() {
             <h3 className="font-semibold text-slate-900 mb-3">Services</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
-                <Link href="/cabs" className="hover:text-slate-900 transition-colors">
+                <Link
+                  href="/tourist/cabs"
+                  className="hover:text-slate-900 transition-colors"
+                >
                   Cabs
                 </Link>
               </li>
               <li>
-                <Link href="/packages" className="hover:text-slate-900 transition-colors">
+                <Link
+                  href="/tourist/packages"
+                  className="hover:text-slate-900 transition-colors"
+                >
                   Tour Packages
                 </Link>
               </li>
               <li>
-                <Link href="/tokens" className="hover:text-slate-900 transition-colors">
-                  Passes
-                </Link>
-              </li>
-              <li>
-                <Link href="/guides" className="hover:text-slate-900 transition-colors">
+                <Link
+                  href="/tourist/guides"
+                  className="hover:text-slate-900 transition-colors"
+                >
                   Guides
                 </Link>
               </li>
@@ -34,13 +38,28 @@ export function Footer() {
             <h3 className="font-semibold text-slate-900 mb-3">About</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">About Us</Link>
+                <Link
+                  href="#"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  About Us
+                </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">Contact</Link>
+                <Link
+                  href="/contact-us"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  Contact
+                </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">FAQ</Link>
+                <Link
+                  href="#"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  FAQ
+                </Link>
               </li>
             </ul>
           </div>
@@ -48,13 +67,28 @@ export function Footer() {
             <h3 className="font-semibold text-slate-900 mb-3">Legal</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">Privacy</Link>
+                <Link
+                  href="#"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  Privacy
+                </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">Terms</Link>
+                <Link
+                  href="#"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  Terms
+                </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-slate-900 transition-colors">Cookies</Link>
+                <Link
+                  href="#"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  Cookies
+                </Link>
               </li>
             </ul>
           </div>
@@ -62,21 +96,30 @@ export function Footer() {
             <h3 className="font-semibold text-slate-900 mb-3">Follow Us</h3>
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">Facebook</a>
+                <a href="#" className="hover:text-slate-900 transition-colors">
+                  Facebook
+                </a>
               </li>
               <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">Instagram</a>
+                <a href="#" className="hover:text-slate-900 transition-colors">
+                  Instagram
+                </a>
               </li>
               <li>
-                <a href="#" className="hover:text-slate-900 transition-colors">Twitter</a>
+                <a href="#" className="hover:text-slate-900 transition-colors">
+                  Twitter
+                </a>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="mt-8 border-t border-slate-100 pt-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500">
-          <p>&copy; 2026 Ayodhya Tourism. All rights reserved.</p>
-          <div className="mt-3 md:mt-0">Crafted with care • <span className="font-medium text-slate-700">Ayodhya Tourism</span></div>
+          <p>&copy; 2026 GoGuide | Ayodhya | All rights reserved.</p>
+          <div className="mt-3 md:mt-0">
+            Crafted with care •{" "}
+            <span className="font-medium text-slate-700">GoGuide</span>
+          </div>
         </div>
       </div>
     </footer>

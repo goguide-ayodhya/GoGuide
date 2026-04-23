@@ -16,11 +16,14 @@ import { sendEmail } from "../config/email.config";
 export class AuthService {
   // --------------------- Authentication ---------------------
   async login(input: LoginInput) {
-    // Find user by phone only
-    const user = await User.findOne({ phone: input.identifier });
+    const identifier = input.identifier.trim().toLowerCase();
+    const isEmail = identifier.includes("@");
+    const user = await User.findOne(
+      isEmail ? { email: identifier } : { phone: input.identifier.trim() },
+    );
 
     if (!user) {
-      throw new Unauthorized("Invalid phone or password");
+      throw new Unauthorized("Invalid email/phone or password");
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.password);
@@ -74,21 +77,22 @@ export class AuthService {
       phone: input.phone,
       role: input.role as any,
       avatar: input.avatar || undefined,
-      speciality: input.speciality,
-      hourlyRate: input.hourlyRate || 500,
       status: input.role === "TOURIST" ? "ACTIVE" : "INACTIVE",
     });
 
     if (input.role === "GUIDE") {
       await Guide.create({
         userId: user._id,
-        speciality: input.speciality || "General",
-        hourlyRate: input.hourlyRate || 500,
+        specialities: input.specialities || [],
+        locations: input.locations || [],
+        price: input.price || 500,
+        duration: input.duration || "4 hours",
+        certificates: input.certificates || [],
         yearsOfExperience: input.experience || 0,
         languages: input.languages || [],
         verificationStatus: "PENDING",
         isAvailable: false,
-        isOnline: false,
+        // isOnline: false,
         averageRating: 0,
         totalReviews: 0,
       });

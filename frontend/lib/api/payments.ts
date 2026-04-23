@@ -14,20 +14,22 @@ const authHeaders = () => {
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log("[PAYMENT-API] Adding Authorization header, token length:", token.length);
-  } else {
-    console.warn("[PAYMENT-API] No token found for request");
   }
   return headers;
 };
 
 const handleRes = async (res: Response) => {
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Payment API error");
+  if (!res.ok) {
+    console.error("API Error:", res.status, res.statusText, json);
+    throw new Error(json.message || `API Error: ${res.status} ${res.statusText}`);
+  }
   return json.data;
 };
 
-// Create Payment
+export type TouristPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
+
+/** Ensure placeholder payment exists (usually after guide acceptance). */
 export const createPaymentApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}payments/booking/${bookingId}`, {
     method: "POST",
@@ -37,7 +39,49 @@ export const createPaymentApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
-// Skip Payment
+export const setPaymentModeApi = async (
+  bookingId: string,
+  paymentType: TouristPaymentMode,
+) => {
+  const res = await fetch(`${base_url}payments/booking/${bookingId}/mode`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ paymentType }),
+  });
+
+  return handleRes(res);
+};
+
+export const createRazorpayOrderApi = async (bookingId: string, payload?: any) => {
+  // Ensure payload amounts are integers when provided
+  if (payload && typeof payload.amount === "number") {
+    payload.amount = Math.round(payload.amount);
+  }
+  const res = await fetch(
+    `${base_url}payments/booking/${bookingId}/razorpay-order`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload ?? {}),
+    },
+  );
+
+  const json = await res.json().catch(() => ({}));
+  // If booking already has a pending/completed payment, backend may return 200 with data
+  // or 409 to indicate duplicate prevention. Treat 409 as a recoverable response.
+  if (res.ok) return json.data;
+  if (res.status === 409) return json.data ?? json; // return data when present, else full json
+  throw new Error(json.message || `API Error: ${res.status} ${res.statusText}`);
+};
+
+export const getBookingPaymentsApi = async (bookingId: string) => {
+  const res = await fetch(`${base_url}payments/booking/${bookingId}`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
 export const skipPaymentApi = async (bookingId: string) => {
   const res = await fetch(`${base_url}payments/booking/${bookingId}/skip`, {
     method: "POST",
@@ -47,22 +91,73 @@ export const skipPaymentApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
-// Process Payment
-export const processPaymentApi = async (paymentId: string) => {
+export type ProcessPaymentPayload =
+  | {
+      status: string;
+      paymentMethod?: string;
+      transactionId?: string;
+    }
+  | {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    };
+
+export const processPaymentApi = async (
+  paymentId: string,
+  payload: ProcessPaymentPayload,
+) => {
   const res = await fetch(`${base_url}payments/${paymentId}/process`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({
-      status: "COMPLETED",
-      paymentMethod: "CARD",
-      transactionId: "txn_" + Date.now(),
-    }),
+    body: JSON.stringify(payload),
   });
 
   return handleRes(res);
 };
 
-// Driver Earnings
+export const retryPaymentApi = async (paymentId: string) => {
+  const res = await fetch(`${base_url}payments/${paymentId}/retry`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getPaymentRefundsApi = async (paymentId: string) => {
+  const res = await fetch(`${base_url}payments/${paymentId}/refunds`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const createRefundApi = async (
+  paymentId: string,
+  payload: { amount: number; reason?: string },
+) => {
+  const res = await fetch(`${base_url}payments/${paymentId}/refund`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleRes(res);
+};
+
+export const createCancellationRefundApi = async (
+  bookingId: string,
+  payload?: { reason?: string },
+) => {
+  const res = await fetch(
+    `${base_url}payments/booking/${bookingId}/refund/cancellation`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload ?? {}),
+    },
+  );
+  return handleRes(res);
+};
+
 export const getDriverEarnings = async () => {
   const res = await fetch(`${base_url}payments/driver/earnings`, {
     headers: authHeaders(),
@@ -71,7 +166,6 @@ export const getDriverEarnings = async () => {
   return handleRes(res);
 };
 
-// Driver Monthly Earnings
 export const getDriverMonthlyEarnings = async () => {
   const res = await fetch(`${base_url}payments/driver/monthly-earnings`, {
     headers: authHeaders(),
@@ -80,7 +174,6 @@ export const getDriverMonthlyEarnings = async () => {
   return handleRes(res);
 };
 
-// Driver Weekly Earnings
 export const getDriverWeeklyEarnings = async () => {
   const res = await fetch(`${base_url}payments/driver/weekly-earnings`, {
     headers: authHeaders(),
@@ -89,7 +182,6 @@ export const getDriverWeeklyEarnings = async () => {
   return handleRes(res);
 };
 
-// Get Guide Earnings
 export const getGuideEarningsApi = async () => {
   const res = await fetch(`${base_url}payments/guide/earnings`, {
     headers: authHeaders(),
@@ -98,7 +190,6 @@ export const getGuideEarningsApi = async () => {
   return handleRes(res);
 };
 
-// Get Guide Monthly Earnings
 export const getGuideMonthlyEarningsApi = async () => {
   const res = await fetch(`${base_url}payments/guide/monthly-earnings`, {
     headers: authHeaders(),
@@ -107,7 +198,6 @@ export const getGuideMonthlyEarningsApi = async () => {
   return handleRes(res);
 };
 
-// Get Guide Weekly Earnings
 export const getGuideWeeklyEarningsApi = async () => {
   const res = await fetch(`${base_url}payments/guide/weekly-earnings`, {
     headers: authHeaders(),
@@ -116,7 +206,6 @@ export const getGuideWeeklyEarningsApi = async () => {
   return handleRes(res);
 };
 
-// My Payments
 export const getMyPaymentsApi = async () => {
   const res = await fetch(`${base_url}payments/my-payments`, {
     headers: authHeaders(),
@@ -125,7 +214,6 @@ export const getMyPaymentsApi = async () => {
   return handleRes(res);
 };
 
-// Guide Payments
 export const getGuidePaymentsApi = async () => {
   const res = await fetch(`${base_url}payments/guide`, {
     headers: authHeaders(),
@@ -134,7 +222,6 @@ export const getGuidePaymentsApi = async () => {
   return handleRes(res);
 };
 
-// Stats
 export const getPaymentStatsApi = async () => {
   const res = await fetch(`${base_url}payments/guide/stats`, {
     headers: authHeaders(),
@@ -143,9 +230,27 @@ export const getPaymentStatsApi = async () => {
   return handleRes(res);
 };
 
-// Earnings
 export const getGuideEarnings = async () => {
   const res = await fetch(`${base_url}payments/guide/earnings`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+/** Guide/driver/admin: mark COD booking as cash collected */
+export const completeCodPaymentApi = async (bookingId: string) => {
+  const res = await fetch(`${base_url}payments/cod/complete/${bookingId}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+/** Admin dashboard */
+export const getAdminPaymentsSummaryApi = async () => {
+  const res = await fetch(`${base_url}payments/admin/payments/summary`, {
     headers: authHeaders(),
   });
 

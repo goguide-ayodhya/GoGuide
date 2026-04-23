@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, User, Filter } from "lucide-react";
+import { Calendar, User, Filter, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import HeadingTitle from "@/components/common/headingTitle";
 import {
@@ -38,16 +38,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cancelBookingApi } from "@/lib/api/bookings";
 
 export default function BookingsPage() {
   const { isLoggedIn } = useAuth();
-  const { bookings, cancelBooking, setBookings } = useBooking();
+  const { bookings, cancelBooking, setBookings, refreshBookings } =
+    useBooking();
   const { createReview, getBookingReview } = useReview();
   const { toast } = useToast();
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewReviewOpen, setViewReviewOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<
@@ -59,6 +62,7 @@ export default function BookingsPage() {
     date?: string;
   } | null>(null);
   const statusOptions = [
+    "ALL",
     "PENDING",
     "ACCEPTED",
     "COMPLETED",
@@ -66,19 +70,26 @@ export default function BookingsPage() {
     "CANCELLED",
   ] as const;
   const reviewOptions = ["REVIEWED", "UNREVIEWED"] as const;
+  const paymentStatusOptions = [
+    "ALL",
+    "PENDING",
+    "PARTIAL",
+    "COMPLETED",
+    "FAILED",
+    "REFUNDED",
+  ] as const;
   const [selectedStatuses, setSelectedStatuses] = useState<
     (typeof statusOptions)[number][]
   >([...statusOptions]);
   const [selectedReviewStatuses, setSelectedReviewStatuses] = useState<
     (typeof reviewOptions)[number][]
   >(["REVIEWED", "UNREVIEWED"]);
+  const [selectedPaymentStatuses, setSelectedPaymentStatuses] = useState<
+    (typeof paymentStatusOptions)[number][]
+  >([...paymentStatusOptions]);
 
   const toggleStatus = (status: (typeof statusOptions)[number]) => {
-    setSelectedStatuses((prev) =>
-      prev.includes(status)
-        ? prev.filter((item) => item !== status)
-        : [...prev, status],
-    );
+    setSelectedStatuses([status]);
   };
 
   const toggleReviewStatus = (reviewStatus: (typeof reviewOptions)[number]) => {
@@ -89,11 +100,37 @@ export default function BookingsPage() {
     );
   };
 
+  const togglePaymentStatus = (
+    paymentStatus: (typeof paymentStatusOptions)[number],
+  ) => {
+    setSelectedPaymentStatuses([paymentStatus]);
+  };
+
   const clearFilters = () => {
     setSearchTerm("");
-    setSelectedStatuses([...statusOptions]);
+    setSelectedStatuses(["ALL"]);
     setSelectedReviewStatuses([...reviewOptions]);
+    setSelectedPaymentStatuses([...paymentStatusOptions]);
     setSortBy("newest");
+  };
+
+  const refreshBookingList = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshBookings();
+      toast({
+        title: "Bookings refreshed",
+        description: "Your booking list is now up to date.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to refresh",
+        description: error?.message || "Could not refresh your bookings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!isLoggedIn) {
@@ -131,12 +168,20 @@ export default function BookingsPage() {
   });
 
   const filteredBookings = sortedBookings.filter((b) => {
-    const statusMatch = selectedStatuses.includes(b.status as any);
+    const statusMatch =
+      selectedStatuses.includes("ALL") ||
+      selectedStatuses.includes(b.status as any);
     const reviewMatch = selectedReviewStatuses.some((option) =>
       option === "REVIEWED"
         ? b.reviewed === true
         : b.reviewed === false || b.reviewed === undefined,
     );
+    const paymentStatusLabel = b.paymentStatus || "PENDING";
+    const paymentMatch =
+      selectedPaymentStatuses.includes("ALL") ||
+      selectedPaymentStatuses.includes(
+        paymentStatusLabel as (typeof paymentStatusOptions)[number],
+      );
     const searchMatch = searchTerm
       ? [b.touristName, b.tourType, b.bookingId]
           .join(" ")
@@ -144,13 +189,8 @@ export default function BookingsPage() {
           .includes(searchTerm.toLowerCase())
       : true;
 
-    return statusMatch && reviewMatch && searchMatch;
+    return statusMatch && reviewMatch && paymentMatch && searchMatch;
   });
-
-  const handleCancel = (bookingId: string, reason: string) => {
-    cancelBooking(bookingId, reason);
-    setCancellingId(null);
-  };
 
   const handleViewReview = async (bookingId: string) => {
     setSelectedBookingForReview(bookingId);
@@ -203,8 +243,7 @@ export default function BookingsPage() {
     } catch (error: any) {
       toast({
         title: "Unable to submit review",
-        description:
-          error?.message || "Could not submit your review.",
+        description: error?.message || "Could not submit your review.",
         variant: "destructive",
       });
     } finally {
@@ -212,6 +251,35 @@ export default function BookingsPage() {
       setSelectedBookingForReview(null);
     }
   };
+
+  async function handleCancel(
+    cancellingId: string,
+    reason: string,
+  ): Promise<void> {
+    const booking = bookings.find((b) => b.id === cancellingId);
+    if (!booking) return;
+
+    try {
+      const res = await cancelBookingApi(cancellingId, reason);
+
+      setCancellingId(null);
+      await refreshBookings();
+
+      toast({
+        title: "Booking cancelled",
+        description:
+          res?.refundAmount > 0
+            ? `₹${res.refundAmount} refund initiated`
+            : "Booking cancelled",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unable to cancel booking",
+        description: error?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-background">
@@ -294,6 +362,37 @@ export default function BookingsPage() {
 
                       <div className="rounded-3xl border border-border bg-background p-4">
                         <div className="flex items-center justify-between mb-3">
+                          <p className="text-sm font-semibold">
+                            Payment Status
+                          </p>
+                          <span className="text-xs text-muted-foreground">
+                            {selectedPaymentStatuses.length} selected
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {paymentStatusOptions.map((status) => (
+                            <label
+                              key={status}
+                              className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
+                            >
+                              <Checkbox
+                                checked={selectedPaymentStatuses.includes(
+                                  status,
+                                )}
+                                onCheckedChange={() =>
+                                  togglePaymentStatus(status)
+                                }
+                              />
+                              <span className="text-sm font-medium capitalize">
+                                {status.toLowerCase()}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-3xl border border-border bg-background p-4">
+                        <div className="flex items-center justify-between mb-3">
                           <p className="text-sm font-semibold">Review Status</p>
                           <span className="text-xs text-muted-foreground">
                             {selectedReviewStatuses.length} selected
@@ -348,6 +447,16 @@ export default function BookingsPage() {
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={refreshBookingList}
+                        disabled={isRefreshing}
+                        className="flex items-center gap-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        {isRefreshing ? "Refreshing" : "Refresh"}
+                      </Button>
                       <Select
                         value={sortBy}
                         onValueChange={(value: any) => setSortBy(value)}
@@ -433,6 +542,37 @@ export default function BookingsPage() {
                           <div className="rounded-3xl border border-border bg-background p-4">
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-sm font-semibold">
+                                Payment Status
+                              </p>
+                              <span className="text-xs text-muted-foreground">
+                                {selectedPaymentStatuses.length} selected
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              {paymentStatusOptions.map((status) => (
+                                <label
+                                  key={status}
+                                  className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
+                                >
+                                  <Checkbox
+                                    checked={selectedPaymentStatuses.includes(
+                                      status,
+                                    )}
+                                    onCheckedChange={() =>
+                                      togglePaymentStatus(status)
+                                    }
+                                  />
+                                  <span className="text-sm font-medium capitalize">
+                                    {status.toLowerCase()}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-3xl border border-border bg-background p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-sm font-semibold">
                                 Review Status
                               </p>
                               <span className="text-xs text-muted-foreground">
@@ -504,7 +644,9 @@ export default function BookingsPage() {
       <CancelBookingModal
         open={!!cancellingId}
         onOpenChange={(open) => !open && setCancellingId(null)}
-        onConfirm={(reason) => cancellingId && handleCancel(cancellingId, reason)}
+        onConfirm={(reason) =>
+          cancellingId && handleCancel(cancellingId, reason)
+        }
       />
 
       {/* View Review Modal */}

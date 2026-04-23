@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,13 +24,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Search, Star, Trash2, Eye } from "lucide-react"
-import { mockReviews, type Review } from "@/lib/mock-data"
+import { getAllReviewsApi, deleteReviewApi } from "@/lib/api/reviews"
+import { useToast } from "@/hooks/use-toast"
+
+type Review = {
+  id: string
+  guideName: string
+  guideId?: string
+  touristName: string
+  rating: number
+  comment: string
+  date: string
+}
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>(mockReviews)
+  const [reviews, setReviews] = useState<Review[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   const filteredReviews = reviews.filter(review => 
     review.guideName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -38,11 +51,21 @@ export default function ReviewsPage() {
     review.comment.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleDelete = (reviewId: string) => {
-    setReviews(prev => prev.filter(r => r.id !== reviewId))
-    if (selectedReview?.id === reviewId) {
-      setViewDialogOpen(false)
-      setSelectedReview(null)
+  const handleDelete = async (reviewId: string) => {
+    try {
+      setLoading(true)
+      await deleteReviewApi(reviewId)
+      setReviews(prev => prev.filter(r => r.id !== reviewId))
+      if (selectedReview?.id === reviewId) {
+        setViewDialogOpen(false)
+        setSelectedReview(null)
+      }
+      toast({ title: "Review deleted", description: "The review was removed." })
+    } catch (error: any) {
+      console.error("Delete review error", error)
+      toast({ title: "Failed to delete review", description: error?.message || String(error) })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -54,6 +77,32 @@ export default function ReviewsPage() {
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : 0
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const data = await getAllReviewsApi()
+        const formatted = (data || []).map((r: any) => ({
+          id: r._id || r.id || r.reviewId || String(r._id || r.id),
+          guideName: r.guideName || (r.guide && (r.guide.name || r.guide.fullName)) || r.guideId || "Unknown",
+          guideId: r.guideId || (r.guide && r.guide._id) || "",
+          touristName: r.touristName || r.userName || (r.user && (r.user.name || r.user.fullName)) || r.userId || "Unknown",
+          rating: r.rating || r.stars || 0,
+          comment: r.comments || r.comment || r.body || "",
+          date: r.createdAt ? String(r.createdAt).split("T")[0] : r.date || "",
+        }))
+        setReviews(formatted)
+      } catch (error) {
+        console.error("Failed to load reviews", error)
+        toast({ title: "Failed to load reviews", description: String(error) })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [])
 
   const renderStars = (rating: number, size: "sm" | "lg" = "sm") => {
     const sizeClass = size === "lg" ? "w-5 h-5" : "w-4 h-4"

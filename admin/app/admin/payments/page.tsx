@@ -1,52 +1,100 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Search, IndianRupee, CreditCard, Smartphone } from "lucide-react"
-import { mockPayments, type Payment } from "@/lib/mock-data"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  IndianRupee,
+  Clock,
+  Wallet,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
+import { getAdminPaymentsSummaryApi } from "@/lib/api/payments";
 
-const statusColors: Record<string, string> = {
-  Success: "bg-success/10 text-success border-success/20",
-  Pending: "bg-warning/10 text-warning-foreground border-warning/20",
-  Failed: "bg-destructive/10 text-destructive border-destructive/20"
-}
+type Summary = {
+  totalRevenue: number;
+  totalPendingAmount: number;
+  pendingBookingsCount: number;
+  codPendingCount: number;
+  totalBookings: number;
+  completedPaymentsCount: number;
+  recentPayments: Array<{
+    _id: string;
+    amount?: number;
+    amountPaid?: number;
+    paymentMethod?: string;
+    paidAt?: string;
+    createdAt?: string;
+    bookingId?: {
+      touristName?: string;
+      tourType?: string;
+    } | null;
+  }>;
+};
 
 export default function PaymentsPage() {
-  const [payments] = useState<Payment[]>(mockPayments)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = 
-      payment.bookingId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.touristName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = filterStatus === "all" || payment.status === filterStatus
-    return matchesSearch && matchesFilter
-  })
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getAdminPaymentsSummaryApi();
+        if (!cancelled) setSummary(data as Summary);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Failed to load summary");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const totalAmount = payments.reduce((sum, p) => sum + (p.status === 'Success' ? p.amount : 0), 0)
-  const pendingAmount = payments.reduce((sum, p) => sum + (p.status === 'Pending' ? p.amount : 0), 0)
-  const failedCount = payments.filter(p => p.status === 'Failed').length
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[240px] text-muted-foreground gap-2">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Loading payment summary…
+      </div>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="text-destructive text-sm">
+        {error || "No data"}
+      </div>
+    );
+  }
+
+  const lineAmount = (p: Summary["recentPayments"][0]) =>
+    p.amountPaid ?? p.amount ?? 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Page Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Payment Management</h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">View and track all payment transactions.</p>
+        <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
+          Payment Management
+        </h1>
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+          Revenue, pending balances, and recent completed payments.
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
@@ -54,176 +102,165 @@ export default function PaymentsPage() {
                 <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Received</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Total Revenue
+                </p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
-                  <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {totalAmount.toLocaleString()}
+                  ₹{Math.round(summary.totalRevenue).toLocaleString("en-IN")}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/10 shrink-0">
-                <IndianRupee className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Pending Amount</p>
-                <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
-                  <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {pendingAmount.toLocaleString()}
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Pending Payments
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-foreground">
+                  ₹{Math.round(summary.totalPendingAmount).toLocaleString("en-IN")}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {summary.pendingBookingsCount} booking
+                  {summary.pendingBookingsCount !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="border-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
-                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+              <div className="p-2 rounded-lg bg-amber-500/10 shrink-0">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Failed Transactions</p>
-                <p className="text-lg sm:text-xl font-semibold text-foreground">{failedCount}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  COD Pending
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-foreground">
+                  {summary.codPendingCount}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
+                  Completed Payments
+                </p>
+                <p className="text-lg sm:text-xl font-semibold text-foreground">
+                  {summary.completedPaymentsCount}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {summary.totalBookings} total bookings
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="border-border">
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by booking ID or tourist..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11"
-              />
-            </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full h-11">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Success">Success</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payments - Mobile Cards / Desktop Table */}
       <Card className="border-border">
         <CardHeader className="pb-2 sm:pb-4">
-          <CardTitle className="text-sm sm:text-base">All Payments</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">{filteredPayments.length} transactions found</CardDescription>
+          <CardTitle className="text-sm sm:text-base">Recent completed payments</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Last {summary.recentPayments.length} records
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Mobile View - Cards */}
-          <div className="block md:hidden space-y-3">
-            {filteredPayments.map((payment) => (
-              <div key={payment.id} className="p-3 sm:p-4 rounded-lg border border-border bg-card">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{payment.id}</p>
-                    <p className="text-sm font-medium text-foreground">{payment.touristName}</p>
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] shrink-0 ${statusColors[payment.status]}`}>
-                    {payment.status}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Booking:</span>
-                    <span className="text-foreground font-medium">{payment.bookingId}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Amount:</span>
-                    <span className="text-foreground font-medium flex items-center gap-0.5">
-                      <IndianRupee className="w-3 h-3" />
-                      {payment.amount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Method:</span>
-                    <div className="flex items-center gap-1.5">
-                      {payment.method === 'UPI' ? (
-                        <Smartphone className="w-3.5 h-3.5 text-muted-foreground" />
-                      ) : (
-                        <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                      )}
-                      <span className="text-foreground">{payment.method}</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Date:</span>
-                    <span className="text-foreground">{payment.date}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop View - Table */}
-          <div className="hidden md:block overflow-x-auto -mx-6 px-6">
-            <table className="w-full min-w-[700px]">
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Payment ID</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Booking ID</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Tourist</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Amount</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Method</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Date</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Status</th>
+                <tr className="border-b border-border text-left">
+                  <th className="py-2 pr-4 font-medium text-muted-foreground">
+                    Amount
+                  </th>
+                  <th className="py-2 pr-4 font-medium text-muted-foreground">
+                    Method
+                  </th>
+                  <th className="py-2 pr-4 font-medium text-muted-foreground">
+                    Tourist
+                  </th>
+                  <th className="py-2 pr-4 font-medium text-muted-foreground">
+                    Tour
+                  </th>
+                  <th className="py-2 font-medium text-muted-foreground">Date</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="border-b border-border last:border-0">
-                    <td className="py-3 text-sm font-medium text-foreground">{payment.id}</td>
-                    <td className="py-3 text-sm text-foreground">{payment.bookingId}</td>
-                    <td className="py-3 text-sm text-foreground">{payment.touristName}</td>
-                    <td className="py-3 text-sm font-medium text-foreground">
-                      <span className="flex items-center gap-0.5">
-                        <IndianRupee className="w-3 h-3" />
-                        {payment.amount.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        {payment.method === 'UPI' ? (
-                          <Smartphone className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <CreditCard className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="text-sm text-foreground">{payment.method}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-sm text-muted-foreground">{payment.date}</td>
-                    <td className="py-3">
-                      <Badge variant="outline" className={`text-xs ${statusColors[payment.status]}`}>
-                        {payment.status}
-                      </Badge>
+                {summary.recentPayments.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="py-6 text-center text-muted-foreground"
+                    >
+                      No completed payments yet
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  summary.recentPayments.map((p) => (
+                    <tr key={p._id} className="border-b border-border/60">
+                      <td className="py-2 pr-4 font-medium">
+                        ₹{lineAmount(p).toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <Badge variant="outline">{p.paymentMethod ?? "—"}</Badge>
+                      </td>
+                      <td className="py-2 pr-4">
+                        {p.bookingId?.touristName ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4 text-muted-foreground">
+                        {p.bookingId?.tourType ?? "—"}
+                      </td>
+                      <td className="py-2 text-muted-foreground">
+                        {p.paidAt
+                          ? new Date(p.paidAt).toLocaleString()
+                          : p.createdAt
+                            ? new Date(p.createdAt).toLocaleString()
+                            : "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {summary.recentPayments.map((p) => (
+              <div
+                key={p._id}
+                className="p-3 rounded-lg border border-border flex justify-between gap-2"
+              >
+                <div>
+                  <p className="font-semibold">
+                    ₹{lineAmount(p).toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {p.bookingId?.touristName}
+                  </p>
+                </div>
+                <Badge variant="outline">{p.paymentMethod}</Badge>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

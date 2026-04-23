@@ -230,7 +230,11 @@ export class NotificationService {
 
       return await this.sendNotificationToUser(payment.userId._id.toString(), {
         title: "Payment Successful!",
-        body: `Payment of ₹${(payment.amount || 0).toFixed(2)} has been processed successfully.`,
+        body: `Payment of ₹${(
+          (payment as any).amountPaid ??
+          payment.amount ??
+          0
+        ).toFixed(2)} has been processed successfully.`,
         data: {
           paymentId: paymentId.toString(),
           bookingId: payment.bookingId?.toString() || "",

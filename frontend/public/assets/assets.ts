@@ -9,6 +9,11 @@ import img_04 from "./tourist/img_04.jpg";
 import img_05 from "./tourist/img_05.jpg";
 import img_06 from "./tourist/img_06.webp";
 
+import p_01 from "./partners/p_01.png";
+import p_02 from "./partners/p_02.png";
+import p_03 from "./partners/p_03.png";
+import p_04 from "./partners/p_04.jpeg";
+
 export const assets = {
   bgHero,
   guideImage,
@@ -20,4 +25,9 @@ export const assets = {
   img_04,
   img_05,
   img_06,
+
+  p_01,
+  p_02,
+  p_03,
+  p_04,
 };

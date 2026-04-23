@@ -124,7 +124,7 @@ function BookingConfirmationContent() {
                   <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-slate-100 flex-shrink-0">
                     <Image
                       src={guide?.avatar || assets.guideImage}
-                      alt={guide?.name}
+                      alt={guide?.name || "Guide Image"}
                       fill
                       className="object-cover"
                     />

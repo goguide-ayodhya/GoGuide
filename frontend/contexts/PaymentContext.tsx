@@ -6,6 +6,7 @@ import {
   getGuidePaymentsApi,
   getMyPaymentsApi,
   getPaymentStatsApi,
+  type ProcessPaymentPayload,
 } from "@/lib/api/payments";
 
 export interface Payment {
@@ -35,7 +36,10 @@ interface PaymentContextType {
 
   createPayment: (bookingId: string) => Promise<any>;
   skipPayment: (bookingId: string) => Promise<any>;
-  processPayment: (paymentId: string) => Promise<any>;
+  processPayment: (
+    paymentId: string,
+    payload?: ProcessPaymentPayload,
+  ) => Promise<any>;
 }
 
 // const PaymentContext = createContext<PaymentContextType | null>(null);
@@ -103,9 +107,19 @@ export const PaymentProvider = ({
     }
   };
 
-  const processPayment = async (paymentId: string) => {
+  const processPayment = async (
+    paymentId: string,
+    payload?: ProcessPaymentPayload,
+  ) => {
     try {
-      const data = await processPaymentApi(paymentId);
+      const data = await processPaymentApi(
+        paymentId,
+        payload ?? {
+          status: "COMPLETED",
+          paymentMethod: "CARD",
+          transactionId: "txn_" + Date.now(),
+        },
+      );
 
       setPayments((prev) =>
         prev.map((p) =>
@@ -115,6 +129,7 @@ export const PaymentProvider = ({
       return data;
     } catch (error) {
       console.log("Error Processing Payment", error);
+      throw error;
     }
   };
 

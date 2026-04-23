@@ -1,5 +1,7 @@
 import { Schema, model, Document, Types } from "mongoose";
 
+export type PaymentType = "FULL" | "PARTIAL" | "COD" | "REMAINING";
+
 export interface IBooking extends Document {
   guideId?: Types.ObjectId;
   userId: Types.ObjectId;
@@ -23,18 +25,38 @@ export interface IBooking extends Document {
   dropoffLocation: string;
   totalPrice: number;
 
+  /** Quoted price before any partial-payment discount (usually equals totalPrice at creation). */
+  originalPrice?: number;
+  /** 5% discount amount when partial plan applies; 0 for COD or full-price upfront. */
+  discount: number;
+  /** Amount all payments are based on (after discount when applicable). */
+  finalPrice?: number;
+
+  paidAmount: number;
+  remainingAmount?: number;
+
+  /** Guide share (70% of finalPrice) once payment is fully collected; GUIDE bookings only. */
+  guideEarning: number;
+  /** Platform share (30% of finalPrice) once payment is fully collected. */
+  adminCommission: number;
+
+  /** Set when the tourist selects how to pay (after acceptance). */
+  paymentType?: PaymentType;
+  /** True once user chose the partial (30%) plan or switched from partial to full-pay while keeping the discount. */
+  partialDiscountApplied: boolean;
+
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
 
   bookingType: "GUIDE" | "DRIVER" | "TOKEN";
 
-  paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
+  paymentStatus: "PENDING" | "PARTIAL" | "COMPLETED" | "FAILED" | "REFUNDED";
   notes?: string;
   cancellationReason?: string;
   cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER";
   cancelledAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  paymentMethod: string;
+  paymentMethod?: string;
 }
 
 const BookingSchema = new Schema<IBooking>(
@@ -42,7 +64,7 @@ const BookingSchema = new Schema<IBooking>(
     guideId: {
       type: Schema.Types.ObjectId,
       ref: "Guide",
-      required: function() {
+      required: function () {
         return this.bookingType === "GUIDE";
       },
     },
@@ -109,6 +131,39 @@ const BookingSchema = new Schema<IBooking>(
       type: Number,
       required: true,
     },
+    originalPrice: {
+      type: Number,
+    },
+    discount: {
+      type: Number,
+      default: 0,
+    },
+    finalPrice: {
+      type: Number,
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    remainingAmount: {
+      type: Number,
+    },
+    guideEarning: {
+      type: Number,
+      default: 0,
+    },
+    adminCommission: {
+      type: Number,
+      default: 0,
+    },
+    paymentType: {
+      type: String,
+      enum: ["FULL", "PARTIAL", "COD", "REMAINING"],
+    },
+    partialDiscountApplied: {
+      type: Boolean,
+      default: false,
+    },
     status: {
       type: String,
       enum: ["PENDING", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"],
@@ -116,12 +171,12 @@ const BookingSchema = new Schema<IBooking>(
     },
     paymentStatus: {
       type: String,
-      enum: ["PENDING", "COMPLETED", "FAILED"],
+      enum: ["PENDING", "PARTIAL", "COMPLETED", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
     paymentMethod: {
       type: String,
-      enum: ["UPI", "COD", "CARD"],
+      enum: ["UPI", "COD", "CARD", "RAZORPAY"],
     },
     notes: String,
     cancellationReason: String,
@@ -133,5 +188,20 @@ const BookingSchema = new Schema<IBooking>(
   },
   { timestamps: true },
 );
+
+BookingSchema.pre("validate", function (next) {
+  const b = this as IBooking;
+  if (b.originalPrice == null && b.totalPrice != null) {
+    b.originalPrice = b.totalPrice;
+  }
+  if (b.finalPrice == null && b.totalPrice != null) {
+    b.finalPrice = b.totalPrice;
+  }
+  const paid = b.paidAmount ?? 0;
+  if (b.remainingAmount == null && b.finalPrice != null) {
+    b.remainingAmount = Math.round((b.finalPrice - paid) * 100) / 100;
+  }
+  next();
+});
 
 export const Booking = model<IBooking>("Booking", BookingSchema);

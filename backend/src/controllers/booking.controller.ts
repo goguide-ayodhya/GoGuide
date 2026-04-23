@@ -147,12 +147,16 @@ export class BookingController {
         throw new Unauthorized("User not found");
       }
 
-      const cancelledBy = user.role as "GUIDE" | "TOURIST" | "DRIVER";
+      const cancelledBy =
+        user.role === "GUIDE" || user.role === "TOURIST" || user.role === "DRIVER"
+          ? (user.role as "GUIDE" | "TOURIST" | "DRIVER")
+          : undefined;
 
       const booking = await bookingService.cancelBooking(
         bookingId,
         req.body.reason,
         cancelledBy,
+        userId,
       );
 
       res.status(200).json({

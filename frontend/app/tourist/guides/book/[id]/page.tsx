@@ -135,7 +135,8 @@ export default function GuideBookingPage() {
                           {guide.name}
                         </h1>
                       </div>
-                      <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+
+                      <div className="rounded-full border border-slate-200 bg-green-500 px-3 py-1 text-xs text-white font-semibold uppercase tracking-[0.18em] text-slate-700">
                         {isGuideAvailable ? "Available" : "Unavailable"}
                       </div>
                     </div>
@@ -367,8 +368,25 @@ export default function GuideBookingPage() {
                 {guide.rating?.toFixed(1) ?? "0.0"}
               </div>
             </div>
-            <div className="text-slate-600">
-              Reviews are being displayed here once available.
+            <div className="text-slate-600">{guide.totalReviews} reviews</div>
+            <div className="mt-6 space-y-6">
+              {guide.recentReviews && guide.recentReviews.length > 0 ? (
+                guide.recentReviews.map((review, index) => (
+                  <div key={index} className="border-b border-slate-200 pb-6">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h4 className="font-semibold text-slate-950">
+                          {review.reviewer}
+                        </h4>
+                        <p className="text-sm text-slate-500">{review.date}</p>
+                      </div>
+                    </div>
+                    <p className="mt-4 text-slate-600">{review.comments}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-500">No reviews yet.</p>
+              )}
             </div>
           </Card>
         </div>

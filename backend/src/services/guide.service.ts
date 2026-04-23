@@ -7,10 +7,11 @@ export class GuideService {
   async getAllGuides(filters?: { speciality?: string; minRating?: number }) {
     const query: any = {
       verificationStatus: "VERIFIED",
+      isAvailable: true,
     };
 
     if (filters?.speciality) {
-      query.speciality = { $regex: filters.speciality, $options: "i" };
+      query.specialities = { $in: [new RegExp(filters.speciality, "i")] };
     }
 
     if (filters?.minRating) {
@@ -80,19 +81,19 @@ export class GuideService {
     return guide;
   }
 
-  async setOnlineStatus(userId: string, isOnline: boolean) {
-    const guide = await Guide.findOneAndUpdate(
-      { userId },
-      { isOnline },
-      { new: true },
-    );
+  // async setOnlineStatus(userId: string, isOnline: boolean) {
+  //   const guide = await Guide.findOneAndUpdate(
+  //     { userId },
+  //     { isOnline },
+  //     { new: true },
+  //   );
 
-    if (!guide) {
-      throw new NotFound("Guide not found");
-    }
+  //   if (!guide) {
+  //     throw new NotFound("Guide not found");
+  //   }
 
-    return guide;
-  }
+  //   return guide;
+  // }
 
   async updateAverageRating(guideId: string) {
     const reviews = await Review.find({ guideId });

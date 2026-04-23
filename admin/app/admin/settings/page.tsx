@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Save, Settings, Bell, Shield } from "lucide-react"
+import { getProfile } from "@/lib/api/settings"
 import { defaultSettings } from "@/lib/mock-data"
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState(defaultSettings)
+  const [profile, setProfile] = useState<{ email?: string; lastLogin?: string } | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = () => {
@@ -20,6 +22,21 @@ export default function SettingsPage() {
       setIsSaving(false)
     }, 500)
   }
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const p = await getProfile()
+        if (!cancelled) setProfile({ email: p?.email, lastLogin: p?.lastLogin })
+      } catch (e) {
+        // ignore - keep defaults
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -155,11 +172,11 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="p-3 sm:p-4 rounded-lg bg-muted">
               <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Email</p>
-              <p className="text-xs sm:text-sm font-medium text-foreground mt-1 truncate">admin@goguide.com</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground mt-1 truncate">{profile?.email ?? "admin@goguide.com"}</p>
             </div>
             <div className="p-3 sm:p-4 rounded-lg bg-muted">
               <p className="text-[10px] sm:text-xs text-muted-foreground">Last Login</p>
-              <p className="text-xs sm:text-sm font-medium text-foreground mt-1">March 12, 2024 at 10:30 AM</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground mt-1">{profile?.lastLogin ?? "March 12, 2024 at 10:30 AM"}</p>
             </div>
           </div>
         </CardContent>

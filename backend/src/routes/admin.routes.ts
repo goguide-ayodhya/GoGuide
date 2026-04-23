@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { adminController } from "../controllers/admin.controller";
+import { payoutController } from "../controllers/payout.controller";
 import { authenticate } from "../middleware/auth";
 import { authorize } from "../middleware/auth";
 
@@ -22,5 +23,18 @@ router.patch("/users/:id/suspend", adminController.suspendUser);
 
 // Delete (soft delete)
 router.delete("/users/:id", adminController.deleteUser);
+
+// Guide payouts
+router.post("/payout/:guideId", (req, res, next) => {
+  payoutController.createByAdmin(req, res).catch(next);
+});
+
+router.get("/payouts", (req, res, next) => {
+  payoutController.listAllAdmin(req, res).catch(next);
+});
+
+router.get("/guides/payout-overview", (req, res, next) => {
+  payoutController.guidesOverview(req, res).catch(next);
+});
 
 export default router;

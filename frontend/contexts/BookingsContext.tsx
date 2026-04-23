@@ -48,7 +48,20 @@ export interface Booking {
   totalPrice: number;
   totalAmount?: number;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
-  paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
+  paymentStatus:
+    | "PENDING"
+    | "COMPLETED"
+    | "FAILED"
+    | "PARTIAL"
+    | "REFUNDED";
+  paymentType?: "FULL" | "PARTIAL" | "COD";
+  paidAmount?: number;
+  remainingAmount?: number;
+  discount?: number;
+  finalPrice?: number;
+  originalPrice?: number;
+  guideEarning?: number;
+  adminCommission?: number;
   createdAt: string;
   notes?: string;
   paymentMethod?: string;
@@ -66,6 +79,8 @@ export interface BookingReview {
 interface BookingContextType {
   bookings: Booking[];
   loading: boolean;
+  error: string | null;
+  refreshBookings: () => Promise<void>;
   updateBookingStatus: (bookingId: string, status: BookingStatus) => void;
   cancelBooking: (bookingId: string, reason: string) => void;
   setPaymentMethod: (method: "upi" | "card") => void;
@@ -81,6 +96,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   // const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentBooking, setCurrentBooking] = useState<Booking | null>(() => {
     if (typeof window === "undefined") return null;
     const stored = localStorage.getItem("currentBooking");
@@ -89,8 +105,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   const { user, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    const fetchBookings = async () => {
+  const refreshBookings = async () => {
       console.log("Fetching bookings for user:", user);
       console.log("User role:", user?.role);
       console.log("Auth loading:", authLoading);
@@ -103,11 +118,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       if (!user) {
         console.log("No user, setting empty bookings");
         setBookings([]);
+        setError(null);
         setLoading(false);
         return;
       }
 
       try {
+        setError(null);
         const data =
           user?.role === "GUIDE"
             ? await getGuideBookings()
@@ -133,6 +150,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           totalPrice: b.totalPrice,
           status: b.status,
           paymentStatus: b.paymentStatus,
+          paymentType: b.paymentType,
+          paidAmount: b.paidAmount,
+          remainingAmount: b.remainingAmount,
+          discount: b.discount,
+          finalPrice: b.finalPrice,
+          originalPrice: b.originalPrice,
+          guideEarning: b.guideEarning,
+          adminCommission: b.adminCommission,
           createdAt: b.createdAt,
           notes: b.notes,
           paymentMethod: b.paymentMethod,
@@ -144,9 +169,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setBookings(formattedData);
       } catch (error) {
         console.log("Error fetching bookings", error);
+        setError(error instanceof Error ? error.message : "Failed to fetch bookings");
       } finally {
         setLoading(false);
       }
+    };
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      await refreshBookings();
     };
 
     fetchBookings();
@@ -166,17 +197,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       await cancelBookingApi(bookingId, "Cancelled");
     }
 
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status } : b)),
-    );
+    await refreshBookings();
   };
 
   const cancelBooking = async (bookingId: string, reason: string) => {
-    await cancelBookingApi(bookingId, reason);
-
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b)),
-    );
+    return await cancelBookingApi(bookingId, reason);
   };
 
   const setPaymentMethod = (method: "upi" | "card") => {
@@ -195,6 +220,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       value={{
         bookings,
         loading,
+        error,
+        refreshBookings,
         updateBookingStatus,
         cancelBooking,
         setPaymentMethod,

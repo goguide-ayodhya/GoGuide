@@ -6,7 +6,7 @@ import {
   getGuideProfile,
   getGuideById,
   setAvailabilityApi,
-  setOnlineStatusApi,
+  // setOnlineStatusApi,
   updateGuide,
 } from "@/lib/api/guides";
 
@@ -23,10 +23,9 @@ export type Guide = {
   specialities?: string[];
   price: number;
   isAvailable: boolean;
-  isOnline: boolean;
+  // isOnline: boolean;
   certification?: string;
   yearsOfExperience?: number;
-  hourlyRate: number;
   totalReviews?: number;
   recentReviews?: {
     rating: number;
@@ -44,7 +43,7 @@ type GuideContextType = {
   loading: boolean;
   updateGuideData: (id: string, data: any) => Promise<any>;
   setAvailability: (id: string, status: boolean) => Promise<any>;
-  setOnlineStatus: (id: string, status: boolean) => Promise<any>;
+  // setOnlineStatus: (id: string, status: boolean) => Promise<any>;
 };
 
 const GuideContext = createContext<GuideContextType | undefined>(undefined);
@@ -69,17 +68,15 @@ export const GuideProvider = ({ children }: any) => {
     specialities: guide.speciality
       ? [guide.speciality]
       : Array.isArray(guide.specialities)
-      ? guide.specialities
-      : [],
-    price: guide.hourlyRate || guide.price || 0,
+        ? guide.specialities
+        : [],
+    price: guide.price || 0,
     isAvailable: guide.isAvailable ?? false,
-    isOnline: guide.isOnline ?? false,
+    // isOnline: guide.isOnline ?? false,
     certification: guide.certification || "",
     yearsOfExperience: guide.yearsOfExperience || guide.yearsOfExperience || 0,
-    hourlyRate: guide.hourlyRate || guide.price || 0,
     totalReviews: guide.totalReviews || 0,
-    verificationStatus:
-      guide.verificationStatus || "PENDING", // or fallback
+    verificationStatus: guide.verificationStatus || "PENDING", // or fallback
   });
 
   useEffect(() => {
@@ -167,12 +164,11 @@ export const GuideProvider = ({ children }: any) => {
       rating: updated.averageRating,
       languages: updated.languages || [],
       specialities: updated.speciality ? [updated.speciality] : [],
-      price: updated.hourlyRate,
+      price: updated.price,
       isAvailable: updated.isAvailable,
       isOnline: updated.isOnline,
       bio: updated.bio,
       certification: updated.certification,
-      hourlyRate: updated.hourlyRate,
       totalReviews: updated.totalReviews,
       verificationStatus: updated.verificationStatus as
         | "PENDING"
@@ -198,17 +194,17 @@ export const GuideProvider = ({ children }: any) => {
     return updated;
   };
 
-  const setOnlineStatus = async (id: string, status: boolean) => {
-    const updated = await setOnlineStatusApi(status);
-    setGuides((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, isOnline: status } : g)),
-    );
+  // const setOnlineStatus = async (id: string, status: boolean) => {
+  //   const updated = await setOnlineStatusApi(status);
+  //   setGuides((prev) =>
+  //     prev.map((g) => (g.id === id ? { ...g, isOnline: status } : g)),
+  //   );
 
-    setMyGuide((prev) =>
-      prev && prev.id === id ? { ...prev, isOnline: status } : prev,
-    );
-    return updated;
-  };
+  //   setMyGuide((prev) =>
+  //     prev && prev.id === id ? { ...prev, isOnline: status } : prev,
+  //   );
+  //   return updated;
+  // };
 
   return (
     <GuideContext.Provider
@@ -220,7 +216,7 @@ export const GuideProvider = ({ children }: any) => {
         // getGuide,
         updateGuideData,
         setAvailability,
-        setOnlineStatus,
+        // setOnlineStatus,
       }}
     >
       {children}

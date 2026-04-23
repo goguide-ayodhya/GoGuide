@@ -18,8 +18,8 @@ export interface User {
   profileImage?: string;
   phone: string;
   hourlyRate?: number;
-  speciality?: string;
-  certification?: string;
+  specialities?: string[];
+  certificates?: string[];
   yearsOfExperience?: number;
   languages?: string[];
   averageRating?: number;
@@ -34,7 +34,7 @@ export type SignupData = {
   role: string;
   phone: string;
   avatar?: File;
-  speciality?: string;
+  specialities?: string[];
   hourlyRate?: string;
   experience?: string;
   languages?: string[];

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/api/settings";
@@ -16,9 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { assets } from "@/public/assets/assets";
 import Link from "next/dist/client/link";
-import { Upload, Save, Lock } from "lucide-react";
+import { Save, Lock } from "lucide-react";
 import { Header } from "@/components/common/Header";
 
 export default function ProfilePage() {
@@ -65,32 +63,6 @@ export default function ProfilePage() {
       ...prev,
       [name]: value,
     }));
-  };
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      return null;
-    }
-    setSelectedImage(file);
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewImage(previewUrl);
-  };
-
-  const handleSaveAvatar = async () => {
-    if (!user || !selectedImage) return;
-
-    // For now, we'll just show a toast since avatar update might need backend implementation
-    toast({
-      title: "Feature Coming Soon",
-      description: "Profile picture upload will be available soon.",
-    });
-
-    setSelectedImage(null);
-    setPreviewImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const handleSave = async () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Booking } from "@/contexts/BookingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,12 +24,20 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { BookingStatus } from "@/contexts/BookingsContext";
+import {
+  formatPaymentAmounts,
+  getPaymentStatusLabel,
+} from "@/lib/payment-status";
 
 interface BookingDetailsModalProps {
   booking: Booking | null;
   isOpen: boolean;
   onClose: () => void;
   onStatusChange?: (bookingId: string, newStatus: BookingStatus) => void;
+  /** Guide/driver: after cash is collected for COD */
+  onCashCollected?: (bookingId: string) => Promise<void>;
+  /** Retry payment for failed payments */
+  onRetryPayment?: (bookingId: string) => Promise<void>;
 }
 
 export function BookingDetailsModal({
@@ -36,8 +45,13 @@ export function BookingDetailsModal({
   isOpen,
   onClose,
   onStatusChange,
+  onCashCollected,
+  onRetryPayment,
 }: BookingDetailsModalProps) {
   if (!booking) return null;
+
+  const [codLoading, setCodLoading] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
 
   const handleStatusChange = (newStatus: BookingStatus) => {
     if (onStatusChange) {
@@ -62,11 +76,45 @@ export function BookingDetailsModal({
     }
   };
 
-  const getPaymentStatusIcon = (status: string) => {
-    if (status.toUpperCase() === "COMPLETED") {
+  const getPaymentStatusIcon = (label: string) => {
+    if (label === "COMPLETED") {
       return <CheckCircle size={18} className="text-green-600" />;
     }
     return <AlertCircle size={18} className="text-amber-600" />;
+  };
+
+  const paymentLabel = getPaymentStatusLabel(booking);
+  const amounts = formatPaymentAmounts(booking);
+
+  const handleMarkCashCollected = async () => {
+    if (!onCashCollected) return;
+    setCodLoading(true);
+    try {
+      await onCashCollected(booking.id);
+    } catch (e) {
+      console.error(e);
+      window.alert(
+        e instanceof Error ? e.message : "Could not mark cash as collected",
+      );
+    } finally {
+      setCodLoading(false);
+    }
+  };
+
+  const handleRetryPayment = async () => {
+    if (!onRetryPayment) return;
+    setRetryLoading(true);
+    try {
+      await onRetryPayment(booking.id);
+      window.alert("Payment retry initiated. Please complete the payment.");
+    } catch (e) {
+      console.error(e);
+      window.alert(
+        e instanceof Error ? e.message : "Could not retry payment",
+      );
+    } finally {
+      setRetryLoading(false);
+    }
   };
 
   return (
@@ -98,12 +146,30 @@ export function BookingDetailsModal({
                 Payment Status
               </p>
               <div className="flex items-center gap-2 mt-2">
-                {getPaymentStatusIcon(booking.paymentStatus)}
-                <span className="text-sm font-medium capitalize">
-                  {booking.paymentStatus}
-                </span>
+                {getPaymentStatusIcon(paymentLabel)}
+                <span className="text-sm font-medium">{paymentLabel}</span>
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-lg border border-border bg-muted/30 text-sm">
+            <div>
+              <p className="text-muted-foreground">Paid</p>
+              <p className="font-semibold text-foreground">
+                ₹{amounts.paid.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Remaining</p>
+              <p className="font-semibold text-foreground">
+                ₹{amounts.remaining.toFixed(2)}
+              </p>
+            </div>
+            {amounts.discountSaved != null && (
+              <div className="sm:col-span-2 text-green-600 dark:text-green-400">
+                Discount saved: ₹{amounts.discountSaved.toFixed(2)}
+              </div>
+            )}
           </div>
 
           {/* Tourist Information */}
@@ -206,7 +272,7 @@ export function BookingDetailsModal({
                   <div className="flex items-center gap-2 mt-1">
                     <DollarSign size={18} className="text-green-600" />
                     <p className="text-foreground font-semibold">
-                      ${booking.totalPrice}
+                      ₹{booking.finalPrice ?? booking.totalPrice}
                     </p>
                   </div>
                 </div>
@@ -272,20 +338,44 @@ export function BookingDetailsModal({
           )}
 
           {booking.status === "ACCEPTED" && (
-            <div className="flex gap-3">
-              <Button
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                onClick={() => handleStatusChange("COMPLETED")}
-              >
-                Mark as Completed
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleStatusChange("CANCELLED")}
-              >
-                Cancel Booking
-              </Button>
+            <div className="flex flex-col gap-3">
+              {booking.paymentMethod === "COD" &&
+                booking.paymentStatus !== "COMPLETED" &&
+                onCashCollected && (
+                  <Button
+                    className="w-full bg-amber-600 hover:bg-amber-700"
+                    disabled={codLoading}
+                    onClick={handleMarkCashCollected}
+                  >
+                    {codLoading ? "Updating…" : "Mark as Cash Collected"}
+                  </Button>
+                )}
+              {booking.paymentStatus === "FAILED" &&
+                booking.paymentType !== "COD" &&
+                onRetryPayment && (
+                  <Button
+                    className="w-full bg-red-600 hover:bg-red-700"
+                    disabled={retryLoading}
+                    onClick={handleRetryPayment}
+                  >
+                    {retryLoading ? "Processing…" : "Retry Payment"}
+                  </Button>
+                )}
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => handleStatusChange("COMPLETED")}
+                >
+                  Mark as Completed
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleStatusChange("CANCELLED")}
+                >
+                  Cancel Booking
+                </Button>
+              </div>
             </div>
           )}
 

@@ -8,6 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { getUsersApi, blockUserApi, activateUserApi, suspendUserApi, deleteUserApi } from "@/lib/api/admin"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 type AdminRole = "GUIDE" | "DRIVER" | "TOURIST" | "ADMIN"
 
@@ -26,6 +37,14 @@ const roleOptions: Array<{ key: "all" | AdminRole; label: string }> = [
   { key: "GUIDE", label: "Guides" },
   { key: "DRIVER", label: "Drivers" },
   { key: "TOURIST", label: "Tourists" },
+]
+
+const statusOptions = [
+  { key: "all", label: "All Statuses" },
+  { key: "ACTIVE", label: "Active" },
+  { key: "BLOCKED", label: "Blocked" },
+  { key: "SUSPENDED", label: "Suspended" },
+  { key: "DELETED", label: "Deleted" },
 ]
 
 const statusLabels: Record<string, string> = {
@@ -62,6 +81,7 @@ export default function GuidesPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<"all" | AdminRole>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
 
   const fetchUsers = async (role: "all" | AdminRole) => {
     setLoading(true)
@@ -105,6 +125,8 @@ export default function GuidesPage() {
       user.role.toLowerCase().includes(query)
     )
   })
+
+  const filteredByStatus = filteredUsers.filter((u) => statusFilter === "all" || u.status === statusFilter)
 
   const handleUserAction = async (
     action: "activate" | "block" | "suspend" | "delete",
@@ -174,6 +196,18 @@ export default function GuidesPage() {
                   {option.label}
                 </Button>
               ))}
+              <div className="ml-2 flex flex-wrap gap-2">
+                {statusOptions.map((s) => (
+                  <Button
+                    key={s.key}
+                    variant={statusFilter === s.key ? "default" : "outline"}
+                    className="h-10 text-xs sm:text-sm min-w-[100px]"
+                    onClick={() => setStatusFilter(s.key)}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -197,13 +231,13 @@ export default function GuidesPage() {
         </div>
       ) : (
         <Card className="border-border">
-          <CardHeader className="pb-2 sm:pb-4">
+            <CardHeader className="pb-2 sm:pb-4">
             <CardTitle className="text-sm sm:text-base">All Users</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">{filteredUsers.length} users found</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">{filteredByStatus.length} users found</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="block lg:hidden space-y-3">
-              {filteredUsers.map((user) => (
+              {filteredByStatus.map((user) => (
                 <div key={user.id} className="p-3 sm:p-4 rounded-lg border border-border bg-card">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -234,43 +268,81 @@ export default function GuidesPage() {
                   <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-border">
                     {getStatusBadge(user.status)}
                     {user.status !== "ACTIVE" && (
-                      <Button
-                        variant="outline"
-                        className="h-9 py-0 px-2 text-[10px]"
-                        onClick={() => handleUserAction("activate", user.id)}
-                        disabled={actionLoading === user.id}
-                      >
-                        Activate
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="h-9 py-0 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                            Activate
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Activate User</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to activate this user?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleUserAction("activate", user.id)}>Activate</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                     {user.status !== "BLOCKED" && (
-                      <Button
-                        variant="outline"
-                        className="h-9 py-0 px-2 text-[10px]"
-                        onClick={() => handleUserAction("block", user.id)}
-                        disabled={actionLoading === user.id}
-                      >
-                        Block
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="h-9 py-0 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                            Block
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Block User</AlertDialogTitle>
+                            <AlertDialogDescription>Blocking will prevent the user from logging in. Continue?</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleUserAction("block", user.id)}>Block</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                     {user.status !== "SUSPENDED" && (
-                      <Button
-                        variant="outline"
-                        className="h-9 py-0 px-2 text-[10px]"
-                        onClick={() => handleUserAction("suspend", user.id)}
-                        disabled={actionLoading === user.id}
-                      >
-                        Suspend
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="h-9 py-0 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                            Suspend
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Suspend User</AlertDialogTitle>
+                            <AlertDialogDescription>Suspending will restrict account actions. Continue?</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleUserAction("suspend", user.id)}>Suspend</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
-                    <Button
-                      variant="outline"
-                      className="h-9 py-0 px-2 text-[10px]"
-                      onClick={() => handleUserAction("delete", user.id)}
-                      disabled={actionLoading === user.id}
-                    >
-                      Delete
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="h-9 py-0 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete User</AlertDialogTitle>
+                          <AlertDialogDescription>This action will permanently delete the user. Continue?</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleUserAction("delete", user.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               ))}
@@ -290,7 +362,7 @@ export default function GuidesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredUsers.map((user) => (
+                  {filteredByStatus.map((user) => (
                     <tr key={user.id} className="border-b border-border last:border-0">
                       <td className="py-3 text-sm font-medium text-foreground">{user.id}</td>
                       <td className="py-3 text-sm text-foreground">{user.name}</td>
@@ -300,43 +372,71 @@ export default function GuidesPage() {
                       <td className="py-3 text-sm text-foreground">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "-"}</td>
                       <td className="py-3 space-x-1">
                         {user.status !== "ACTIVE" && (
-                          <Button
-                            variant="outline"
-                            className="h-8 px-2 text-[10px]"
-                            onClick={() => handleUserAction("activate", user.id)}
-                            disabled={actionLoading === user.id}
-                          >
-                            Activate
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>Activate</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Activate User</AlertDialogTitle>
+                                <AlertDialogDescription>Are you sure you want to activate this user?</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleUserAction("activate", user.id)}>Activate</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                         {user.status !== "BLOCKED" && (
-                          <Button
-                            variant="outline"
-                            className="h-8 px-2 text-[10px]"
-                            onClick={() => handleUserAction("block", user.id)}
-                            disabled={actionLoading === user.id}
-                          >
-                            Block
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>Block</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Block User</AlertDialogTitle>
+                                <AlertDialogDescription>Blocking will prevent the user from logging in. Continue?</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleUserAction("block", user.id)}>Block</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                         {user.status !== "SUSPENDED" && (
-                          <Button
-                            variant="outline"
-                            className="h-8 px-2 text-[10px]"
-                            onClick={() => handleUserAction("suspend", user.id)}
-                            disabled={actionLoading === user.id}
-                          >
-                            Suspend
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>Suspend</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Suspend User</AlertDialogTitle>
+                                <AlertDialogDescription>Suspending will restrict account actions. Continue?</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleUserAction("suspend", user.id)}>Suspend</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
-                        <Button
-                          variant="outline"
-                          className="h-8 px-2 text-[10px]"
-                          onClick={() => handleUserAction("delete", user.id)}
-                          disabled={actionLoading === user.id}
-                        >
-                          Delete
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>Delete</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>This action will permanently delete the user. Continue?</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleUserAction("delete", user.id)}>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </td>
                     </tr>
                   ))}

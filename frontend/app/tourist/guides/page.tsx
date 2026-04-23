@@ -118,7 +118,7 @@ export default function GuidesPage() {
 
       <div className="px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl space-y-8">
-          <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-slate-100 p-8 shadow-xl shadow-orange-100/40 ring-1 ring-slate-200">
+          {/* <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-orange-50 via-white to-slate-100 p-8 shadow-xl shadow-orange-100/40 ring-1 ring-slate-200">
             <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr] lg:items-center">
               <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-orange-700">
@@ -130,7 +130,7 @@ export default function GuidesPage() {
                 </h1>
               </div>
             </div>
-          </section>
+          </section> */}
 
           <section className="w-full ">
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/20">
@@ -167,18 +167,32 @@ export default function GuidesPage() {
                         setSortBy(value as SortOption)
                       }
                     >
-                      <SelectTrigger className="rounded-3xl border border-slate-200 bg-slate-50">
+                      <SelectTrigger className="rounded-3xl font-medium text-slate-700 border border-slate-200 bg-slate-50">
                         <SelectValue placeholder="Highest rating" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="rating">Highest rating</SelectItem>
-                        <SelectItem value="price-low">
+                        <SelectItem
+                          className="font-medium text-slate-700"
+                          value="rating"
+                        >
+                          Highest rating
+                        </SelectItem>
+                        <SelectItem
+                          className="font-medium text-slate-700"
+                          value="price-low"
+                        >
                           Price: low to high
                         </SelectItem>
-                        <SelectItem value="price-high">
+                        <SelectItem
+                          className="font-medium text-slate-700"
+                          value="price-high"
+                        >
                           Price: high to low
                         </SelectItem>
-                        <SelectItem value="experience">
+                        <SelectItem
+                          className="font-medium text-slate-700"
+                          value="experience"
+                        >
                           Most experience
                         </SelectItem>
                       </SelectContent>

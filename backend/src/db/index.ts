@@ -190,7 +190,7 @@ const initializeDatabase = (): Database => {
       languages: ["English", "Hindi"],
       specializations: ["Historical Tours", "Cultural Tours"],
       experience: Math.floor(Math.random() * 10) + 1,
-      hourlyRate: Math.floor(Math.random() * 500) + 500,
+      price: Math.floor(Math.random() * 500) + 500,
       rating: guide.rating,
       totalReviews: Math.floor(guide.bookings * 0.7),
       totalBookings: guide.bookings,

@@ -4,7 +4,7 @@ import { manrope } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ayodhya Tourism | Book Cabs, Tours & Guides",
+  title: "GoGuide | Ayodhya",
   description:
     "Discover Ayodhya with ease. Book cabs, tour packages, passes, and local guides. Experience the sacred city seamlessly.",
   icons: {

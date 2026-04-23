@@ -138,3 +138,29 @@ export const getGuideEarnings = async () => {
 
   return handleRes(res);
 };
+
+export const getAdminPaymentsSummaryApi = async () => {
+  const res = await fetch(`${base_url}payments/admin/payments/summary`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Admin Revenue - total
+export const getAdminTotalRevenueApi = async () => {
+  const res = await fetch(`${base_url}payments/admin/revenue`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Admin Revenue - monthly (returns map of YYYY-MM -> number)
+export const getAdminMonthlyRevenueApi = async () => {
+  const res = await fetch(`${base_url}payments/admin/revenue/monthly`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};

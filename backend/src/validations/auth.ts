@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  identifier: z.string().min(10, "Phone number is required"),
-  password: z.string().min(8, "Password must be at least 6 characters"),
+  identifier: z
+    .string()
+    .trim()
+    .min(3, "Email or phone is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export const signupSchema = z.object({
@@ -14,12 +17,34 @@ export const signupSchema = z.object({
   avatar: z.string().optional(),
   profileImage: z.string().optional(),
   speciality: z.string().optional(),
-  hourlyRate: z.preprocess((value) => {
+  specialities: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return [value];
+    }
+    return value;
+  }, z.array(z.string()).optional()),
+  locations: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return [value];
+    }
+    return value;
+  }, z.array(z.string()).optional()),
+  price: z.preprocess((value) => {
     if (typeof value === "string" && value.trim() !== "") {
       return Number(value);
     }
     return value;
   }, z.number().optional()),
+  duration: z.string().optional(),
+  certificates: z.preprocess((value) => {
+    if (typeof value === "string" && value.trim() !== "") {
+      return [value];
+    }
+    return value;
+  }, z.array(z.object({
+    name: z.string(),
+    image: z.string(),
+  })).optional()),
   experience: z.preprocess((value) => {
     if (typeof value === "string" && value.trim() !== "") {
       return Number(value);

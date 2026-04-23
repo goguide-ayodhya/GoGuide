@@ -27,6 +27,7 @@ import {
   CheckCircle,
   Clock,
   Banknote,
+  AlertCircle,
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
 import {
@@ -40,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 export default function EarningsPage() {
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
+  const loading = earningsContext?.loading ?? false;
   const [timeframe, setTimeframe] = useState<"week" | "month">("month");
   const [wallet, setWallet] = useState<PayoutWalletSummary | null>(null);
   const [payoutRows, setPayoutRows] = useState<
@@ -52,11 +54,18 @@ export default function EarningsPage() {
     }>
   >([]);
   const [payoutLoading, setPayoutLoading] = useState(true);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const monthlyData = earningsContext?.monthlyData ?? [];
   const weeklyData = earningsContext?.weeklyData ?? [];
-  const chartData = timeframe === "week" ? weeklyData : monthlyData;
+  const chartData =
+    timeframe === "week"
+      ? weeklyData.map((item) => ({ period: item.week, revenue: item.revenue }))
+      : monthlyData.map((item) => ({
+          period: item.month,
+          revenue: item.revenue,
+        }));
   const bookingStats = earnings?.bookingStats ?? {
     total: 0,
     completed: 0,
@@ -75,24 +84,53 @@ export default function EarningsPage() {
     : 0;
 
   // Calculate current timeframe revenue
-  const currentTimeframeRevenue = chartData.length > 0 
-    ? chartData.reduce((sum, item) => sum + item.revenue, 0)
-    : 0;
+  const currentTimeframeRevenue =
+    chartData.length > 0
+      ? chartData.reduce((sum, item) => sum + item.revenue, 0)
+      : 0;
+
+  // Fetch earnings data on mount
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        if (earningsContext?.fetchEarnings) {
+          await earningsContext.fetchEarnings();
+          await earningsContext.fetchMonthlyEarnings();
+          await earningsContext.fetchWeeklyEarnings();
+        }
+      } catch (e) {
+        console.error("Failed to fetch earnings", e);
+      }
+    };
+    fetchEarnings();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
+        setPayoutError(null);
         const [s, h] = await Promise.all([
           getPayoutSummaryApi(),
           getPayoutHistoryApi(),
         ]);
         if (!cancelled) {
           setWallet(s);
-          setPayoutRows(Array.isArray(h) ? h : []);
+          setPayoutRows(
+            (Array.isArray(h) ? h : []).sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            ),
+          );
         }
       } catch (e) {
         console.error("Payout summary failed", e);
+        if (!cancelled) {
+          setPayoutError(
+            e instanceof Error ? e.message : "Failed to load payout info",
+          );
+        }
       } finally {
         if (!cancelled) setPayoutLoading(false);
       }
@@ -111,9 +149,42 @@ export default function EarningsPage() {
         getPayoutHistoryApi(),
       ]);
       setWallet(s);
-      setPayoutRows(Array.isArray(h) ? h : []);
+      setPayoutRows(
+        (Array.isArray(h) ? h : []).sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+    } catch (e) {
+      console.error("Failed to confirm payout", e);
+      window.alert(e instanceof Error ? e.message : "Failed to confirm payout");
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const handleRefreshPayouts = async () => {
+    setPayoutLoading(true);
+    setPayoutError(null);
+    try {
+      const [s, h] = await Promise.all([
+        getPayoutSummaryApi(),
+        getPayoutHistoryApi(),
+      ]);
+      setWallet(s);
+      setPayoutRows(
+        (Array.isArray(h) ? h : []).sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+    } catch (e) {
+      console.error("Failed to refresh payouts", e);
+      setPayoutError(
+        e instanceof Error ? e.message : "Failed to refresh payout info",
+      );
+    } finally {
+      setPayoutLoading(false);
     }
   };
 
@@ -123,28 +194,63 @@ export default function EarningsPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
         <p className="text-muted-foreground mt-2">
-          Track your revenue and payment history (70% guide share after full payment).
+          Track your revenue and payment history (70% guide share after full
+          payment).
         </p>
       </div>
 
       {/* Platform payout wallet */}
       <Card className="border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-primary" />
-            Payouts (70% share)
-          </CardTitle>
-          <CardDescription>
-            Admin sends transfers; confirm here when you receive the payment.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Banknote className="h-5 w-5 text-primary" />
+                Payouts (70% share)
+              </CardTitle>
+              <CardDescription>
+                Admin sends transfers; confirm here when you receive the
+                payment.
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRefreshPayouts}
+              disabled={payoutLoading}
+            >
+              {payoutLoading ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {payoutError && (
+            <div className="flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <AlertCircle
+                size={18}
+                className="text-red-600 flex-shrink-0 mt-0.5"
+              />
+              <div>
+                <p className="text-sm font-medium text-red-900 dark:text-red-200">
+                  Failed to load payout info
+                </p>
+                <p className="text-sm text-red-800 dark:text-red-300 mt-1">
+                  {payoutError}
+                </p>
+              </div>
+            </div>
+          )}
+
           {payoutLoading ? (
-            <p className="text-sm text-muted-foreground">Loading payout info…</p>
+            <p className="text-sm text-muted-foreground">
+              Loading payout info…
+            </p>
           ) : wallet ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="rounded-xl border border-border p-4">
-                <p className="text-xs text-muted-foreground">Total earnings (accrued)</p>
+                <p className="text-xs text-muted-foreground">
+                  Total earnings (accrued)
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   ₹{wallet.totalEarnings.toLocaleString("en-IN")}
                 </p>
@@ -244,7 +350,7 @@ export default function EarningsPage() {
         />
         <StatsCard
           title={`${timeframeLabel} Revenue`}
-          value={`$${currentTimeframeRevenue.toLocaleString()}`}
+          value={`₹${currentTimeframeRevenue.toLocaleString()}`}
           icon={TrendingUp}
           description={`Average per ${timeframeLabel.toLowerCase()}: ₹${averageRevenue.toLocaleString()}`}
         />
@@ -351,15 +457,12 @@ export default function EarningsPage() {
         <CardContent>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={monthlyData || []}>
+              <BarChart data={chartData || []}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="oklch(0.25 0.03 240)"
                 />
-                <XAxis
-                  dataKey={timeframe === "week" ? "week" : "month"}
-                  stroke="oklch(0.65 0 0)"
-                />
+                <XAxis dataKey="period" stroke="oklch(0.65 0 0)" />
                 <YAxis stroke="oklch(0.65 0 0)" />
                 <Tooltip
                   contentStyle={{
@@ -411,7 +514,7 @@ export default function EarningsPage() {
                         {status} ({payments.length})
                       </p>
                       <span className="text-sm font-semibold text-foreground">
-                        ${total.toLocaleString()}
+                        ₹{total.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
@@ -437,7 +540,9 @@ export default function EarningsPage() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Revenue by Tour Type</CardTitle>
-            <CardDescription>Earnings breakdown by tour category</CardDescription>
+            <CardDescription>
+              Earnings breakdown by tour category
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -450,11 +555,11 @@ export default function EarningsPage() {
                     <div>
                       <p className="font-medium text-foreground">{item.type}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.bookings} booking{item.bookings !== 1 ? 's' : ''}
+                        {item.bookings} booking{item.bookings !== 1 ? "s" : ""}
                       </p>
                     </div>
                     <span className="font-semibold text-foreground">
-                      ${item.revenue.toLocaleString()}
+                      ₹{item.revenue.toLocaleString()}
                     </span>
                   </div>
                 ))
@@ -504,7 +609,12 @@ export default function EarningsPage() {
                         TXN-{payment.id}
                       </td>
                       <td className="py-3 px-4 font-semibold text-foreground">
-                        `₹{payment.amount}
+                        ₹
+                        {(
+                          payment.amount ??
+                          payment.amountPaid ??
+                          0
+                        ).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-foreground">
                         {new Date(payment.transactionDate).toLocaleDateString()}

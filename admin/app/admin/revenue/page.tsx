@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { IndianRupee, TrendingUp, Users, Building2 } from "lucide-react"
-import { dashboardStats, monthlyRevenueData } from "@/lib/mock-data"
+import { useEffect, useState } from "react"
+import { getAdminTotalRevenueApi, getAdminMonthlyRevenueApi } from "@/lib/api/payments"
 import {
   BarChart,
   Bar,
@@ -20,9 +21,56 @@ import {
 const COLORS = ['var(--primary)', 'var(--chart-2)']
 
 export default function RevenuePage() {
+  const [loading, setLoading] = useState(true)
+  const [dashboardStats, setDashboardStats] = useState({
+    totalRevenue: 0,
+    adminEarnings: 0,
+    guideEarnings: 0,
+  })
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState<Array<any>>([])
+
+  // default commission (percent) if platform setting is not available
+  const PLATFORM_COMMISSION = 20
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const totalRes = await getAdminTotalRevenueApi()
+        const monthlyRes = await getAdminMonthlyRevenueApi()
+
+        const total = totalRes?.totalRevenue ?? totalRes?.total ?? 0
+        const adminEarnings = Math.round((total * PLATFORM_COMMISSION) / 100)
+        const guideEarnings = total - adminEarnings
+
+        setDashboardStats({ totalRevenue: total, adminEarnings, guideEarnings })
+
+        // monthlyRes is expected to be a map { '2024-03': 85000, ... }
+        const months = 6
+        const now = new Date()
+        const monthlyArray: Array<any> = []
+        for (let i = months - 1; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          const key = d.toISOString().slice(0, 7)
+          const revenue = (monthlyRes && monthlyRes[key]) || 0
+          const admin = Math.round((revenue * PLATFORM_COMMISSION) / 100)
+          const guide = revenue - admin
+          monthlyArray.push({ month: d.toLocaleDateString("en-US", { month: "short" }), revenue, admin, guide })
+        }
+        setMonthlyRevenueData(monthlyArray)
+      } catch (error) {
+        console.error("Failed to load revenue data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
   const pieData = [
-    { name: 'Admin (20%)', value: dashboardStats.adminEarnings },
-    { name: 'Guides (80%)', value: dashboardStats.guideEarnings }
+    { name: `Admin (${PLATFORM_COMMISSION}%)`, value: dashboardStats.adminEarnings },
+    { name: `Guides (${100 - PLATFORM_COMMISSION}%)`, value: dashboardStats.guideEarnings }
   ]
 
   return (
@@ -45,7 +93,7 @@ export default function RevenuePage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Total Revenue</p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
                   <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {dashboardStats.totalRevenue.toLocaleString()}
+                  {loading ? "..." : dashboardStats.totalRevenue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -61,7 +109,7 @@ export default function RevenuePage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Earnings (20%)</p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
                   <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {dashboardStats.adminEarnings.toLocaleString()}
+                  {loading ? "..." : dashboardStats.adminEarnings.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -77,7 +125,7 @@ export default function RevenuePage() {
                 <p className="text-[10px] sm:text-xs text-muted-foreground">Guide Earnings (80%)</p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
                   <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {dashboardStats.guideEarnings.toLocaleString()}
+                  {loading ? "..." : dashboardStats.guideEarnings.toLocaleString()}
                 </p>
               </div>
             </div>

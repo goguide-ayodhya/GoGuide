@@ -1,10 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookingStatusBadge } from "./BookingStatusBadge";
-import { Calendar, MapPin, Star, Users, CreditCard } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Star,
+  Users,
+  CreditCard,
+  Wallet,
+} from "lucide-react";
 import type { Booking } from "@/contexts/BookingsContext";
+import { getPaymentStatusLabel } from "@/lib/payment-status";
+import { useBooking } from "@/contexts/BookingsContext";
 
 interface BookingCardProps {
   booking: Booking;
@@ -19,7 +28,25 @@ export function BookingCard({
   onLeaveReview,
   onViewReview,
 }: BookingCardProps) {
-  const canCancel = booking.status === "PENDING";
+  const router = useRouter();
+  const { setCurrentBooking } = useBooking();
+
+  const needsPayment =
+    booking.status === "ACCEPTED" && booking.paymentStatus !== "COMPLETED";
+
+  const isCodBooking = booking.paymentType === "COD";
+
+  const paid = booking.paidAmount ?? 0;
+  const remaining = booking.remainingAmount ?? 0;
+  const isPartialRemaining = paid > 0 && remaining > 0.01;
+
+  const handlePaymentNavigation = () => {
+    setCurrentBooking(booking);
+    router.push(`/tourist/payment?bookingId=${encodeURIComponent(booking.id)}`);
+  };
+
+  const canCancel =
+    booking.status === "PENDING" || booking.status === "ACCEPTED";
   const canLeaveReview =
     booking.status === "COMPLETED" &&
     booking.paymentStatus === "COMPLETED" &&
@@ -27,7 +54,7 @@ export function BookingCard({
   const canViewReview = booking.reviewed;
 
   return (
-    <Card className="relative p-6 rounded-[28px] bg-gradient-to-br from-card via-card/80 to-card/60 backdrop-blur-xl border border-border/40 shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.25)] group overflow-hidden">
+    <Card className="relative p-6 rounded-[28px] bg-gradient-to-br from-card via-card/80 to-card/60 backdrop-blur-xl border border-border/40 transition-all duration-500 hover:-translate-y-2 group overflow-hidden">
       {/* Glow Effect */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 opacity-0 group-hover:opacity-100 transition duration-500"></div>
 
@@ -75,7 +102,7 @@ export function BookingCard({
                     : "text-secondary"
               }`}
             >
-              Payment: {booking.paymentStatus}
+              Payment: {getPaymentStatusLabel(booking)}
             </span>
           </div>
         </div>
@@ -128,39 +155,63 @@ export function BookingCard({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-end">
-            {canCancel && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onCancel(booking.id)}
-                className="border-destructive/40 text-destructive hover:bg-destructive/10 transition"
-              >
-                Cancel
-              </Button>
+          <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+            {needsPayment && (
+              <div className="w-full sm:w-auto flex flex-col items-stretch sm:items-end gap-1.5">
+                <Button
+                  size="sm"
+                  onClick={handlePaymentNavigation}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Wallet className="h-4 w-4 mr-1.5" />
+                  {booking.paymentStatus === "FAILED"
+                    ? "Retry Payment"
+                    : isPartialRemaining
+                      ? "Pay Left"
+                      : "Pay Now"}
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-right max-w-[220px] leading-snug">
+                  {isCodBooking
+                    ? "Pay now online or collect cash on arrival"
+                    : "Complete payment to confirm your booking"}
+                </p>
+              </div>
             )}
 
-            {canLeaveReview && onLeaveReview && (
-              <Button
-                size="sm"
-                onClick={() => onLeaveReview(booking.id)}
-                className="bg-secondary text-secondary-foreground cursor-pointer hover:scale-105 hover:shadow-md transition"
-              >
-                <Star className="h-4 w-4 mr-1" />
-                Leave Review
-              </Button>
-            )}
+            <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onCancel(booking.id)}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 transition"
+                >
+                  Cancel Booking
+                </Button>
+              )}
 
-            {canViewReview && onViewReview && (
-              <Button
-                size="sm"
-                onClick={() => onViewReview(booking.id)}
-                className="bg-accent text-accent-foreground cursor-pointer hover:scale-105 hover:shadow-md transition"
-              >
-                <Star className="h-4 w-4 mr-1" />
-                View Review
-              </Button>
-            )}
+              {canLeaveReview && onLeaveReview && (
+                <Button
+                  size="sm"
+                  onClick={() => onLeaveReview(booking.id)}
+                  className="bg-secondary text-secondary-foreground cursor-pointer hover:scale-105 transition"
+                >
+                  <Star className="h-4 w-4 mr-1" />
+                  Leave Review
+                </Button>
+              )}
+
+              {canViewReview && onViewReview && (
+                <Button
+                  size="sm"
+                  onClick={() => onViewReview(booking.id)}
+                  className="bg-accent text-accent-foreground cursor-pointer hover:scale-105 transition"
+                >
+                  <Star className="h-4 w-4 mr-1" />
+                  View Review
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

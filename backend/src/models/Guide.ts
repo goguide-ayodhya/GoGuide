@@ -2,18 +2,21 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface IGuide extends Document {
   userId: Types.ObjectId;
-  speciality: string;
+  specialities: string[];
   bio?: string;
-  hourlyRate: number;
-  certification?: string;
-  certificateName?: string;
-  certificateImage?: string;
+  locations: string[];
+  price: number;
+  duration: string;
+  certificates: {
+    name: string;
+    image: string;
+  }[];
   yearsOfExperience: number;
   languages: string[];
   averageRating: number;
   totalReviews: number;
   isAvailable: boolean;
-  isOnline: boolean;
+
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
   createdAt: Date;
   updatedAt: Date;
@@ -27,20 +30,27 @@ const GuideSchema = new Schema<IGuide>(
       required: true,
       unique: true,
     },
-    speciality: {
-      type: String,
-      required: true,
-      default: "General",
+    specialities: {
+      type: [String],
+      default: [],
     },
     bio: String,
-    hourlyRate: {
+    locations: {
+      type: [String],
+      default: [],
+    },
+    price: {
       type: Number,
       default: 500,
-      // required: true,
     },
-    certification: String,
-    certificateName: String,
-    certificateImage: String,
+    duration: {
+      type: String,
+      default: "4 hours",
+    },
+    certificates: [{
+      name: String,
+      image: String,
+    }],
     yearsOfExperience: {
       type: Number,
       default: 0,
@@ -61,10 +71,10 @@ const GuideSchema = new Schema<IGuide>(
       type: Boolean,
       default: false,
     },
-    isOnline: {
-      type: Boolean,
-      default: false,
-    },
+    // isOnline: {
+    //   type: Boolean,
+    //   default: false,
+    // },
     verificationStatus: {
       type: String,
       enum: ["PENDING", "VERIFIED", "REJECTED"],

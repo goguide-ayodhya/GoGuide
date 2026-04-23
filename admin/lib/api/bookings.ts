@@ -7,6 +7,10 @@ const getToken = () => {
   return token;
 };
 
+type CancelBookingResponse = {
+  refundAmount: number;
+};
+
 const authHeaders = () => {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -72,10 +76,14 @@ export const getBookingsById = async (bookingId: string) => {
 };
 
 // Cancel
-export const cancelBookingApi = async (bookingId: string) => {
+export const cancelBookingApi = async (
+  bookingId: string,
+  reason: string,
+): Promise<CancelBookingResponse> => {
   const res = await fetch(`${base_url}bookings/${bookingId}/cancel`, {
     method: "PATCH",
     headers: authHeaders(),
+    body: JSON.stringify({ reason }),
   });
 
   return handleRes(res);

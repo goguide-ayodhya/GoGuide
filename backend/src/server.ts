@@ -23,12 +23,20 @@ import passRoutes from "./routes/pass.routes";
 import tourPackageRoutes from "./routes/tourPackage.routes";
 import settingsRoutes from "./routes/setting.routes";
 import notificationRoutes from "./routes/notification.routes";
+import payoutRoutes from "./routes/payout.routes";
 
 const app: Application = express();
 dotenv.config();
 
 // Middleware
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
+      req.rawBody = Buffer.from(buf);
+    },
+  }),
+);
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(helmet());
 
@@ -74,6 +82,7 @@ app.use("/api/passes", passRoutes);
 app.use("/api/packages", tourPackageRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/payout", payoutRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

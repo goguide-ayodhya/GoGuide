@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { CheckCircle, Calendar, MapPin } from "lucide-react";
 import HeadingTitle from "@/components/common/headingTitle";
 import Link from "next/link";
+import { getPaymentStatusLabel } from "@/lib/payment-status";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
@@ -54,10 +55,12 @@ export default function PaymentSuccessPage() {
 
           {/* Success Message */}
           <h1 className="text-3xl font-bold text-center text-foreground mb-2">
-            Payment Successful!
+            {(currentBooking.paymentStatus === "COMPLETED" ? "Payment Successful!" : "Payment Updated!")}
           </h1>
           <p className="text-center text-muted-foreground mb-8">
-            Your booking has been confirmed. Check your email for details.
+            {currentBooking.paymentStatus === "COMPLETED"
+              ? "Your booking payment is complete. Check your email for details."
+              : "Your payment was recorded. Complete remaining amount before the trip."}
           </p>
 
           {/* Booking Summary */}
@@ -72,8 +75,13 @@ export default function PaymentSuccessPage() {
 
             {/* Status */}
             <div className="flex justify-center">
-              <BookingStatusBadge status="PENDING" />
+              <BookingStatusBadge status={currentBooking.status as any} />
             </div>
+            {(currentBooking.remainingAmount ?? 0) > 0.01 && (
+              <p className="text-center text-sm text-amber-600">
+                Remaining payment pending: ₹{currentBooking.remainingAmount}
+              </p>
+            )}
 
             {/* Details */}
             <div className="space-y-3 pt-4 border-t">
@@ -92,8 +100,8 @@ export default function PaymentSuccessPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Date & Time</p>
                     <p className="font-semibold text-foreground">
-                      {currentBooking.bookingDate} at{" "}
-                      {currentBooking.createdAt || "TBD"}
+                      {new Date(currentBooking.bookingDate).toLocaleDateString()} at{" "}
+                      {currentBooking.startTime || "TBD"}
                     </p>
                   </div>
                 </div>
@@ -114,11 +122,15 @@ export default function PaymentSuccessPage() {
               )}
 
               <div className="flex items-start justify-between pt-4 border-t">
-                <span className="text-sm text-muted-foreground">
-                  Amount Paid:
-                </span>
+                <span className="text-sm text-muted-foreground">Amount Paid:</span>
                 <p className="text-lg font-bold text-primary">
-                  ₹{currentBooking.totalPrice}
+                  ₹{currentBooking.paidAmount ?? currentBooking.totalPrice}
+                </p>
+              </div>
+              <div className="flex items-start justify-between">
+                <span className="text-sm text-muted-foreground">Payment Status:</span>
+                <p className="text-sm font-semibold text-foreground">
+                  {getPaymentStatusLabel(currentBooking)}
                 </p>
               </div>
             </div>
