@@ -13,9 +13,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Header } from "@/components/common/Header";
+import { sendSupportMessageApi } from "@/lib/api/settings";
 
 export default function ContactPage() {
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Header showBackButton />
@@ -39,27 +43,27 @@ export default function ContactPage() {
               <Phone className="text-primary" />
               <div>
                 <p className="font-semibold text-foreground">Call Us</p>
-                <p className="text-sm text-muted-foreground">+91 98765 43210</p>
+                <p className="text-sm text-muted-foreground">+91 8881993735</p>
               </div>
             </a>
 
             {/* Email */}
             <a
-              href="mailto:support@goguide.com"
+              href="mailto:support@goguide.in"
               className="p-5 border border-border rounded-xl flex items-start gap-4 hover:shadow-md hover:border-primary transition"
             >
               <Mail className="text-primary" />
               <div>
                 <p className="font-semibold text-foreground">Email</p>
                 <p className="text-sm text-muted-foreground">
-                  support@goguide.com
+                  support@goguide.in
                 </p>
               </div>
             </a>
 
             {/* WhatsApp */}
             <a
-              href="https://wa.me/919876543210"
+              href="https://wa.me/918881993735"
               target="_blank"
               className="p-5 border border-border rounded-xl flex items-start gap-4 hover:shadow-md hover:border-green-500 transition"
             >
@@ -94,14 +98,33 @@ export default function ContactPage() {
             />
 
             <button
-              className="flex items-center gap-2 cursor-pointer bg-primary text-primary-foreground px-5 py-2 rounded-md hover:opacity-90 transition"
-              onClick={() => {
-                const mail = `mailto:support@goguide.com?subject=Support Request&body=${message}`;
-                window.location.href = mail;
+              disabled={loading}
+              className={`flex items-center cursor-pointer gap-2 px-5 py-2 rounded-md transition ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-primary text-primary-foreground hover:opacity-90"
+              }`}
+              onClick={async () => {
+                if (!message.trim()) return;
+
+                try {
+                  setLoading(true);
+
+                  await sendSupportMessageApi(message);
+
+                  setSuccess(true);
+                  setMessage(""); // clear input
+
+                  setTimeout(() => setSuccess(false), 3000);
+                } catch (err) {
+                  alert("Failed to send message");
+                } finally {
+                  setLoading(false);
+                }
               }}
             >
               <Send size={16} />
-              Send Message
+              {loading ? "Sending..." : "Send Message"}
             </button>
           </div>
 

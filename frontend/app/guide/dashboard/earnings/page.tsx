@@ -29,13 +29,14 @@ import {
   Banknote,
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
-// import {
-//   getPayoutSummaryApi,
-//   getPayoutHistoryApi,
-//   confirmPayoutApi,
-//   type PayoutWalletSummary,
-// } from "@/lib/api/payouts";
+
 import { Badge } from "@/components/ui/badge";
+import {
+  getPayoutHistoryApi,
+  getPayoutSummaryApi,
+  confirmPayoutApi,
+  PayoutWalletSummary,
+} from "@/lib/api/payout";
 
 export default function EarningsPage() {
   const earningsContext = useEarnings();
@@ -75,9 +76,10 @@ export default function EarningsPage() {
     : 0;
 
   // Calculate current timeframe revenue
-  const currentTimeframeRevenue = chartData.length > 0 
-    ? chartData.reduce((sum, item) => sum + item.revenue, 0)
-    : 0;
+  const currentTimeframeRevenue =
+    chartData.length > 0
+      ? chartData.reduce((sum, item) => sum + item.revenue, 0)
+      : 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +125,8 @@ export default function EarningsPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
         <p className="text-muted-foreground mt-2">
-          Track your revenue and payment history (70% guide share after full payment).
+          Track your revenue and payment history (70% guide share after full
+          payment).
         </p>
       </div>
 
@@ -140,11 +143,15 @@ export default function EarningsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {payoutLoading ? (
-            <p className="text-sm text-muted-foreground">Loading payout info…</p>
+            <p className="text-sm text-muted-foreground">
+              Loading payout info…
+            </p>
           ) : wallet ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="rounded-xl border border-border p-4">
-                <p className="text-xs text-muted-foreground">Total earnings (accrued)</p>
+                <p className="text-xs text-muted-foreground">
+                  Total earnings (accrued)
+                </p>
                 <p className="text-2xl font-bold text-foreground">
                   ₹{wallet.totalEarnings.toLocaleString("en-IN")}
                 </p>
@@ -437,7 +444,9 @@ export default function EarningsPage() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Revenue by Tour Type</CardTitle>
-            <CardDescription>Earnings breakdown by tour category</CardDescription>
+            <CardDescription>
+              Earnings breakdown by tour category
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -450,7 +459,7 @@ export default function EarningsPage() {
                     <div>
                       <p className="font-medium text-foreground">{item.type}</p>
                       <p className="text-xs text-muted-foreground">
-                        {item.bookings} booking{item.bookings !== 1 ? 's' : ''}
+                        {item.bookings} booking{item.bookings !== 1 ? "s" : ""}
                       </p>
                     </div>
                     <span className="font-semibold text-foreground">

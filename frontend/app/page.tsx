@@ -20,6 +20,7 @@ import { assets } from "@/public/assets/assets";
 import { poppins, manrope } from "@/lib/fonts";
 import Image from "next/image";
 import FAQSection from "@/components/home/FAQs";
+import TeamSection from "@/components/home/Team";
 
 export default function Home() {
   const router = useRouter();
@@ -37,12 +38,19 @@ export default function Home() {
     .slice(0, 6);
 
   const destinations = [
-    { name: "Ram Mandir", image: assets.img_01 },
-    { name: "Guptar Ghar", image: assets.img_02 },
-    { name: "Surya Kund", image: assets.img_03 },
-    { name: "Hanuman Garhi", image: assets.img_04 },
-    { name: "Bharat Kund", image: assets.img_05 },
-    { name: "Ayodhya", image: assets.img_06 },
+    { name: "Ram Mandir", image: assets.digambarJainMandir },
+    { name: "Guptar Ghar", image: assets.hanumanGufa },
+    { name: "Hanuman Garhi", image: assets.hanumanGarhi },
+    { name: "Bharat Kund", image: assets.kanakBhawan },
+    { name: "Ayodhya", image: assets.lataMangeshkar },
+    { name: "Mani Parvat", image: assets.maniParvatAyodhya },
+    { name: "Shwetambar Mandir", image: assets.shwetambarMandir },
+    { name: "Sita Ki Rasoi", image: assets.sitaKiRasoi },
+    { name: "Sri Ram Lala Sadan", image: assets.sriRamLalaSadan },
+    { name: "Swami Narayan Chhapiya", image: assets.swamiNarayanChhapiya },
+    { name: "Surya Kund", image: assets.suryaKundLaserShow },
+    { name: "Valmiki Bhawan", image: assets.valmikiBhawan },
+    { name: "Dashrath Mahal", image: assets.dashrathMahal },
   ];
 
   const partners = [
@@ -78,6 +86,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col bg-gradient-to-b from-white via-slate-50 to-slate-100 text-slate-900">
+      <div className="fixed bottom-6 right-6 z-50">
+        <a
+          href="tel:+918881993735"
+          className="bg-white text-white px-4 py-3 rounded-full shadow-lg"
+        >
+          📞
+        </a>
+      </div>
       <Header />
 
       <div className="flex-grow">
@@ -112,7 +128,7 @@ export default function Home() {
 
                   <div className="mt-8 flex flex-wrap gap-3">
                     <Link href="/tourist/guides" aria-label="Find a Guide">
-                      <p className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-sky-500 text-white px-5 py-3 rounded-full shadow-md hover:scale-[1.02] transform transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                      <p className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-400 to-indigo-700 text-white px-5 py-3 rounded-full shadow-md hover:scale-[1.02] transform transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-300">
                         Find a Guide
                       </p>
                     </Link>
@@ -160,7 +176,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
               Popular{" "}
-              <b className={`${poppins.className} text-destructive`}>
+              <b className={`${poppins.className} text-secondary`}>
                 Destinations
               </b>{" "}
             </h2>
@@ -194,8 +210,8 @@ export default function Home() {
             </div>
             <div className="flex items-center justify-center">
               <Link href="/tourist/packages">
-                <p className="w-24 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
-                  View all
+                <p className="w-38 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
+                  View Packages
                 </p>
               </Link>
             </div>
@@ -207,7 +223,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
               Popular{" "}
-              <b className={`${poppins.className} text-destructive`}>
+              <b className={`${poppins.className} text-secondary`}>
                 Guides
               </b>{" "}
             </h2>
@@ -297,6 +313,9 @@ export default function Home() {
         {/* Features */}
         <Features />
 
+        {/* Team Section */}
+        <TeamSection />
+
         {/* How it works */}
         <HowItWorks />
 
@@ -306,7 +325,7 @@ export default function Home() {
         <div className="overflow-hidden w-full py-12 px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
             Our{" "}
-            <b className={`${poppins.className} text-destructive`}>
+            <b className={`${poppins.className} text-secondary`}>
               Partners
             </b>{" "}
           </h2>

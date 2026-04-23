@@ -1,4 +1,4 @@
-import { Poppins, Manrope } from "next/font/google";
+import { Poppins, Manrope, Merriweather } from "next/font/google";
 
 export const poppins = Poppins({
   subsets: ["latin"],
@@ -8,4 +8,9 @@ export const poppins = Poppins({
 export const manrope = Manrope({
   subsets: ["latin"],
   weight: ["400", "500", "800"],
+});
+
+export const merriweather = Merriweather({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
 });

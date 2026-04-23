@@ -18,6 +18,18 @@ const authHeaders = () => {
   return headers;
 };
 
+export const sendSupportMessageApi = async (message: string) => {
+  const res = await fetch(`${base_url}support/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  return res.json();
+};
+
 // Profile
 export const getProfile = async () => {
   const res = await fetch(`${base_url}settings/me`, {

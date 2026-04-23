@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
-import { manrope } from "@/lib/fonts";
+import { manrope, merriweather } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,19 +10,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/goguide.svg",
         media: "(prefers-color-scheme: light)",
       },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
+      //   {
+      //     url: assets.iconDark,
+      //     media: "(prefers-color-scheme: dark)",
+      //   },
+      //   {
+      //     url: assets.iconSVG,
+      //     type: "image/svg+xml",
+      //   },
     ],
-    apple: "/apple-icon.png",
+    // apple: assets.appleIcon,
   },
 };
 

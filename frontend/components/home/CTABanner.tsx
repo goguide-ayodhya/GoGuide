@@ -18,12 +18,15 @@ export default function CTABanner() {
               Find trusted guides and comfortable cabs in minutes.
             </p>
           </div>
-          <div className="flex gap-3">
-            <Link href="/tourist/guides">
-              <p className="bg-white text-indigo-600 px-5 py-3 rounded-full font-semibold shadow hover:scale-105 transition">
-                Book Guide
-              </p>
-            </Link>
+          <div className="flex gap-3 items-center">
+            <div>
+              <a
+                href="tel:+918881993735"
+                className="bg-white/90 text-indigo-600 px-4 py-3 rounded-full font-semibold shadow hover:scale-105 transition"
+              >
+                Call Expert
+              </a>
+            </div>
             <Link href="/tourist/cabs">
               <p className="bg-white/90 text-indigo-700 px-4 py-3 rounded-full font-semibold shadow-sm hover:scale-105 transition">
                 Book Cab

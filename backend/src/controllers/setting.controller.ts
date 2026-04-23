@@ -6,6 +6,27 @@ import { NotFound } from "../utils/httpException";
 import { settingsService } from "../services/settings.service";
 
 export class SettingsController {
+  async sendSupportMessage(req: AuthRequest, res: Response) {
+    try {
+      const { message } = req.body;
+
+      if (!message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      await settingsService.sendMail({
+        to: "complaints@goguide.in",
+        subject: "Support Request",
+        text: message,
+      });
+
+      res.status(200).json({ message: "Message sent successfully" });
+    } catch (error) {
+      console.error("Support Error:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  }
+
   async getProfile(req: AuthRequest, res: Response) {
     const user = await User.findById(req.userId).select("-password");
 
@@ -18,11 +39,9 @@ export class SettingsController {
   }
 
   async updateProfile(req: AuthRequest, res: Response) {
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      req.body,
-      { new: true },
-    ).select("-password");
+    const user = await User.findByIdAndUpdate(req.userId, req.body, {
+      new: true,
+    }).select("-password");
 
     if (!user) throw new NotFound("User not found");
 

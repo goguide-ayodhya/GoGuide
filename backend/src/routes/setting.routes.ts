@@ -1,8 +1,10 @@
 import { Router } from "express";
-import { settingsController } from "../controllers/setting,controller";
+import { settingsController } from "../controllers/setting.controller";
 import { authenticate, authorize } from "../middleware/auth";
 
 const router = Router();
+
+router.post("/send", settingsController.sendSupportMessage);
 
 // All routes need login
 router.use(authenticate);

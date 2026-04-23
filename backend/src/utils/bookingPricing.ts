@@ -7,14 +7,20 @@ export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+export function computeGst(amount: number): number {
+  return roundMoney(amount * 0.18);
+}
+
 export function computeFullPaymentDiscount(originalPrice: number): {
   discount: number;
   finalPrice: number;
 } {
   const discount = roundMoney(originalPrice * FULL_PAYMENT_DISCOUNT_RATE);
+  const finalExcl = roundMoney(originalPrice - discount);
+  const gst = computeGst(finalExcl);
   return {
     discount,
-    finalPrice: roundMoney(originalPrice - discount),
+    finalPrice: roundMoney(finalExcl + gst),
   };
 }
 
@@ -34,7 +40,9 @@ export function applyPaymentModePricing(params: {
 } {
   const { originalPrice, paidAmount, mode } = params;
   if (mode === "COD") {
-    const finalPrice = originalPrice;
+    const finalExcl = originalPrice;
+    const gst = computeGst(finalExcl);
+    const finalPrice = roundMoney(finalExcl + gst);
     return {
       discount: 0,
       finalPrice,
@@ -46,7 +54,9 @@ export function applyPaymentModePricing(params: {
   if (mode === "PARTIAL") {
     // Apply a one-time partial discount of 5% on original price.
     const discount = roundMoney(originalPrice * PARTIAL_PAYMENT_DISCOUNT_RATE);
-    const finalPrice = roundMoney(originalPrice - discount);
+    const finalExcl = roundMoney(originalPrice - discount);
+    const gst = computeGst(finalExcl);
+    const finalPrice = roundMoney(finalExcl + gst);
     return {
       discount,
       finalPrice,

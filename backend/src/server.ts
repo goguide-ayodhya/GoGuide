@@ -24,6 +24,7 @@ import tourPackageRoutes from "./routes/tourPackage.routes";
 import settingsRoutes from "./routes/setting.routes";
 import notificationRoutes from "./routes/notification.routes";
 import payoutRoutes from "./routes/payout.routes";
+import supportRoutes from "./routes/setting.routes";
 
 const app: Application = express();
 dotenv.config();
@@ -83,6 +84,7 @@ app.use("/api/packages", tourPackageRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payout", payoutRoutes);
+app.use("/api/support", supportRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

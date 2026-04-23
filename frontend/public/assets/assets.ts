@@ -14,6 +14,23 @@ import p_02 from "./partners/p_02.png";
 import p_03 from "./partners/p_03.png";
 import p_04 from "./partners/p_04.jpeg";
 
+import digambarJainMandir from "./destinations/DigambarJainMandir.jpeg";
+import hanumanGarhi from "./destinations/HanumanGarhi.jpeg";
+import hanumanGufa from "./destinations/HanumanGufa.jpeg";
+import kanakBhawan from "./destinations/KanakBhawan.jpeg";
+import lataMangeshkar from "./destinations/LataMangeshkar.jpeg";
+import maniParvatAyodhya from "./destinations/ManiParvatAyodhya.jpeg";
+import shwetambarMandir from "./destinations/ShwetambarMandir.jpeg";
+import sitaKiRasoi from "./destinations/SitaKiRasoi.jpeg";
+import sriRamLalaSadan from "./destinations/SriRamLalaSadan.jpeg";
+import suryaKundLaserShow from "./destinations/SuryaKundLaserShow.jpeg";
+import swamiNarayanChhapiya from "./destinations/SwamiNarayanChhapiya.jpeg";
+import dashrathMahal from "./destinations/dashrathMahal.png";
+import valmikiBhawan from "./destinations/ValmikiBhawan.jpeg";
+
+import adityaSahu from "./team/adityaSahu.png";
+import rahulSrivastava from "./team/rahulSrivastava.png";
+
 export const assets = {
   bgHero,
   guideImage,
@@ -30,4 +47,21 @@ export const assets = {
   p_02,
   p_03,
   p_04,
+
+  digambarJainMandir,
+  hanumanGarhi,
+  hanumanGufa,
+  kanakBhawan,
+  lataMangeshkar,
+  maniParvatAyodhya,
+  shwetambarMandir,
+  sitaKiRasoi,
+  sriRamLalaSadan,
+  suryaKundLaserShow,
+  swamiNarayanChhapiya,
+  dashrathMahal,
+  valmikiBhawan,
+  
+  adityaSahu,
+  rahulSrivastava,
 };

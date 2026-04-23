@@ -277,14 +277,14 @@ export default function GuidesPage() {
                 {totalGuides}
               </p>
             </div>
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
+            {/* <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
                 Average rating
               </p>
               <p className="mt-3 text-3xl font-semibold text-slate-950">
                 {avgRating}
               </p>
-            </div>
+            </div> */}
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
                 Languages covered
