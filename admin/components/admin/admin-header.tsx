@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Menu, Bell, LogOut, CalendarDays, CreditCard, Users, XCircle } from "lucide-react"
-import { mockNotifications, type Notification } from "@/lib/mock-data"
+import { getNotificationsApi, getUnreadCountApi, markAsReadApi, markAllAsReadApi } from "@/lib/api/notifications"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -20,29 +20,87 @@ interface AdminHeaderProps {
   onMenuClick: () => void
 }
 
+type NotificationItem = {
+  id: string
+  title: string
+  description?: string
+  type?: string
+  read: boolean
+  createdAt: string
+  data?: Record<string, any>
+}
+
 const notificationIcons = {
   booking: CalendarDays,
   payment: CreditCard,
   guide: Users,
-  cancellation: XCircle
+  cancellation: XCircle,
 }
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const router = useRouter()
   const { logout, user } = useAuth()
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter((n) => !n.read).length
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
+  const markAsRead = async (id: string) => {
+    try {
+      await markAsReadApi(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (err) {
+      console.warn("Failed to mark notification as read", err);
+    }
   }
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+  const markAllAsRead = async () => {
+    try {
+      await markAllAsReadApi();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.warn("Failed to mark all as read", err);
+    }
   }
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await getNotificationsApi({ page: 1, limit: 50 });
+      // API returns { success, message, data }
+      const data = res.data ?? res;
+      if (Array.isArray(data)) {
+        setNotifications(
+          data.map((d: any) => ({
+            id: d.id,
+            title: d.title,
+            description: d.description ?? d.message,
+            type: d.type,
+            read: !!d.read,
+            createdAt: d.createdAt,
+            data: d.data,
+          })),
+        );
+      }
+    } catch (err) {
+      console.warn("Failed to fetch notifications", err);
+    }
+  }
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await getUnreadCountApi();
+      const count = res?.count ?? res?.data?.count ?? 0;
+      // Optionally refetch notifications when count changes
+      await fetchNotifications();
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  // Load notifications on mount
+  useEffect(() => {
+    fetchNotifications();
+    fetchUnreadCount();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -118,7 +176,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                 </div>
               ) : (
                 notifications.map((notification) => {
-                  const Icon = notificationIcons[notification.type]
+                  const Icon = notificationIcons[(notification.type as keyof typeof notificationIcons) || "booking"] || CalendarDays
                   return (
                     <div
                       key={notification.id}
@@ -139,8 +197,8 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">{notification.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{formatDate(notification.date)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{notification.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(notification.createdAt)}</p>
                       </div>
                       {!notification.read && (
                         <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2" />

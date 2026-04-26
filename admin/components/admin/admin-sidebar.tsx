@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -17,97 +17,103 @@ import {
   MapPin,
   X,
   Package,
-  HandCoins
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+  HandCoins,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
 
 interface AdminSidebarProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
 }
 
 const menuItems = [
   {
     title: "Dashboard",
     href: "/admin/dashboard",
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
   },
   {
     title: "Bookings",
     href: "/admin/bookings",
-    icon: CalendarDays
+    icon: CalendarDays,
   },
   {
-    title: "Guides",
-    href: "/admin/guides",
-    icon: Users
+    title: "Users",
+    href: "/admin/users",
+    icon: Users,
   },
   {
     title: "Cabs",
     href: "/admin/cabs",
-    icon: Car
+    icon: Car,
   },
   {
     title: "Packages",
     href: "/admin/packages",
-    icon: Package
+    icon: Package,
   },
   {
     title: "Payments",
     href: "/admin/payments",
-    icon: CreditCard
+    icon: CreditCard,
   },
   {
     title: "Guide payouts",
     href: "/admin/guide-payouts",
-    icon: HandCoins
+    icon: HandCoins,
   },
   {
     title: "Revenue",
     href: "/admin/revenue",
-    icon: TrendingUp
+    icon: TrendingUp,
   },
   {
     title: "Reviews",
     href: "/admin/reviews",
-    icon: Star
+    icon: Star,
   },
   {
     title: "Settings",
     href: "/admin/settings",
-    icon: Settings
-  }
-]
+    icon: Settings,
+  },
+];
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <>
       {/* Mobile overlay */}
       {open && (
-        <div 
-          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 fixed lg:hidden"
           onClick={onClose}
         />
       )}
-      
+
       {/* Sidebar */}
       <aside
         className={cn(
           "fixed top-0 left-0 z-50 h-full w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto",
-          open ? "translate-x-0" : "-translate-x-full"
+          open ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
             <Link href="/admin/dashboard" className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary">
-                <MapPin className="w-5 h-5 text-primary-foreground" />
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg">
+                <Image
+                  src="/goguide.svg"
+                  alt="GoGuide"
+                  width={36}
+                  height={36}
+                />
               </div>
-              <span className="font-semibold text-sidebar-foreground">GoGuide</span>
+              <span className="font-semibold text-xl">GoGuide</span>
             </Link>
             <Button
               variant="ghost"
@@ -123,7 +129,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
           <ScrollArea className="flex-1 py-4">
             <nav className="px-3 space-y-1">
               {menuItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
@@ -132,35 +138,26 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                        ? "bg-sidebar-accent text-white"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                     )}
                   >
-                    <item.icon className={cn(
-                      "w-5 h-5",
-                      isActive ? "text-sidebar-primary" : "text-muted-foreground"
-                    )} />
+                    <item.icon
+                      className={cn(
+                        "w-5 h-5",
+                        isActive
+                          ? "text-white"
+                          : "text-muted-foreground",
+                      )}
+                    />
                     {item.title}
                   </Link>
-                )
+                );
               })}
             </nav>
           </ScrollArea>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-                <span className="text-sm font-medium text-primary-foreground">A</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">Admin</p>
-                <p className="text-xs text-muted-foreground truncate">admin@goguide.com</p>
-              </div>
-            </div>
-          </div>
         </div>
       </aside>
     </>
-  )
+  );
 }

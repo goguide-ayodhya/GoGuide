@@ -117,9 +117,31 @@ export const completeBookingApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
+export const refundBookingApi = async (bookingId: string, reason?: string) => {
+  const res = await fetch(`${base_url}payments/booking/${bookingId}/refund/cancellation`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ reason: reason || "Admin refund" }),
+  });
+
+  return handleRes(res);
+};
+
 // Admin - Get All Bookings
-export const getAllBookings = async () => {
-  const res = await fetch(`${base_url}bookings/admin/all`, {
+export const getAllBookings = async (filters?: {
+  status?: string;
+  paymentStatus?: string;
+  dateRange?: string;
+  search?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+  if (filters?.paymentStatus && filters.paymentStatus !== 'all') params.append('paymentStatus', filters.paymentStatus);
+  if (filters?.dateRange && filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
+  if (filters?.search) params.append('search', filters.search);
+
+  const url = `${base_url}bookings/admin/all${params.toString() ? '?' + params.toString() : ''}`;
+  const res = await fetch(url, {
     headers: authHeaders(),
   });
 

@@ -23,8 +23,51 @@ const handleRes = async (res: Response) => {
 };
 
 // ADMIN
-export const getAdminDashboard = async () => {
-  const res = await fetch(`${base_url}adminDashboard/admin`, {
+export const getAdminDashboard = async (filter?: { startDate?: string; endDate?: string }) => {
+  const params = new URLSearchParams();
+  if (filter?.startDate) params.set('startDate', filter.startDate);
+  if (filter?.endDate) params.set('endDate', filter.endDate);
+
+  const res = await fetch(`${base_url}adminDashboard/admin?${params}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getRecentUsers = async (limit = 10) => {
+  const res = await fetch(`${base_url}adminDashboard/admin/recent-users?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getRecentGuides = async (limit = 10) => {
+  const res = await fetch(`${base_url}adminDashboard/admin/recent-guides?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getRecentAlerts = async (limit = 10) => {
+  const res = await fetch(`${base_url}adminDashboard/admin/recent-alerts?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getPendingGuides = async (limit = 10) => {
+  const res = await fetch(`${base_url}adminDashboard/admin/pending-guides?limit=${limit}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const getAdminDashboardWithDateFilter = async (startDate?: string, endDate?: string) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  
+  const res = await fetch(`${base_url}adminDashboard/admin?${params.toString()}`, {
     headers: authHeaders(),
   });
   return handleRes(res);

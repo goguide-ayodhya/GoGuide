@@ -26,6 +26,14 @@ import {
 } from "recharts"
 import { useEffect, useState } from "react"
 import { getAdminDashboard } from "@/lib/api/adminDashboard"
+import { DateFilter } from "@/components/ui/date-filter"
+import { BookingActions } from "@/components/admin/booking-actions"
+import { RecentUsers } from "@/components/admin/recent-users"
+import { RecentGuides } from "@/components/admin/recent-guides"
+import { AlertsPanel } from "@/components/admin/alerts-panel"
+import { PendingGuides } from "@/components/admin/pending-guides"
+
+type FilterPeriod = 'all' | 'today' | 'week' | 'month'
 
 const statusColors: Record<string, string> = {
   Pending: "bg-warning/10 text-warning-foreground border-warning/20",
@@ -38,21 +46,76 @@ const statusColors: Record<string, string> = {
 export default function DashboardPage() {
   const [adminData, setAdminData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeFilter, setActiveFilter] = useState<FilterPeriod>('all')
+
+  const fetchDashboardData = async (filter: FilterPeriod = 'all') => {
+    setLoading(true)
+    setError(null)
+    try {
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+      let dateFilter: { startDate?: string; endDate?: string } = {}
+
+      switch (filter) {
+        case 'today':
+          dateFilter = {
+            startDate: today.toISOString().split('T')[0],
+            endDate: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString().split('T')[0]
+          }
+          break
+        case 'week':
+          const weekStart = new Date(today.getTime() - today.getDay() * 24 * 60 * 60 * 1000)
+          const weekEnd = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000 - 1)
+          dateFilter = {
+            startDate: weekStart.toISOString().split('T')[0],
+            endDate: weekEnd.toISOString().split('T')[0]
+          }
+          break
+        case 'month':
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+          dateFilter = {
+            startDate: monthStart.toISOString().split('T')[0],
+            endDate: monthEnd.toISOString().split('T')[0]
+          }
+          break
+        default:
+          dateFilter = {}
+      }
+
+      const data = await getAdminDashboard(dateFilter)
+      setAdminData(data)
+    } catch (error) {
+      console.error("Failed to fetch admin dashboard data:", error)
+      setError("Failed to load dashboard data. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const data = await getAdminDashboard()
-        setAdminData(data)
-      } catch (error) {
-        console.error("Failed to fetch admin dashboard data:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchDashboardData()
   }, [])
+
+  const handleDateFilter = (filter: FilterPeriod) => {
+    setActiveFilter(filter)
+    fetchDashboardData(filter)
+  }
+
+  const handleBookingStatusChange = (bookingId: string, newStatus: string) => {
+    // Update the booking status in the recent bookings list
+    setAdminData((prev: any) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        recentBookings: prev.recentBookings?.map((booking: any) =>
+          booking.id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      }
+    })
+  }
 
   const weeklyBookings = adminData?.weeklyBookings || []
   const monthlyRevenue = adminData?.monthlyRevenue || []
@@ -121,31 +184,69 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Welcome back! Here&apos;s your platform overview.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">Welcome back! Here&apos;s your platform overview.</p>
+        </div>
+        <DateFilter 
+          activeFilter={activeFilter} 
+          onFilterChange={handleDateFilter} 
+          loading={loading} 
+        />
       </div>
 
-      {/* Stats Grid - Mobile: 2 cols, Tablet: 3 cols, Desktop: 6 cols */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.title} className="border-border">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className={`p-1.5 sm:p-2 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-                <div className={`flex items-center text-[10px] sm:text-xs font-medium ${stat.trendUp ? "text-success" : "text-destructive"}`}>
-                  {stat.trendUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" />}
-                  {stat.trend}
-                </div>
-              </div>
-              <p className="text-lg sm:text-2xl font-semibold text-foreground">{stat.value}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">{stat.title}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Error State */}
+      {error && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-4">
+            <p className="text-destructive text-sm">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loading State */}
+      {loading && !adminData && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="border-border">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-6 bg-muted rounded mb-1"></div>
+                    <div className="h-3 bg-muted rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      {!loading && adminData && (
+        <>
+          {/* Stats Grid - Mobile: 2 cols, Tablet: 3 cols, Desktop: 6 cols */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {statCards.map((stat) => (
+              <Card key={stat.title} className="border-border">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className={`p-1.5 sm:p-2 rounded-lg bg-muted ${stat.color}`}>
+                      <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className={`flex items-center text-[10px] sm:text-xs font-medium ${stat.trendUp ? "text-success" : "text-destructive"}`}>
+                      {stat.trendUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" />}
+                      {stat.trend}
+                    </div>
+                  </div>
+                  <p className="text-lg sm:text-2xl font-semibold text-foreground">{stat.value}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">{stat.title}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
       {/* Charts - Stack on mobile, side by side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -234,6 +335,22 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* New Dashboard Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="lg:col-span-1 xl:col-span-1">
+          <RecentUsers />
+        </div>
+        <div className="lg:col-span-1 xl:col-span-1">
+          <RecentGuides />
+        </div>
+        <div className="lg:col-span-1 xl:col-span-1">
+          <AlertsPanel />
+        </div>
+        <div className="lg:col-span-1 xl:col-span-1">
+          <PendingGuides />
+        </div>
+      </div>
+
       {/* Recent Bookings - Mobile cards, Desktop table */}
       <Card className="border-border">
         <CardHeader className="pb-2 sm:pb-4">
@@ -250,9 +367,16 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">{booking.id}</p>
                     <p className="text-sm font-medium text-foreground">{booking.touristName}</p>
                   </div>
-                  <Badge variant="outline" className={`text-[10px] ${statusColors[booking.status]}`}>
-                    {booking.status}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge variant="outline" className={`text-[10px] ${statusColors[booking.status]}`}>
+                      {booking.status}
+                    </Badge>
+                    <BookingActions
+                      bookingId={booking.id}
+                      status={booking.status}
+                      onStatusChange={handleBookingStatusChange}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Guide: {booking.guideName}</span>
@@ -276,6 +400,7 @@ export default function DashboardPage() {
                   <th className="text-left text-xs font-medium text-muted-foreground py-3">Tour</th>
                   <th className="text-left text-xs font-medium text-muted-foreground py-3">Type</th>
                   <th className="text-left text-xs font-medium text-muted-foreground py-3">Status</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,6 +420,13 @@ export default function DashboardPage() {
                         {booking.status}
                       </Badge>
                     </td>
+                    <td className="py-3">
+                      <BookingActions
+                        bookingId={booking.id}
+                        status={booking.status}
+                        onStatusChange={handleBookingStatusChange}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -302,6 +434,8 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

@@ -1,28 +1,35 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { MapPin, Lock, Mail } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MapPin, Lock, Mail } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login, user, isLoggedIn, loading } = useAuth()
-  const [identifier, setIdentifier] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const { login, user, isLoggedIn, loading } = useAuth();
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Redirect if already logged in as admin
   useEffect(() => {
     if (!loading && isLoggedIn && user?.role === "ADMIN") {
-      router.push("/admin/dashboard")
+      router.push("/admin/dashboard");
     }
-  }, [user, isLoggedIn, loading, router])
+  }, [user, isLoggedIn, loading, router]);
 
   // Show loading while checking authentication
   if (loading) {
@@ -33,46 +40,55 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Don't show login if already authenticated as admin
   if (isLoggedIn && user?.role === "ADMIN") {
-    return null
+    return null;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      const user = await login({ identifier, password })
+      const user = await login({ identifier, password });
 
       // Check if user is admin
       if (user.role !== "ADMIN") {
-        setError("Access denied. Admin privileges required.")
-        return
+        setError("Access denied. Admin privileges required.");
+        return;
       }
 
-      router.push("/admin/dashboard")
+      router.push("/admin/dashboard");
     } catch (error: any) {
-      setError(error.message || "Login failed. Please try again.")
+      setError(error.message || "Login failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <MapPin className="w-8 h-8 text-primary-foreground" />
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl mb-4">
+            <Image
+              src="/goguide.svg"
+              alt="GoGuide Logo"
+              width={64}
+              height={64}
+            />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">GoGuide - Ayodhya</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage your tour guide platform</p>
+          <h1 className="text-2xl font-semibold text-foreground">
+            GoGuide - Ayodhya
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage your tour guide platform
+          </p>
         </div>
 
         {/* Login Card */}
@@ -123,21 +139,9 @@ export default function LoginPage() {
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground text-center mb-2">Demo Credentials</p>
-              <div className="text-sm text-center space-y-1">
-                <p><span className="font-medium">Email:</span> admin@goguide.com</p>
-                <p><span className="font-medium">Password:</span> goduide123</p>
-              </div>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Note: Admin user must be created in the backend database
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

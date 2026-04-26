@@ -7,8 +7,25 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Car, IndianRupee, Save } from "lucide-react"
-import { mockCabs, mockCabPricing, type Cab, type CabPricing } from "@/lib/mock-data"
 import { getAllCabsApi, getCabPricingApi, updateCabPricingApi } from "@/lib/api/admin"
+import { cancelCab } from "@/lib/api/driver"
+
+type Cab = {
+  _id?: string;
+  id?: string;
+  userId?: any;
+  driverName?: string;
+  vehicleType?: string;
+  vehicleNumber?: string;
+  phone?: string;
+  verificationStatus?: string;
+  isAvailable?: boolean;
+};
+
+type CabPricing = {
+  baseFare: number;
+  pricePerKm: number;
+};
 
 const vehicleTypeMap: Record<string, string> = {
   CAR: "Sedan",
@@ -41,7 +58,7 @@ export default function CabsPage() {
   const [cabs, setCabs] = useState<Cab[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [pricing, setPricing] = useState<CabPricing>(mockCabPricing)
+  const [pricing, setPricing] = useState<CabPricing>({ baseFare: 0, pricePerKm: 0 })
   const [isSaving, setIsSaving] = useState(false)
   const [savingError, setSavingError] = useState<string | null>(null)
 
@@ -59,7 +76,8 @@ export default function CabsPage() {
         setCabs(uiCabs)
         } catch (cabErr: any) {
           console.error("Failed to fetch cabs:", cabErr)
-          setCabs(mockCabs) // Fallback to mock cabs
+          setCabs([])
+          setError(cabErr?.message || "Failed to fetch cabs")
         }
 
         // Fetch pricing
@@ -70,13 +88,13 @@ export default function CabsPage() {
           }
         } catch (pricingErr: any) {
           console.error("Failed to fetch pricing:", pricingErr)
-          setPricing(mockCabPricing) // Fallback to mock pricing
+          setPricing({ baseFare: 0, pricePerKm: 0 })
         }
       } catch (err: any) {
         console.error("Failed to fetch cab data:", err)
         setError(err.message || "Failed to load cab data")
-        setCabs(mockCabs)
-        setPricing(mockCabPricing)
+        setCabs([])
+        setPricing({ baseFare: 0, pricePerKm: 0 })
       } finally {
         setLoading(false)
       }
@@ -103,6 +121,23 @@ export default function CabsPage() {
       console.error("Failed to save pricing:", err)
       setSavingError(err.message || "Failed to save pricing")
       setIsSaving(false)
+    }
+  }
+
+  const handleCancelCab = async (cabId?: string) => {
+    if (!cabId) return;
+    try {
+      setLoading(true);
+      await cancelCab(cabId);
+      // refresh list
+      const data = await getAllCabsApi();
+      const uiCabs = (Array.isArray(data) ? data : data?.data || []).map((cab: any) => convertApiCabToUi(cab));
+      setCabs(uiCabs);
+    } catch (err: any) {
+      console.error("Failed to cancel cab:", err);
+      setError(err?.message || "Failed to cancel cab");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -233,6 +268,15 @@ export default function CabsPage() {
                         <span className="text-foreground">{cab.phone}</span>
                       </div>
                     </div>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleCancelCab(cab.id || cab._id)}
+                      >
+                        Cancel Cab
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -270,6 +314,17 @@ export default function CabsPage() {
                         <td className="py-3 text-sm text-muted-foreground">{cab.vehicleNumber}</td>
                         <td className="py-3 text-sm text-muted-foreground">{cab.phone}</td>
                         <td className="py-3">{getStatusBadge(cab.status)}</td>
+                        <td className="py-3">
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleCancelCab(cab.id || cab._id)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

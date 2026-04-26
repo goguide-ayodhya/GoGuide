@@ -1,29 +1,30 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import "@/styles/globals.css";
+import { manrope } from "@/lib/fonts";
 import { AuthProvider } from "@/contexts/AuthContext";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "GoGuide Admin - Ayodhya",
   description: "Admin Dashboard for Tour Guide Booking Platform",
   generator: "v0.app",
-  // icons: {
-  //   icon: [
-  //     // {
-  //     //   url: '/icon-light-32x32.png',
-  //     //   media: '(prefers-color-scheme: light)',
-  //     // },
-  //     {
-  //       url: "/icon-dark-32x32.png",
-  //       media: "(prefers-color-scheme: dark)",
-  //     },
-  //     {
-  //       url: "/icon.svg",
-  //       type: "image/svg+xml",
-  //     },
-  //   ],
-  //   apple: "/apple-icon.png",
-  // },
+  icons: {
+    icon: [
+      {
+        url: "/goguide.svg",
+        media: "(prefers-color-scheme: light)",
+      },
+      // {
+      //   url: "/icon-dark-32x32.png",
+      //   media: "(prefers-color-scheme: dark)",
+      // },
+      // {
+      //   url: "/icon.svg",
+      //   type: "image/svg+xml",
+      // },
+    ],
+    // apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -33,10 +34,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className={manrope.className}>
+        <AuthProvider>{children}</AuthProvider>
         <Analytics />
       </body>
     </html>
