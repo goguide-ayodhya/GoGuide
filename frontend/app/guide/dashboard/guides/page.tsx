@@ -19,6 +19,7 @@ export default function GuidesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpeciality, setSelectedSpeciality] = useState<string>("all");
   const { loading, guides } = useGuide();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   //
   // Get unique specialities
   const specialities = [
@@ -29,8 +30,7 @@ export default function GuidesPage() {
   // Filter guides
   const filtered = guides.filter((guide) => {
     const nameMatch =
-      guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      false;
+      guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
     const specialityMatch =
       guide.specialities?.some((spec) =>
         spec.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -127,7 +127,8 @@ export default function GuidesPage() {
                       <h3 className="text-lg font-bold text-foreground">
                         {guide.name}
                       </h3>
-                      <p className="text-sm text-primary font-medium">
+                      <p className="text-sm font-medium">
+                        <b className="text-black">Speciality:</b>{" "}
                         {guide.specialities?.[0]}
                       </p>
                     </div>
@@ -164,7 +165,7 @@ export default function GuidesPage() {
                         {guide.languages.map((lang) => (
                           <span
                             key={lang}
-                            className="px-2 py-1 bg-secondary rounded text-xs text-foreground"
+                            className="px-2 py-1 bg-secondary rounded text-xs text-white"
                           >
                             {lang}
                           </span>
@@ -175,15 +176,54 @@ export default function GuidesPage() {
                     {/* Details */}
                     <div className="text-sm text-muted-foreground space-y-1">
                       <p>
-                        Experience: {guide.experience ?? guide.yearsOfExperience ?? 0}+ years
+                        Experience:{" "}
+                        {guide.experience ?? guide.yearsOfExperience ?? 0}+
+                        years
                       </p>
-                      <p>Rs{(guide.price ?? 500)}/ {guide.duration || "hour"}</p>
+                      <p>
+                        Rs: {guide.price ?? 500}/ {guide.duration || "hour"}
+                      </p>
+                    </div>
+
+                    {/* Certificates */}
+                    <div className="mt-4">
+                      {guide.certificates && guide.certificates.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {guide.certificates.map((cert, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setSelectedImage(cert.image)}
+                              className="px-3 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition"
+                            >
+                              {cert.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No certificates
+                        </p>
+                      )}
+
+                      {/* Modal */}
+                      {selectedImage && (
+                        <div
+                          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+                          onClick={() => setSelectedImage(null)}
+                        >
+                          <img
+                            src={selectedImage}
+                            alt="certificate"
+                            className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Actions */}
-                    <Button className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground">
+                    {/* <Button className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground">
                       View Profile
-                    </Button>
+                    </Button> */}
                   </div>
                 </CardContent>
               </Card>

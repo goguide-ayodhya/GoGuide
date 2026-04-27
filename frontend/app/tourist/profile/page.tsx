@@ -304,7 +304,7 @@ export default function ProfilePage() {
                     value={formData.email}
                     onChange={handleChange}
                     disabled={!isEditing}
-                    className="bg-muted border-border"
+                    className="bg-muted border-border cursor-not-allowed opacity-70"
                   />
                 </div>
               </div>
@@ -354,7 +354,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Account Settings */}
-        <Card className="bg-card border border-border">
+        <Card className="bg-card mt-4 border border-border">
           <CardHeader>
             <CardTitle>Account Settings</CardTitle>
             <CardDescription>Manage your account security</CardDescription>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
               {!showPasswordChange ? (
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2"
+                  className="w-full justify-start cursor-pointer gap-2"
                   onClick={() => setShowPasswordChange(true)}
                 >
                   <Lock size={18} />
@@ -426,7 +426,7 @@ export default function ProfilePage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={handleChangePassword}
-                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="gap-2 bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground"
                       disabled={passwordLoading}
                     >
                       <Save size={18} />
@@ -434,6 +434,7 @@ export default function ProfilePage() {
                     </Button>
                     <Button
                       variant="outline"
+                      className="cursor-pointer"
                       onClick={() => {
                         setShowPasswordChange(false);
                         setPasswordData({
@@ -453,27 +454,30 @@ export default function ProfilePage() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-medium">Email Verification</h4>
+                    {user.isEmailVerified ? (
+                      <div className="flex items-center gap-2 text-green-600">
+                        <span className="text-sm font-medium">Verified</span>
+                        <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={handleSendEmailVerification}
+                        disabled={emailVerificationLoading}
+                        className="cursor-pointer"
+                      >
+                        {emailVerificationLoading
+                          ? "Sending..."
+                          : "Verify Email"}
+                      </Button>
+                    )}
+
                     <p className="text-sm text-muted-foreground">
                       {user.isEmailVerified
                         ? "Your email is verified"
                         : "Verify your email for better security"}
                     </p>
                   </div>
-                  {user.isEmailVerified ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <span className="text-sm font-medium">Verified</span>
-                      <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={handleSendEmailVerification}
-                      disabled={emailVerificationLoading}
-                    >
-                      {emailVerificationLoading ? "Sending..." : "Verify Email"}
-                    </Button>
-                  )}
                 </div>
 
                 {showEmailVerification && !user.isEmailVerified && (

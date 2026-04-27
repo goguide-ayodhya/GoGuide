@@ -5,11 +5,12 @@ import { Guide } from "../models/Guide";
 import { User } from "../models/User";
 import { Review } from "../models/Review";
 import { NotFound, BadRequest } from "../utils/httpException";
-import { CreateBookingInput } from "../validations/booking";
+import { calculateFinalPrice } from "../utils/bookingPricing";
 import { paymentService } from "./payment.service";
 import { NotificationService } from "./notification.service";
 import { roundMoney } from "../utils/bookingPricing";
 import { applyPlatformSplitToBooking } from "./bookingCommission.service";
+import { CreateBookingInput } from "../validations/booking";
 
 export class BookingService {
   async createBooking(userId: string, input: CreateBookingInput) {
@@ -63,14 +64,30 @@ export class BookingService {
     }
 
     const totalPrice = input.totalPrice;
+    if (totalPrice <= 0) {
+      throw new BadRequest("Invalid price");
+    }
+
+    if (!input.totalPrice || input.totalPrice <= 0) {
+      throw new BadRequest("Invalid price");
+    }
+
+    // Calculate pricing using centralized function
+    // At booking creation, no payment mode is selected yet, so no discount applies
+    const pricing = calculateFinalPrice({
+      totalPrice,
+      discountPercent: 0, // No discount at creation time
+    });
+
     const booking = await Booking.create({
       ...input,
       userId,
-      originalPrice: totalPrice,
-      discount: 0,
-      finalPrice: totalPrice,
+      originalPrice: pricing.totalPrice,
+      discount: pricing.discount,
+      gstAmount: pricing.gstAmount,
+      finalPrice: pricing.finalPrice,
       paidAmount: 0,
-      remainingAmount: totalPrice,
+      remainingAmount: pricing.finalPrice,
       partialDiscountApplied: false,
       guideEarning: 0,
       adminCommission: 0,
@@ -121,9 +138,9 @@ export class BookingService {
     if (!bookings.length) return bookings;
 
     const bookingIds = bookings.map((booking) => booking._id);
-    const reviews = await Review.find({ bookingId: { $in: bookingIds } }).select(
-      "bookingId",
-    );
+    const reviews = await Review.find({
+      bookingId: { $in: bookingIds },
+    }).select("bookingId");
     const reviewedBookingIds = new Set(
       reviews.map((review) => review.bookingId.toString()),
     );
@@ -141,7 +158,10 @@ export class BookingService {
       query.status = filters.status;
     }
 
-    console.log(`[BOOKING] Fetching guide bookings - guideId: ${guideId}, query:`, query);
+    console.log(
+      `[BOOKING] Fetching guide bookings - guideId: ${guideId}, query:`,
+      query,
+    );
 
     const bookings = await Booking.find(query)
       .populate({
@@ -161,7 +181,10 @@ export class BookingService {
       query.status = filters.status;
     }
 
-    console.log(`[BOOKING] Fetching driver bookings - driverId: ${driverId}, query:`, query);
+    console.log(
+      `[BOOKING] Fetching driver bookings - driverId: ${driverId}, query:`,
+      query,
+    );
 
     const bookings = await Booking.find(query)
       .populate({
@@ -186,8 +209,66 @@ export class BookingService {
     return this.addReviewStatus(bookings);
   }
 
-  async getAllBookings() {
-    const bookings = await Booking.find({})
+  async getAllBookings(filters?: {
+    status?: string;
+    paymentStatus?: string;
+    dateRange?: string;
+    search?: string;
+  }) {
+    const query: any = {};
+
+    if (filters?.status && filters.status !== "all") {
+      query.status = filters.status;
+    }
+
+    if (filters?.paymentStatus && filters.paymentStatus !== "all") {
+      query.paymentStatus = filters.paymentStatus;
+    }
+
+    if (filters?.dateRange) {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (filters.dateRange) {
+        case "today":
+          startDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          break;
+        case "thisWeek":
+          const dayOfWeek = now.getDay();
+          startDate = new Date(now.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case "thisMonth":
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        default:
+          startDate = new Date(0); // All time
+      }
+
+      if (filters.dateRange !== "all") {
+        query.bookingDate = { $gte: startDate };
+      }
+    }
+
+    if (filters?.search) {
+      const searchRegex = new RegExp(filters.search, "i");
+      query.$or = [
+        { touristName: searchRegex },
+        { guideName: searchRegex },
+        { email: searchRegex },
+        {
+          _id: filters.search.match(/^[0-9a-fA-F]{24}$/)
+            ? [{ _id: filters.search }]
+            : [],
+        },
+      ].filter(Boolean);
+    }
+
+    const bookings = await Booking.find(query)
       .populate({
         path: "guideId",
         populate: { path: "userId" },
@@ -244,7 +325,10 @@ export class BookingService {
     }
 
     if (actorUserId) {
-      if (cancelledBy === "TOURIST" && booking.userId.toString() !== actorUserId) {
+      if (
+        cancelledBy === "TOURIST" &&
+        booking.userId.toString() !== actorUserId
+      ) {
         throw new BadRequest("Only booking owner can cancel as tourist");
       }
       if (cancelledBy === "GUIDE") {
@@ -286,11 +370,13 @@ export class BookingService {
 
     // Track cancellation count for the user
     if (cancelledBy === "TOURIST") {
-      await User.findByIdAndUpdate(booking.userId, { $inc: { cancellationCount: 1 } });
-      
+      await User.findByIdAndUpdate(booking.userId, {
+        $inc: { cancellationCount: 1 },
+      });
+
       // Check if user should be suspended
       const user = await User.findById(booking.userId);
-      if (user && (user.cancellationCount || 0) + 1 >= 3) {
+      if (user && (user.cancellationCount || 0) >= 3) {
         await User.findByIdAndUpdate(booking.userId, { status: "SUSPENDED" });
       }
     }
@@ -335,12 +421,16 @@ export class BookingService {
       `[BOOKING] 📦 Booking Accepted: ${bookingId}, bookingType: ${bookingType}`,
     );
 
-    await paymentService.ensureInitialPayment(
-      booking.userId.toString(),
-      booking._id.toString(),
-    );
+    try {
+      await paymentService.ensureInitialPayment(
+        booking.userId.toString(),
+        booking._id.toString(),
+      );
+    } catch (err) {
+      console.error("[PAYMENT INIT FAILED]", err);
+      throw new Error("Failed to initialize payment after booking acceptance");
+    }
 
-    // Send notification to user (async - don't block response)
     try {
       await NotificationService.sendBookingStatusUpdate(
         bookingId.toString(),
@@ -436,32 +526,56 @@ export class BookingService {
     // Prevent marking booking as completed until payment is successfully collected.
     // Allow completion for COD or free bookings.
     const finalPrice = booking.finalPrice ?? booking.totalPrice;
-    const isCod = booking.paymentType === "COD" || booking.paymentMethod === "COD";
-    if (!isCod && (typeof finalPrice === "number" && finalPrice > 0)) {
+
+    if (booking.paymentStatus !== "COMPLETED") {
+      throw new BadRequest("Payment not completed");
+    }
+    // await paymentService.syncPaymentStatus(bookingId);
+
+    const isCod =
+      booking.paymentType === "COD" || booking.paymentMethod === "COD";
+    if (isCod) {
+      booking.paidAmount = finalPrice;
+      booking.remainingAmount = 0;
+      booking.paymentStatus = "COMPLETED";
+      applyPlatformSplitToBooking(booking);
+    }
+
+    if (!isCod && typeof finalPrice === "number" && finalPrice > 0) {
       // Reconciliation: check completed payment rows and correct booking paymentStatus if possible.
       const completedPayments = await Payment.find({
         bookingId: booking._id,
         status: "COMPLETED",
       }).lean();
 
-      const sumCompleted = (completedPayments || []).reduce((s: number, p: any) => {
-        const line = p.amountPaid != null && p.amountPaid > 0 ? p.amountPaid : p.amount ?? 0;
-        return s + Number(line || 0);
-      }, 0);
+      const sumCompleted = (completedPayments || []).reduce(
+        (s: number, p: any) => {
+          const line =
+            p.amountPaid != null && p.amountPaid > 0
+              ? p.amountPaid
+              : (p.amount ?? 0);
+          return s + Number(line || 0);
+        },
+        0,
+      );
 
-      if (sumCompleted >= (finalPrice - 0.01)) {
+      if (sumCompleted >= finalPrice - 0.01) {
         // Payments cover the final price; update booking to reflect actual captured amount.
         booking.paidAmount = roundMoney(sumCompleted);
-        booking.remainingAmount = roundMoney(Math.max(0, finalPrice - booking.paidAmount));
+        booking.remainingAmount = roundMoney(
+          Math.max(0, finalPrice - booking.paidAmount),
+        );
         booking.paymentStatus = "COMPLETED";
         applyPlatformSplitToBooking(booking);
-        await booking.save();
       } else {
         // If booking thought it was completed but payments don't match, correct booking and block completion.
         if (booking.paymentStatus === "COMPLETED") {
           booking.paidAmount = roundMoney(sumCompleted);
-          booking.remainingAmount = roundMoney(Math.max(0, finalPrice - sumCompleted));
-          booking.paymentStatus = booking.paidAmount > 0 ? "PARTIAL" : "PENDING";
+          booking.remainingAmount = roundMoney(
+            Math.max(0, finalPrice - sumCompleted),
+          );
+          booking.paymentStatus =
+            booking.paidAmount > 0 ? "PARTIAL" : "PENDING";
           applyPlatformSplitToBooking(booking);
           await booking.save();
           throw new BadRequest(
@@ -494,6 +608,7 @@ export class BookingService {
 
     return booking;
   }
+
   async markAsSeenByAdmin(bookingId: string) {
     return Booking.findByIdAndUpdate(
       bookingId,

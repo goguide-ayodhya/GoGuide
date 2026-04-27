@@ -1,27 +1,58 @@
 export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
 
-const FULL_PAYMENT_DISCOUNT_RATE = 0.1;
-const PARTIAL_PAYMENT_DISCOUNT_RATE = 0.05;
+const GST_RATE = 0.05; // 5% GST
+const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments
 
 export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-export function computeGst(amount: number): number {
-  return roundMoney(amount * 0.18);
-}
-
-export function computeFullPaymentDiscount(originalPrice: number): {
+/**
+ * CENTRALIZED PRICING FUNCTION
+ * Calculate final price with discount and GST applied correctly
+ * finalPrice = totalPrice - discount + GST
+ * GST is applied AFTER discount
+ */
+export function calculateFinalPrice(params: {
+  totalPrice: number;
+  discountPercent?: number; // Optional override, defaults to 5% for partial
+  gstPercent?: number; // Optional override, defaults to 5%
+  paymentMode?: BookingPaymentMode;
+}): {
+  totalPrice: number;
   discount: number;
+  gstAmount: number;
   finalPrice: number;
 } {
-  const discount = roundMoney(originalPrice * FULL_PAYMENT_DISCOUNT_RATE);
-  const finalExcl = roundMoney(originalPrice - discount);
-  const gst = computeGst(finalExcl);
+  const { totalPrice, paymentMode } = params;
+  const discountPercent = params.discountPercent ?? (paymentMode === "PARTIAL" ? PARTIAL_DISCOUNT_RATE : 0);
+  const gstPercent = params.gstPercent ?? GST_RATE;
+
+  // Round total price to 2 decimal places
+  const roundedTotalPrice = roundMoney(totalPrice);
+
+  // Calculate discount
+  const discount = roundMoney(roundedTotalPrice * discountPercent);
+
+  // Calculate price after discount
+  const priceAfterDiscount = roundMoney(roundedTotalPrice - discount);
+
+  // Calculate GST on price after discount
+  const gstAmount = roundMoney(priceAfterDiscount * gstPercent);
+
+  // Final price = price after discount + GST
+  const finalPrice = roundMoney(priceAfterDiscount + gstAmount);
+
   return {
+    totalPrice: roundedTotalPrice,
     discount,
-    finalPrice: roundMoney(finalExcl + gst),
+    gstAmount,
+    finalPrice,
   };
+}
+
+export function computeGst(amount: number): number {
+  return roundMoney(amount * GST_RATE);
 }
 
 /**
@@ -37,41 +68,53 @@ export function applyPaymentModePricing(params: {
   finalPrice: number;
   remainingAmount: number;
   partialDiscountApplied: boolean;
+  gstAmount: number;
 } {
   const { originalPrice, paidAmount, mode } = params;
+
   if (mode === "COD") {
-    const finalExcl = originalPrice;
-    const gst = computeGst(finalExcl);
-    const finalPrice = roundMoney(finalExcl + gst);
+    // COD: no discount, but GST still applies
+    const pricing = calculateFinalPrice({
+      totalPrice: originalPrice,
+      discountPercent: 0, // No discount for COD
+      paymentMode: mode,
+    });
     return {
-      discount: 0,
-      finalPrice,
-      remainingAmount: roundMoney(finalPrice - paidAmount),
+      discount: pricing.discount,
+      finalPrice: pricing.finalPrice,
+      remainingAmount: roundMoney(pricing.finalPrice - paidAmount),
       partialDiscountApplied: false,
+      gstAmount: pricing.gstAmount,
     };
   }
 
   if (mode === "PARTIAL") {
-    // Apply a one-time partial discount of 5% on original price.
-    const discount = roundMoney(originalPrice * PARTIAL_PAYMENT_DISCOUNT_RATE);
-    const finalExcl = roundMoney(originalPrice - discount);
-    const gst = computeGst(finalExcl);
-    const finalPrice = roundMoney(finalExcl + gst);
+    // Partial payment: 5% discount applies
+    const pricing = calculateFinalPrice({
+      totalPrice: originalPrice,
+      paymentMode: mode, // Uses default 5% discount
+    });
     return {
-      discount,
-      finalPrice,
-      remainingAmount: roundMoney(finalPrice - paidAmount),
+      discount: pricing.discount,
+      finalPrice: pricing.finalPrice,
+      remainingAmount: roundMoney(pricing.finalPrice - paidAmount),
       partialDiscountApplied: true,
+      gstAmount: pricing.gstAmount,
     };
   }
 
-  // FULL
-  const { discount, finalPrice } = computeFullPaymentDiscount(originalPrice);
+  // FULL payment: no discount
+  const pricing = calculateFinalPrice({
+    totalPrice: originalPrice,
+    discountPercent: 0, // No discount for full payment upfront
+    paymentMode: mode,
+  });
   return {
-    discount,
-    finalPrice,
-    remainingAmount: roundMoney(finalPrice - paidAmount),
+    discount: pricing.discount,
+    finalPrice: pricing.finalPrice,
+    remainingAmount: roundMoney(pricing.finalPrice - paidAmount),
     partialDiscountApplied: false,
+    gstAmount: pricing.gstAmount,
   };
 }
 

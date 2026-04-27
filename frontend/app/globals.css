@@ -14,7 +14,7 @@
   --popover-foreground: #1a1a1a;
 
   /* Primary: Warm earth tone */
-  --primary: #d4a574;
+  --primary: #4F46E5;
   --primary-foreground: #ffffff;
 
   /* Secondary: Soft green (CTA emphasis) */
@@ -49,7 +49,7 @@
   /* Sidebar (not used in this app, but keeping for completeness) */
   --sidebar: #ffffff;
   --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #d4a574;
+  --sidebar-primary: #4F46E5;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #6b9b78;
   --sidebar-accent-foreground: #ffffff;

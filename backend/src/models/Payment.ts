@@ -21,7 +21,7 @@ export interface IPayment extends Document {
   /** Placeholder row created on booking acceptance vs an actual charge. */
   paymentKind: PaymentKind;
   currency: string;
-  status: "PENDING" | "COMPLETED" | "FAILED";
+  status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
   paymentMethod?: string;
   transactionId?: string;
   razorpayOrderId?: string;
@@ -93,7 +93,7 @@ const PaymentSchema = new Schema<IPayment>(
     },
     status: {
       type: String,
-      enum: ["PENDING", "COMPLETED", "FAILED"],
+      enum: ["PENDING", "COMPLETED", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
     paymentMethod: String,

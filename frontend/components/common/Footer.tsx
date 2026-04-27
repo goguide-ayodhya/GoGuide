@@ -48,7 +48,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
                 <Link
-                  href="#"
+                  href="/home/about-us"
                   className="hover:text-slate-900 transition-colors"
                 >
                   About Us
@@ -64,7 +64,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/#faq"
                   className="hover:text-slate-900 transition-colors"
                 >
                   FAQ
@@ -77,23 +77,23 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-slate-600">
               <li>
                 <Link
-                  href="#"
+                  href="/home/privacy-policy"
                   className="hover:text-slate-900 transition-colors"
                 >
-                  Privacy
+                  Privacy & Policy
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/home/terms-and-conditions"
                   className="hover:text-slate-900 transition-colors"
                 >
-                  Terms
+                  Terms & Conditions
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/home/cookies"
                   className="hover:text-slate-900 transition-colors"
                 >
                   Cookies
@@ -105,20 +105,34 @@ export function Footer() {
 
         <div className="flex flex-col mt-8 border-t border-slate-100 pt-6">
           <h3 className="font-semibold text-slate-900 mb-3">Follow Us</h3>
-          <ul className="flex gap-2 text-sm text-slate-600">
+          <ul className="flex gap-4">
             <li>
-              <a href="#" className="hover:text-slate-900 transition-colors">
+              <a
+                href="https://facebook.com/goguideofficial"
+                target="_blank"
+                className="hover:text-slate-900 transition-colors"
+              >
                 <Facebook className="w-5 h-5" />
               </a>
             </li>
+
             <li>
-              <a href="#" className="hover:text-slate-900 transition-colors">
+              <a
+                href="https://instagram.com/goguideofficial"
+                target="_blank"
+                className="hover:text-slate-900 transition-colors"
+              >
                 <Instagram className="w-5 h-5" />
               </a>
             </li>
+
             <li>
-              <a href="#" className="hover:text-slate-900 transition-colors">
-                Whatsapp
+              <a
+                href="https://wa.me/918881993735?text=Hello%20GoGuide%20Team!"
+                target="_blank"
+                className="hover:text-green-600 transition-colors"
+              >
+                WhatsApp
               </a>
             </li>
           </ul>

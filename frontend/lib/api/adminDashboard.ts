@@ -22,6 +22,12 @@ const handleRes = async (res: Response) => {
   return json.data;
 };
 
+// PUBLIC
+export const getPublicStats = async () => {
+  const res = await fetch(`${base_url}adminDashboard/public/stats`);
+  return handleRes(res);
+};
+
 // ADMIN
 export const getAdminDashboard = async () => {
   const res = await fetch(`${base_url}adminDashboard/admin`, {

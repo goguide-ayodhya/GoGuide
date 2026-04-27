@@ -12,7 +12,7 @@ export interface User {
   id: string;
   name: string;
   email?: string;
-  role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
+  role: "GUIDE" | "TOURIST" | "DRIVER";
   avatar?: string;
   bio?: string;
   profileImage?: string;
@@ -105,8 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await validateTokenApi();
         console.log("[AUTH] Token validation successful");
       } catch (error) {
-        console.warn("[AUTH] Token validation failed, but keeping user logged in:", error);
-
+        console.warn("[AUTH] Token validation failed, logging out:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+        setLoading(false);
+        return;
       }
 
       try {
@@ -154,19 +158,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (data: SignupData) => {
     try {
+      setLoading(true);
+      console.log("[AUTH] Signing up user:", data.email || data.phone);
       const res = await signupUser(data);
+      if (!res || !res.user || !res.token) {
+        throw new Error("Invalid signup response");
+      }
 
+      console.log("[AUTH] Signup successful, saving to localStorage");
       setUser(res.user);
       localStorage.setItem("user", JSON.stringify(res.user));
       localStorage.setItem("token", res.token);
+      console.log("[AUTH] User and token saved to localStorage");
 
       return res.user;
     } catch (error: unknown) {
-      console.log(
-        "Signup error:",
+      console.error(
+        "[AUTH] Signup error:",
         error instanceof Error ? error.message : String(error),
       );
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -538,7 +538,7 @@ const initializeDatabase = (): Database => {
       touristId: booking.touristId,
       touristName: booking.touristName,
       rating: Math.floor(Math.random() * 2) + 4, // 4-5 stars
-      comment: reviewComments[index % reviewComments.length],
+      comments: reviewComments[index % reviewComments.length],
       isVisible: true,
       verificationStatus: "VERIFIED",
       helpfulCount: Math.floor(Math.random() * 20),

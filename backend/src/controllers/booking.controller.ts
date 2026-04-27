@@ -4,7 +4,7 @@ import { bookingService } from "../services/booking.service";
 import { Guide } from "../models/Guide";
 import { Driver } from "../models/Driver";
 import { User } from "../models/User";
-import { Unauthorized } from "../utils/httpException";
+import { HttpException, Unauthorized } from "../utils/httpException";
 
 export class BookingController {
   async createBooking(req: AuthRequest, res: Response) {
@@ -74,7 +74,14 @@ export class BookingController {
 
   async getAllBookings(req: AuthRequest, res: Response) {
     try {
-      const bookings = await bookingService.getAllBookings();
+      const { status, paymentStatus, dateRange, search } = req.query;
+      const filters = {
+        status: status as string,
+        paymentStatus: paymentStatus as string,
+        dateRange: dateRange as string,
+        search: search as string,
+      };
+      const bookings = await bookingService.getAllBookings(filters);
       res.status(200).json({
         success: true,
         message: "Bookings retrieved successfully",
@@ -319,7 +326,6 @@ export class BookingController {
           });
         }
         actorId = guide._id.toString();
-        console.log("[BOOKING] Found guide for completion:", guide._id);
       } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
@@ -330,7 +336,6 @@ export class BookingController {
           });
         }
         actorId = driver._id.toString();
-        console.log("[BOOKING] Found driver for completion:", driver._id);
       } else {
         console.error("[BOOKING] Invalid booking type for completion:", booking.bookingType);
         return res.status(400).json({
@@ -351,7 +356,18 @@ export class BookingController {
         data: updatedBooking,
       });
     } catch (error) {
-      throw error;
+      if (error instanceof HttpException) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+          errors: error.errors,
+        });
+      }
+      console.error("Error completing booking:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Unable to complete booking at this time.",
+      });
     }
   }
 

@@ -177,7 +177,7 @@ export default function DriverForm() {
     }
 
     try {
-      await signup({
+      const user = await signup({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -192,7 +192,15 @@ export default function DriverForm() {
         vehiclePhoto: formData.vehiclePhoto,
         driverAadhar: formData.driverAadhar,
       });
-      router.push("/");
+      
+      // Redirect based on role
+      if (user.role === "GUIDE") {
+        router.push("/guide/dashboard");
+      } else if (user.role === "DRIVER") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/");
+      }
     } catch (err: any) {
       console.error("Signup error:", err);
 

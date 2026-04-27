@@ -127,9 +127,26 @@ export const PaymentProvider = ({
         ),
       );
       return data;
-    } catch (error) {
-      console.log("Error Processing Payment", error);
-      throw error;
+    } catch (error: any) {
+      // Extract actual backend error message
+      let errorMessage = "Payment processing failed";
+      
+      if (error?.response?.data?.message) {
+        // Axios error format
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        // Standard error message
+        errorMessage = error.message;
+      }
+      
+      console.error("[PAYMENT_ERROR] Error Processing Payment:", {
+        errorMessage,
+        fullError: error,
+        paymentId,
+      });
+      
+      // Throw error with extracted message
+      throw new Error(errorMessage);
     }
   };
 

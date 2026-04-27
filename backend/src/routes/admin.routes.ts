@@ -12,6 +12,9 @@ router.use(authenticate, authorize(["ADMIN"]));
 // Get all users
 router.get("/users", adminController.getUsers);
 
+// Get user detail
+router.get("/users/:id", adminController.getUserDetail);
+
 // Block user
 router.patch("/users/:id/block", adminController.blockUser);
 

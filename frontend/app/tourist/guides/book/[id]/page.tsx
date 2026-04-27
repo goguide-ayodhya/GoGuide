@@ -344,6 +344,7 @@ export default function GuideBookingPage() {
                   <GuideBookingForm
                     price={guide.price}
                     onSubmit={handleProceedToPayment}
+                    isLoading={isSubmitting}
                   />
                   {!isGuideAvailable && (
                     <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-white/70" />

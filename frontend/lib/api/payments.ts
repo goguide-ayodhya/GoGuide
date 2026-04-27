@@ -21,8 +21,17 @@ const authHeaders = () => {
 const handleRes = async (res: Response) => {
   const json = await res.json();
   if (!res.ok) {
-    console.error("API Error:", res.status, res.statusText, json);
-    throw new Error(json.message || `API Error: ${res.status} ${res.statusText}`);
+    const errorMessage =
+      json.message || `API Error: ${res.status} ${res.statusText}`;
+    console.error("[API_ERROR] Payment API Error:", {
+      status: res.status,
+      statusText: res.statusText,
+      message: errorMessage,
+      fullResponse: json,
+    });
+    const error = new Error(errorMessage) as any;
+    error.response = { data: json, status: res.status };
+    throw error;
   }
   return json.data;
 };
@@ -52,7 +61,10 @@ export const setPaymentModeApi = async (
   return handleRes(res);
 };
 
-export const createRazorpayOrderApi = async (bookingId: string, payload?: any) => {
+export const createRazorpayOrderApi = async (
+  bookingId: string,
+  payload?: any,
+) => {
   // Ensure payload amounts are integers when provided
   if (payload && typeof payload.amount === "number") {
     payload.amount = Math.round(payload.amount);

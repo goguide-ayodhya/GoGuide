@@ -35,7 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={manrope.className}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          {/* <Analytics />{" "} */}
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

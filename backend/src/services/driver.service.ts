@@ -71,7 +71,7 @@ export class DriverService {
   async setAvailability(userId: string, isAvailable: boolean) {
     const driver = await Driver.findOneAndUpdate(
       { userId },
-      { isAvailable: true },
+      { isAvailable },
       { new: true },
     );
     if (!driver) {

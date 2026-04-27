@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ export function BookingCard({
 }: BookingCardProps) {
   const router = useRouter();
   const { setCurrentBooking } = useBooking();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const needsPayment =
     booking.status === "ACCEPTED" && booking.paymentStatus !== "COMPLETED";
@@ -40,9 +42,16 @@ export function BookingCard({
   const remaining = booking.remainingAmount ?? 0;
   const isPartialRemaining = paid > 0 && remaining > 0.01;
 
-  const handlePaymentNavigation = () => {
-    setCurrentBooking(booking);
-    router.push(`/tourist/payment?bookingId=${encodeURIComponent(booking.id)}`);
+  const handlePaymentNavigation = async () => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    try {
+      setCurrentBooking(booking);
+      router.push(`/tourist/payment?bookingId=${encodeURIComponent(booking.id)}`);
+    } finally {
+      setIsNavigating(false);
+    }
   };
 
   const canCancel =
@@ -161,10 +170,11 @@ export function BookingCard({
                 <Button
                   size="sm"
                   onClick={handlePaymentNavigation}
+                  disabled={isNavigating}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Wallet className="h-4 w-4 mr-1.5" />
-                  {booking.paymentStatus === "FAILED"
+                  {isNavigating ? "Loading..." : booking.paymentStatus === "FAILED"
                     ? "Retry Payment"
                     : isPartialRemaining
                       ? "Pay Left"

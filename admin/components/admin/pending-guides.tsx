@@ -72,6 +72,21 @@ export function PendingGuides() {
     }
   };
 
+  const handleAcceptGuide = async (guideId: string) => {
+    try {
+      setProcessing(guideId);
+      // TODO: Implement accept guide API call
+      console.log("Accepting guide:", guideId);
+
+      // For now, just remove from the list
+      setGuides(prev => prev.filter(g => g.id !== guideId));
+    } catch (error) {
+      console.error("Failed to accept guide:", error);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="border-border">

@@ -7,8 +7,12 @@ export interface IDriver extends Document {
   vehicleType?: "CAR" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
   vehicleName: string;
 
+  capacity: number;
+
   pricePerKm?: number;
   seats?: number;
+
+  location: String;
 
   images?: string[];
 
@@ -46,6 +50,10 @@ const DriverSchema = new Schema<IDriver>(
       enum: ["CAR", "BIKE", "AUTO", "RIKSHAW", "VAN", "OTHER"],
     },
 
+    capacity: {
+      type: Number,
+    },
+
     pricePerKm: {
       type: Number,
     },
@@ -59,6 +67,10 @@ const DriverSchema = new Schema<IDriver>(
     isAvailable: {
       type: Boolean,
       default: true,
+    },
+
+    location: {
+      type: String,
     },
 
     averageRating: {

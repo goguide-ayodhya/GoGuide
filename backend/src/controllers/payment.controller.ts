@@ -3,6 +3,7 @@ import { AuthRequest } from "../middleware/auth";
 import { paymentService } from "../services/payment.service";
 import { BadRequest } from "../utils/httpException";
 import { verifyWebhookSignature } from "../services/razorpay.service";
+import { PaymentWebhookEvent } from "../models/PaymentWebhookEvent";
 import {
   createRefundSchema,
   createRazorpayOrderSchema,
@@ -10,6 +11,8 @@ import {
   verifyRazorpaySchema,
 } from "../validations/payment";
 import { Payment } from "../models/Payment";
+import { Driver } from "../models/Driver";
+import { Guide } from "../models/Guide";
 
 export class PaymentController {
   async handleRazorpayWebhook(req: Request, res: Response) {
@@ -30,7 +33,25 @@ export class PaymentController {
     }
 
     const event = JSON.parse(rawBody.toString("utf8"));
-    const result = await paymentService.processRazorpayWebhookEvent(event);
+    const already = await PaymentWebhookEvent.findOne({ eventId: event.id });
+    if (already) {
+      return res
+        .status(200)
+        .json({ success: true, message: "Already processed" });
+    }
+
+    const result = await paymentService.processRazorpayWebhookEvent(
+      event,
+      event.payload?.payment?.entity?.id,
+      event.payload?.order?.entity?.id,
+    );
+
+    await PaymentWebhookEvent.create({
+      eventId: event.id,
+      eventType: event.event,
+      paymentId: event.payload?.payment?.entity?.id,
+      orderId: event.payload?.order?.entity?.id,
+    });
 
     res.status(200).json({
       success: true,
@@ -43,21 +64,38 @@ export class PaymentController {
     try {
       const { bookingId } = req.params;
 
-      const existing = await Payment.findOne({ bookingId }).populate(
-        "bookingId",
-      );
+      const existing = await Payment.findOne({
+        bookingId,
+        status: { $in: ["PENDING", "COMPLETED", "FAILED"] },
+        // paymentKind: "CHARGE",
+      });
+
       if (existing) {
-        const msg =
-          existing.status === "COMPLETED"
-            ? "Payment already completed"
-            : existing.status === "PENDING"
-              ? "Payment already pending"
-              : "Previous payment failed - reuse available";
-        return res.status(200).json({
-          success: true,
-          message: msg,
-          data: existing,
-        });
+        if (existing.status === "COMPLETED") {
+          return res.status(200).json({
+            success: true,
+            message: "Payment already completed",
+            data: existing,
+          });
+        }
+
+        if (existing.status === "PENDING") {
+          return res.status(200).json({
+            success: true,
+            message: "Retry existing payment",
+            data: existing,
+            retry: true,
+          });
+        }
+
+        if (existing.status === "FAILED") {
+          return res.status(200).json({
+            success: true,
+            message: "Retry failed payment",
+            data: existing,
+            retry: true,
+          });
+        }
       }
 
       const payment = await paymentService.createPayment(
@@ -108,9 +146,6 @@ export class PaymentController {
           : undefined,
       );
 
-      console.log("RAZORPAY ORDER RESULT:", result);
-      console.log("AMOUNT:", result.amount);
-
       res.status(200).json({
         success: true,
         message: "Razorpay order created",
@@ -122,9 +157,11 @@ export class PaymentController {
       if (errAny && (errAny.code === 11000 || errAny.code === 1100)) {
         try {
           const { bookingId } = req.params;
-          const existing = await Payment.findOne({ bookingId }).populate(
-            "bookingId",
-          );
+          const existing = await Payment.findOne({
+            bookingId,
+            status: { $in: ["PENDING", "COMPLETED"] },
+            paymentKind: "CHARGE",
+          });
           if (existing) {
             return res.status(409).json({
               success: false,
@@ -175,16 +212,27 @@ export class PaymentController {
         throw new BadRequest("paymentId is required");
       }
 
+      let payment = await Payment.findOne({ _id: paymentId, userId: req.userId! });
+      if (!payment) {
+        throw new BadRequest("Payment not found");
+      }
+
+      if (payment.status === "COMPLETED") {
+        return res.status(200).json({
+          success: true,
+          message: "Payment already completed",
+          data: payment,
+        });
+      }
+
       const verifyParsed = verifyRazorpaySchema.safeParse(req.body);
-      const payment = verifyParsed.success
+      payment = verifyParsed.success
         ? await paymentService.verifyAndCompleteRazorpayPayment(
             req.userId!,
             paymentId,
             verifyParsed.data,
           )
         : await paymentService.processPayment(paymentId, req.body, req.userId!);
-
-      console.log("VERIFY BODY:", req.body);
 
       res.status(200).json({
         success: true,
@@ -317,8 +365,18 @@ export class PaymentController {
 
   async getGuidePayments(req: AuthRequest, res: Response) {
     try {
-      const guideId = req.userId!;
-      const payments = await paymentService.getPaymentsByGuide(guideId);
+      const userId = req.userId!;
+      const guide = await Guide.findOne({ userId });
+      if (!guide) {
+        return res.status(200).json({
+          success: true,
+          message: "Guide profile not found",
+          data: [],
+        });
+      }
+      const payments = await paymentService.getPaymentsByGuide(
+        guide._id.toString(),
+      );
 
       res.status(200).json({
         success: true,
@@ -332,8 +390,16 @@ export class PaymentController {
 
   async getPaymentStats(req: AuthRequest, res: Response) {
     try {
-      const guideId = req.userId!;
-      const stats = await paymentService.getPaymentStats(guideId);
+      const userId = req.userId!;
+      const guide = await Guide.findOne({ userId });
+      if (!guide) {
+        return res.status(200).json({
+          success: true,
+          message: "Guide profile not found",
+          data: { totalEarnings: 0, completedPayments: 0, averagePayment: 0 },
+        });
+      }
+      const stats = await paymentService.getPaymentStats(guide._id.toString());
 
       res.status(200).json({
         success: true,
@@ -346,9 +412,22 @@ export class PaymentController {
   }
 
   async getGuideEarnings(req: AuthRequest, res: Response) {
-    const guideId = req.params.guideId || req.userId!;
-
-    const data = await paymentService.getGuideEarnings(guideId!);
+    const userId = req.userId!;
+    const guide = await Guide.findOne({ userId });
+    if (!guide) {
+      return res.status(200).json({
+        success: true,
+        message: "Guide profile not found",
+        data: {
+          totalEarnings: 0,
+          pendingAmount: 0,
+          bookingStats: { total: 0, completed: 0, pending: 0 },
+          revenueByTourType: [],
+          recentTransactions: [],
+        },
+      });
+    }
+    const data = await paymentService.getGuideEarnings(guide._id.toString());
 
     res.status(200).json({
       success: true,
@@ -378,8 +457,18 @@ export class PaymentController {
 
   async getGuideMonthlyEarnings(req: AuthRequest, res: Response) {
     try {
-      const guideId = req.userId!;
-      const data = await paymentService.getGuideMonthlyEarnings(guideId);
+      const userId = req.userId!;
+      const guide = await Guide.findOne({ userId });
+      if (!guide) {
+        return res.status(200).json({
+          success: true,
+          message: "Guide monthly earnings fetched",
+          data: [],
+        });
+      }
+      const data = await paymentService.getGuideMonthlyEarnings(
+        guide._id.toString(),
+      );
 
       res.status(200).json({
         success: true,
@@ -393,8 +482,18 @@ export class PaymentController {
 
   async getGuideWeeklyEarnings(req: AuthRequest, res: Response) {
     try {
-      const guideId = req.userId!;
-      const data = await paymentService.getGuideWeeklyEarnings(guideId);
+      const userId = req.userId!;
+      const guide = await Guide.findOne({ userId });
+      if (!guide) {
+        return res.status(200).json({
+          success: true,
+          message: "Guide weekly earnings fetched",
+          data: [],
+        });
+      }
+      const data = await paymentService.getGuideWeeklyEarnings(
+        guide._id.toString(),
+      );
 
       res.status(200).json({
         success: true,
@@ -408,8 +507,24 @@ export class PaymentController {
 
   async getDriverEarnings(req: AuthRequest, res: Response) {
     try {
-      const driverId = req.userId!;
-      const data = await paymentService.getDriverEarnings(driverId);
+      const userId = req.userId!;
+      const driver = await Driver.findOne({ userId });
+      if (!driver) {
+        return res.status(200).json({
+          success: true,
+          message: "Driver earnings fetched",
+          data: {
+            totalEarnings: 0,
+            pendingAmount: 0,
+            bookingStats: { total: 0, completed: 0, pending: 0 },
+            revenueByTourType: [],
+            recentTransactions: [],
+          },
+        });
+      }
+      const data = await paymentService.getDriverEarnings(
+        driver._id.toString(),
+      );
 
       res.status(200).json({
         success: true,
@@ -423,8 +538,18 @@ export class PaymentController {
 
   async getDriverMonthlyEarnings(req: AuthRequest, res: Response) {
     try {
-      const driverId = req.userId!;
-      const data = await paymentService.getDriverMonthlyEarnings(driverId);
+      const userId = req.userId!;
+      const driver = await Driver.findOne({ userId });
+      if (!driver) {
+        return res.status(200).json({
+          success: true,
+          message: "Driver monthly earnings fetched",
+          data: [],
+        });
+      }
+      const data = await paymentService.getDriverMonthlyEarnings(
+        driver._id.toString(),
+      );
 
       res.status(200).json({
         success: true,
@@ -438,8 +563,18 @@ export class PaymentController {
 
   async getDriverWeeklyEarnings(req: AuthRequest, res: Response) {
     try {
-      const driverId = req.userId!;
-      const data = await paymentService.getDriverWeeklyEarnings(driverId);
+      const userId = req.userId!;
+      const driver = await Driver.findOne({ userId });
+      if (!driver) {
+        return res.status(200).json({
+          success: true,
+          message: "Driver weekly earnings fetched",
+          data: [],
+        });
+      }
+      const data = await paymentService.getDriverWeeklyEarnings(
+        driver._id.toString(),
+      );
 
       res.status(200).json({
         success: true,

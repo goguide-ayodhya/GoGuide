@@ -28,10 +28,19 @@ export default function PackageBookingPage() {
     }
   }, [packages, packageId])
 
-  const handleBookingSubmit = (data: any) => {
-    console.log('Booking data:', data)
-    // TODO: Process booking and redirect to payment
-    router.push('/payment')
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleBookingSubmit = async (data: any) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    try {
+      console.log('Booking data:', data)
+      // TODO: Process booking and redirect to payment
+      router.push('/tourist/payment')
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -64,6 +73,7 @@ export default function PackageBookingPage() {
                     packagePrice={pkg.price}
                     packageTitle={pkg.title}
                     onSubmit={handleBookingSubmit}
+                    isLoading={isSubmitting}
                   />
                 )}
               </div>

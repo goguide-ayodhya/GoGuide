@@ -89,6 +89,8 @@ export default function CabBookingPage() {
   const isDriverAvailable =
     driver.isAvailable && driver.verificationStatus === "VERIFIED";
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleProceedToPayment = async (formData: {
     meetingPoint: string;
     dropoffLocation: string;
@@ -99,7 +101,10 @@ export default function CabBookingPage() {
     email: string;
     phone: string;
   }) => {
+    if (isSubmitting) return;
+    
     setError(null);
+    setIsSubmitting(true);
 
     try {
       const estimatedDistance = 10;
@@ -144,6 +149,8 @@ export default function CabBookingPage() {
         ? Object.values(error.errors).join(", ")
         : error.message || "An error occurred while creating the booking";
       setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -312,7 +319,7 @@ export default function CabBookingPage() {
                     </div>
                   </div>
                 )}
-                <CabBookingForm onSubmit={handleProceedToPayment} />
+                <CabBookingForm onSubmit={handleProceedToPayment} isLoading={isSubmitting} />
               </div>
             </Card>
           </div>

@@ -12,6 +12,7 @@ import { DriverProvider } from "@/contexts/DriverContext";
 import { PackageProvider } from "@/contexts/TourPackageContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { FCMNotificationProvider } from "@/contexts/FCMNotificationContext";
+import SocketProvider from "@/contexts/cabs/SocketContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -22,13 +23,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <DriverProvider>
               <PaymentProvider>
                 <EarningsProvider>
-                  <ReviewProvider>
-                    <GuideProvider>
-                      <PackageProvider>
-                        {children}
-                      </PackageProvider>
-                    </GuideProvider>
-                  </ReviewProvider>
+                  <SocketProvider>
+                    <ReviewProvider>
+                      <GuideProvider>
+                        <PackageProvider>{children}</PackageProvider>
+                      </GuideProvider>
+                    </ReviewProvider>
+                  </SocketProvider>
                 </EarningsProvider>
               </PaymentProvider>
             </DriverProvider>

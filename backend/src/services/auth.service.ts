@@ -32,6 +32,9 @@ export class AuthService {
     }
 
     if (user.role === "GUIDE" || user.role === "DRIVER") {
+      if (!user.isEmailVerified) {
+        throw new BadRequest("Please verify your email before continuing");
+      }
       if (!user.status || user.status !== "ACTIVE") {
         throw new BadRequest("Account is inactive");
       }
@@ -230,6 +233,12 @@ export class AuthService {
     user.otp = undefined;
     user.otpExpiresAt = undefined;
     user.isEmailVerified = true;
+
+    // Activate GUIDE and DRIVER accounts after email verification
+    if (user.role === "GUIDE" || user.role === "DRIVER") {
+      user.status = "ACTIVE";
+    }
+
     await user.save();
 
     return { message: "Email verified successfully" };
@@ -285,6 +294,9 @@ export class AuthService {
     user.otp = undefined;
     user.otpExpiresAt = undefined;
     await user.save();
+
+    // Invalidate all existing sessions for security
+    await this.logoutAll(user._id.toString());
 
     return { message: "Password reset successfully" };
   }

@@ -93,7 +93,7 @@ function BookingConfirmationContent() {
               <CheckCircle className="h-8 w-8 text-green-600 flex-shrink-0 mt-1" />
               <div>
                 <h1 className="text-3xl font-semibold text-slate-950">
-                  Booking Confirmed! 🎉
+                  Booking Created!
                 </h1>
                 <p className="mt-2 text-slate-600">
                   Your tour reservation has been successfully created. Proceed
@@ -169,6 +169,7 @@ function BookingConfirmationContent() {
                       <p className="text-xs text-slate-500">Participants</p>
                       <p className="font-semibold text-slate-900">
                         {currentBooking.participants || 1} person(s)
+                        Start time: {currentBooking.startTime}
                       </p>
                     </div>
                   </div>

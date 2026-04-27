@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useEffect } from "react";
 import { getGuideEarningsApi, getGuideMonthlyEarningsApi, getGuideWeeklyEarningsApi } from "@/lib/api/payments";
 import { getDriverEarnings, getDriverMonthlyEarnings, getDriverWeeklyEarnings } from "@/lib/api/payments";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,6 +87,21 @@ export const EarningsProvider = ({
       console.log("Error fetching weekly earnings", error);
     }
   };
+
+  useEffect(() => {
+    if (!user) {
+      setEarnings(null);
+      setMonthlyData(null);
+      setWeeklyData(null);
+      return;
+    }
+
+    void (async () => {
+      await fetchEarnings();
+      await fetchMonthlyEarnings();
+      await fetchWeeklyEarnings();
+    })();
+  }, [user]);
 
   return (
     <EarningsContext.Provider value={{ 

@@ -260,7 +260,7 @@ export default function GuidesPage() {
             )}
           </section>
 
-          <section className="grid gap-6 md:grid-cols-4">
+          <section className="grid gap-6 md:grid-cols-3">
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 text-center shadow-sm">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
                 Active guides

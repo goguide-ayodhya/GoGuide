@@ -218,7 +218,7 @@ export class ApiError extends Error {
   }
 }
 
-export const loginUser = async (payload: any) => {
+export const loginUser = async (payload: { identifier: string; password: string }) => {
   const res = await fetch(`${base_url}auth/login`, {
     method: "POST",
     headers: {
@@ -226,7 +226,7 @@ export const loginUser = async (payload: any) => {
     },
     body: JSON.stringify(payload),
   });
-  console.log("pyload", payload);
+  console.log("payload", payload);
 
   const result = await res.json();
   if (!res.ok) {

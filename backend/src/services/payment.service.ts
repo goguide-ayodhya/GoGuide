@@ -14,6 +14,7 @@ import {
   createRazorpayOrder,
   getRazorpayClient,
   verifyPaymentSignature,
+  verifyWebhookSignature,
 } from "./razorpay.service";
 import { applyPlatformSplitToBooking } from "./bookingCommission.service";
 import { PaymentWebhookEvent } from "../models/PaymentWebhookEvent";
@@ -21,6 +22,7 @@ import { Refund } from "../models/Refund";
 import { financialAuditService } from "./financialAudit.service";
 import { FinancialAuditLog } from "../models/FinancialAuditLog";
 import mongoose from "mongoose";
+import { Session } from "inspector/promises";
 
 function effectiveLineAmount(p: IPayment): number {
   if (p.amountPaid != null && p.amountPaid > 0) return p.amountPaid;
@@ -148,7 +150,7 @@ export class PaymentService {
       },
     });
 
-    return Payment.findById(payment._id).populate("bookingId");
+    return Payment.findById(payment._id).session(session).populate("bookingId");
   }
 
   private async handleRefundWebhook(
@@ -262,7 +264,17 @@ export class PaymentService {
     return { handled: true, refundProcessed: true };
   }
 
-  async processRazorpayWebhookEvent(event: any) {
+  async processRazorpayWebhookEvent(
+    event: any,
+    rawBody: Buffer,
+    signature: string,
+  ) {
+    // Verify webhook signature first
+    const isValidSignature = verifyWebhookSignature(rawBody, signature);
+    if (!isValidSignature) {
+      throw new BadRequest("Invalid webhook signature");
+    }
+
     const eventId = event?.id;
     const eventType = event?.event as string | undefined;
     const paymentEntity = event?.payload?.payment?.entity as
@@ -274,16 +286,24 @@ export class PaymentService {
     }
 
     try {
+      const already = await PaymentWebhookEvent.findOne({ eventId: event.id });
+      if (already) return;
+
       await PaymentWebhookEvent.create({
-        eventId,
-        eventType,
-        paymentId: paymentEntity?.id,
-        orderId: paymentEntity?.order_id,
+        eventId: event.id,
+        eventType: event.event,
+        paymentId: event.payload?.payment?.entity?.id,
+        orderId: event.payload?.payment?.entity?.order_id,
       });
     } catch (err: any) {
       // Duplicate event replay: safely ignore.
       if (err?.code === 11000) {
-        return { handled: true, duplicate: true, eventId, eventType };
+        return {
+          handled: true,
+          duplicate: true,
+          eventId: event.id,
+          eventType: event.event,
+        };
       }
       throw err;
     }
@@ -296,7 +316,12 @@ export class PaymentService {
         "refund.failed",
       ].includes(eventType)
     ) {
-      return { handled: false, ignored: true, eventId, eventType };
+      return {
+        handled: false,
+        ignored: true,
+        eventId: event.id,
+        eventType: event.event,
+      };
     }
 
     if (eventType === "refund.processed" || eventType === "refund.failed") {
@@ -393,23 +418,30 @@ export class PaymentService {
     });
 
     if (existingInitial) {
-      return Payment.findById(existingInitial._id).populate("bookingId");
+      return existingInitial.populate("bookingId");
     }
 
     const legacy = await Payment.findOne({ bookingId });
     if (legacy) {
-      return Payment.findById(legacy._id).populate("bookingId");
+      return legacy.populate("bookingId");
     }
+
+    const initialPaidAmount = roundMoney(booking.paidAmount ?? 0);
+    const initialRemainingAmount = roundMoney(
+      booking.remainingAmount ?? booking.finalPrice ?? booking.totalPrice,
+    );
 
     const payment = await Payment.create({
       bookingId,
       userId,
       guideId: booking.guideId,
       driverId: booking.driverId,
-      amount: 0,
-      amountPaid: 0,
-      paidAmount: 0,
-      remainingAmount: booking.remainingAmount ?? booking.totalPrice,
+
+      amount: initialRemainingAmount,
+      // amountPaid: initialPaidAmount,
+      paidAmount: initialPaidAmount,
+      // remainingAmount: initialRemainingAmount,
+
       paymentKind: "INITIAL",
       status: "PENDING",
     });
@@ -454,11 +486,11 @@ export class PaymentService {
     const originalPrice = booking.originalPrice ?? booking.totalPrice;
     const paidAmount = booking.paidAmount ?? 0;
 
-    console.log("setBookingPaymentMode - originalPrice:", originalPrice, "totalPrice:", booking.totalPrice, "paidAmount:", paidAmount);
-
     if (!originalPrice || isNaN(originalPrice) || originalPrice <= 0) {
       console.log("Invalid originalPrice for payment mode setting");
-      throw new BadRequest("Booking has invalid pricing data - original price is missing or invalid");
+      throw new BadRequest(
+        "Booking has invalid pricing data - original price is missing or invalid",
+      );
     }
 
     const pricing = applyPaymentModePricing({
@@ -470,6 +502,7 @@ export class PaymentService {
 
     booking.originalPrice = originalPrice;
     booking.discount = pricing.discount;
+    booking.gstAmount = pricing.gstAmount;
     booking.finalPrice = pricing.finalPrice;
     booking.remainingAmount = pricing.remainingAmount;
     booking.partialDiscountApplied = pricing.partialDiscountApplied;
@@ -494,7 +527,6 @@ export class PaymentService {
     bookingId: string,
     opts?: { paymentStage?: "ADVANCE" | "FULL" },
   ) {
-    console.log("Creating Razorpay order for booking:", bookingId, "user:", userId);
     const booking = await Booking.findById(bookingId);
 
     if (!booking) {
@@ -502,70 +534,57 @@ export class PaymentService {
       throw new NotFound("Booking not found");
     }
 
-    console.log("Booking found:", booking._id, "status:", booking.status, "paymentType:", booking.paymentType, "finalPrice:", booking.finalPrice, "totalPrice:", booking.totalPrice, "paidAmount:", booking.paidAmount);
-
     if (!booking.userId) {
-      console.log("Booking has no userId");
       throw new BadRequest("Booking is invalid - no user associated");
     }
 
     if (booking.userId.toString() !== userId) {
-      console.log("Unauthorized: booking user", booking.userId, "req user", userId);
       throw new Unauthorized("Not authorized to access this booking");
     }
 
     if (booking.status !== "ACCEPTED") {
-      console.log("Booking not accepted:", booking.status);
-      throw new BadRequest("Booking must be accepted before payment can be initiated");
+      throw new BadRequest(
+        "Booking must be accepted before payment can be initiated",
+      );
     }
 
     // Ensure booking has pricing data
-    if (typeof booking.totalPrice !== 'number' || booking.totalPrice < 0) {
-      console.log("Invalid totalPrice:", booking.totalPrice);
+    if (typeof booking.totalPrice !== "number" || booking.totalPrice < 0) {
       throw new BadRequest("Booking has invalid total price");
     }
 
     if (booking.totalPrice === 0) {
-      console.log("Booking totalPrice is 0");
       throw new BadRequest("Cannot process payment for free booking");
     }
 
     if (booking.paymentType === "COD") {
-      console.log("COD payment type");
       throw new BadRequest("Cash on delivery does not use Razorpay");
     }
 
     if (!booking.paymentType) {
-      console.log("No payment type set");
       throw new BadRequest("Select a payment option first");
     }
 
     const finalPrice = booking.finalPrice ?? booking.totalPrice;
     const paidAmount = booking.paidAmount ?? 0;
 
-    console.log("finalPrice:", finalPrice, "paidAmount:", paidAmount, "originalPrice:", booking.originalPrice, "totalPrice:", booking.totalPrice);
-
     if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) {
-      console.log("Invalid finalPrice");
-      throw new BadRequest("Invalid booking final price - payment mode may not be set correctly. Final price must be greater than 0.");
+      throw new BadRequest(
+        "Invalid booking final price - payment mode may not be set correctly. Final price must be greater than 0.",
+      );
     }
 
     if (finalPrice < 1) {
-      console.log("Final price too small:", finalPrice);
       throw new BadRequest("Minimum booking amount is ₹1");
     }
 
     if (isNaN(paidAmount) || paidAmount < 0) {
-      console.log("Invalid paidAmount");
       throw new BadRequest("Invalid paid amount");
     }
 
     const remaining = roundMoney(finalPrice - paidAmount);
 
-    console.log("remaining:", remaining);
-
     if (remaining <= 0) {
-      console.log("Nothing left to pay");
       throw new BadRequest("Nothing left to pay online");
     }
 
@@ -577,8 +596,6 @@ export class PaymentService {
     let paymentStage = opts?.paymentStage;
     let paymentType: "FULL" | "ADVANCE" | "REMAINING" = "FULL";
     let chargeAmount = remaining;
-
-    console.log("paymentType from booking:", booking.paymentType, "opts.paymentStage:", opts?.paymentStage);
 
     if (booking.paymentType === "PARTIAL") {
       if (paidAmount < 0.01) {
@@ -596,12 +613,19 @@ export class PaymentService {
       chargeAmount = remaining;
     }
 
+    console.log("💰 PAYMENT CALCULATION AUDIT:", {
+      bookingId,
+      finalPrice,
+      paidAmount,
+      remaining,
+      paymentType: booking.paymentType,
+      chargeAmount,
+      paymentStage,
+    });
+
     if (opts?.paymentStage && booking.paymentType === "FULL") {
       paymentStage = "FULL";
-      paymentType = "FULL";
     }
-
-    console.log("chargeAmount:", chargeAmount, "paymentStage:", paymentStage, "paymentType:", paymentType);
 
     if (chargeAmount <= 0) {
       console.log("Invalid chargeAmount <=0");
@@ -616,7 +640,8 @@ export class PaymentService {
     const duplicatePending = await Payment.findOne({
       bookingId,
       status: "PENDING",
-      amountPaid: chargeAmount,
+      paymentKind: "CHARGE",
+      // amountPaid: chargeAmount,
       paymentStage,
       razorpayOrderId: { $exists: true, $ne: null },
     });
@@ -636,8 +661,14 @@ export class PaymentService {
       };
     }
 
-    // Try to reuse any existing PENDING payment for this booking (even without orderId)
-    let pending = await Payment.findOne({ bookingId, status: "PENDING" });
+    // Try to reuse any existing PENDING payment for this booking matching the current amount and stage.
+    let pending = await Payment.findOne({
+      bookingId,
+      status: "PENDING",
+      paymentKind: "CHARGE",
+      paymentStage,
+      // amountPaid: chargeAmount,
+    });
     if (pending && pending.razorpayOrderId) {
       const keyId = process.env.RAZORPAY_KEY_ID;
       if (!keyId) throw new BadRequest("Razorpay is not configured");
@@ -661,9 +692,9 @@ export class PaymentService {
         {
           $set: {
             amount: chargeAmount,
-            amountPaid: chargeAmount,
+            // amountPaid: chargeAmount,
             paidAmount: chargeAmount,
-            remainingAmount: roundMoney(Math.max(0, remaining - chargeAmount)),
+            // remainingAmount: roundMoney(Math.max(0, remaining - chargeAmount)),
             type: paymentType,
             paymentKind: "CHARGE",
             paymentStage,
@@ -686,8 +717,8 @@ export class PaymentService {
           guideId: booking.guideId || undefined,
           driverId: booking.driverId || undefined,
           amount: chargeAmount,
-          amountPaid: chargeAmount,
-          paidAmount: chargeAmount,
+          // amountPaid: chargeAmount,
+          // paidAmount: chargeAmount,
           remainingAmount: roundMoney(Math.max(0, remaining - chargeAmount)),
           type: paymentType,
           paymentKind: "CHARGE",
@@ -695,7 +726,6 @@ export class PaymentService {
           status: "PENDING",
         });
       } catch (err: any) {
-        // Likely a race created a pending doc; fetch and reuse
         if (err?.code === 11000) {
           paymentDoc = await Payment.findOne({ bookingId, status: "PENDING" });
         } else {
@@ -705,13 +735,40 @@ export class PaymentService {
     }
 
     // At this point we have a paymentDoc to attach an order to.
-    const receipt = `bk_${bookingId}_${paymentDoc!._id}`.slice(0, 40);
-    const { order } = await createRazorpayOrder(chargeAmount, receipt);
+    if (!paymentDoc) {
+      throw new BadRequest("Failed to create or find payment document");
+    }
+    const receipt = `bk_${bookingId}_${paymentDoc._id}`.slice(0, 40);
+    console.log("🔄 RAZORPAY ORDER CREATION:", {
+      bookingId,
+      chargeAmount,
+      chargeAmountPaise: Math.round(chargeAmount * 100),
+      receipt,
+      paymentDocId: paymentDoc!._id,
+    });
+    const { order, amountPaise } = await createRazorpayOrder(
+      chargeAmount,
+      receipt,
+    );
+
+    console.log("✅ RAZORPAY ORDER CREATED:", {
+      orderId: order.id,
+      orderAmountPaise: amountPaise,
+      orderAmountRupees: amountPaise / 100,
+      expectedChargeAmount: chargeAmount,
+      amountMatch: amountPaise === Math.round(chargeAmount * 100),
+    });
 
     // Atomically set razorpayOrderId only if not already set (claim)
     try {
       const updated = await Payment.findOneAndUpdate(
-        { _id: paymentDoc!._id, $or: [{ razorpayOrderId: { $exists: false } }, { razorpayOrderId: null }] },
+        {
+          _id: paymentDoc!._id,
+          $or: [
+            { razorpayOrderId: { $exists: false } },
+            { razorpayOrderId: null },
+          ],
+        },
         { $set: { razorpayOrderId: order.id } },
         { new: true },
       );
@@ -743,7 +800,10 @@ export class PaymentService {
       };
     } catch (err: any) {
       if (err?.code === 11000) {
-        const existing = await Payment.findOne({ bookingId, status: "PENDING" });
+        const existing = await Payment.findOne({
+          bookingId,
+          status: "PENDING",
+        });
         const keyId = process.env.RAZORPAY_KEY_ID;
         return {
           payment: existing,
@@ -774,7 +834,6 @@ export class PaymentService {
 
   async skipPayment(userId: string, bookingId: string) {
     const booking = await Booking.findById(bookingId);
-
     if (!booking) {
       throw new NotFound("Booking not found");
     }
@@ -792,6 +851,7 @@ export class PaymentService {
 
   /**
    * Completes a Razorpay payment after signature verification (production path).
+   * Uses transactions for atomic payment completion.
    */
   async verifyAndCompleteRazorpayPayment(
     userId: string,
@@ -802,197 +862,294 @@ export class PaymentService {
       razorpay_signature: string;
     },
   ) {
-    const payment = await Payment.findById(paymentId);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (!payment) {
-      throw new NotFound("Payment not found");
+    try {
+      const payment = await Payment.findById(paymentId).session(session);
+
+      if (!payment) {
+        throw new NotFound("Payment not found");
+      }
+
+      if (payment.userId.toString() !== userId) {
+        throw new Unauthorized("Not your payment");
+      }
+
+      if (
+        !payment.razorpayOrderId ||
+        payment.razorpayOrderId !== payload.razorpay_order_id
+      ) {
+        throw new BadRequest("Order mismatch for this payment");
+      }
+
+      const ok = verifyPaymentSignature(
+        payload.razorpay_order_id,
+        payload.razorpay_payment_id,
+        payload.razorpay_signature,
+      );
+
+      if (!ok) {
+        throw new BadRequest("Invalid Razorpay signature");
+      }
+
+      // Check idempotency: if already completed, return it
+      const existingPaid = await Payment.findOne({
+        razorpayPaymentId: payload.razorpay_payment_id,
+        status: "COMPLETED",
+      })
+        .session(session)
+        .populate("bookingId");
+
+      if (existingPaid) {
+        await session.commitTransaction();
+        session.endSession();
+        return existingPaid;
+      }
+
+      const razorpay = getRazorpayClient();
+      const rpPayment = await razorpay.payments.fetch(
+        payload.razorpay_payment_id,
+      );
+
+      if (rpPayment.order_id !== payload.razorpay_order_id) {
+        throw new BadRequest("Razorpay payment does not belong to this order");
+      }
+
+      const expectedPaise = Math.round(effectiveLineAmount(payment) * 100);
+      console.log("🔍 PAYMENT VERIFICATION AUDIT:", {
+        paymentId,
+        razorpayPaymentId: payload.razorpay_payment_id,
+        expectedPaise,
+        expectedRupees: expectedPaise / 100,
+        razorpayAmount: Number(rpPayment.amount),
+        razorpayAmountRupees: Number(rpPayment.amount) / 100,
+        amountMatch: Number(rpPayment.amount) === expectedPaise,
+        paymentStatus: rpPayment.status,
+        paymentMethod: rpPayment.method,
+      });
+
+      if (Number(rpPayment.amount) !== expectedPaise) {
+        console.log("❌ AMOUNT MISMATCH DETECTED:", {
+          expected: expectedPaise,
+          received: Number(rpPayment.amount),
+          difference: Number(rpPayment.amount) - expectedPaise,
+        });
+        throw new BadRequest("Paid amount does not match expected charge");
+      }
+
+      // Process payment within transaction
+      const freshPayment = await Payment.findById(payment._id).session(session);
+      if (!freshPayment) {
+        throw new NotFound("Payment not found");
+      }
+
+      // Idempotent success path
+      if (
+        freshPayment.status === "COMPLETED" &&
+        freshPayment.razorpayPaymentId === payload.razorpay_payment_id
+      ) {
+        await session.commitTransaction();
+        session.endSession();
+        return Payment.findById(payment._id)
+          .session(session)
+          .populate("bookingId");
+      }
+
+      if (freshPayment.status === "COMPLETED") {
+        throw new BadRequest(
+          "Payment already completed with another transaction",
+        );
+      }
+
+      const booking = await Booking.findById(freshPayment.bookingId).session(
+        session,
+      );
+      if (!booking) {
+        throw new NotFound("Booking not found");
+      }
+
+      const lineAmount = effectiveLineAmount(freshPayment);
+      const finalPrice = booking.finalPrice ?? booking.totalPrice;
+      const paidBefore = booking.paidAmount ?? 0;
+
+      if (paidBefore + lineAmount > finalPrice + 0.01) {
+        throw new BadRequest("This payment would overpay the booking");
+      }
+
+      freshPayment.status = "COMPLETED";
+      freshPayment.transactionId = payload.razorpay_payment_id;
+      freshPayment.razorpayPaymentId = payload.razorpay_payment_id;
+      freshPayment.paymentMethod = "RAZORPAY";
+      freshPayment.paidAt = new Date();
+      freshPayment.failureReason = undefined;
+      await freshPayment.save({ session });
+
+      const paidAfter = roundMoney(paidBefore + lineAmount);
+      const remainingAfter = roundMoney(finalPrice - paidAfter);
+
+      booking.paidAmount = paidAfter;
+      booking.remainingAmount = Math.max(0, remainingAfter);
+      booking.paymentStatus =
+        remainingAfter <= 0.01
+          ? "COMPLETED"
+          : paidAfter > 0
+            ? "PARTIAL"
+            : "PENDING";
+      applyPlatformSplitToBooking(booking);
+      await booking.save({ session });
+
+      await financialAuditService.log({
+        action: "PAYMENT_COMPLETED",
+        bookingId: booking._id.toString(),
+        paymentId: freshPayment._id.toString(),
+        metadata: {
+          razorpayPaymentId: payload.razorpay_payment_id,
+          source: "checkout",
+          amount: lineAmount,
+        },
+      });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      try {
+        await NotificationService.sendPaymentSuccess(
+          freshPayment._id.toString(),
+        );
+      } catch (error) {
+        console.warn("Notification send failed (non-blocking):", error);
+      }
+
+      return Payment.findById(freshPayment._id).populate("bookingId");
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
     }
-
-    if (payment.userId.toString() !== userId) {
-      throw new Unauthorized("Not your payment");
-    }
-
-    if (
-      !payment.razorpayOrderId ||
-      payment.razorpayOrderId !== payload.razorpay_order_id
-    ) {
-      throw new BadRequest("Order mismatch for this payment");
-    }
-
-    const ok = verifyPaymentSignature(
-      payload.razorpay_order_id,
-      payload.razorpay_payment_id,
-      payload.razorpay_signature,
-    );
-
-    if (!ok) {
-      throw new BadRequest("Invalid Razorpay signature");
-    }
-
-    const existingPaid = await Payment.findOne({
-      razorpayPaymentId: payload.razorpay_payment_id,
-      status: "COMPLETED",
-    }).populate("bookingId");
-    if (existingPaid) return existingPaid;
-
-    const razorpay = getRazorpayClient();
-    const rpPayment = await razorpay.payments.fetch(
-      payload.razorpay_payment_id,
-    );
-
-    if (rpPayment.order_id !== payload.razorpay_order_id) {
-      throw new BadRequest("Razorpay payment does not belong to this order");
-    }
-
-    const expectedPaise = Math.round(effectiveLineAmount(payment) * 100);
-    if (Number(rpPayment.amount) !== expectedPaise) {
-      throw new BadRequest("Paid amount does not match expected charge");
-    }
-
-    return this.applySuccessfulCharge(payment, payload.razorpay_payment_id, {
-      source: "checkout",
-    });
   }
 
   async createRefund(
-    actorUserId: string,
+    userId: string,
     paymentId: string,
-    payload: { amount: number; reason?: string },
+    data: any,
+    sessionOverride?: any,
   ) {
-    const payment = await Payment.findById(paymentId);
-    if (!payment) {
-      throw new NotFound("Payment not found");
-    }
-    if (payment.status !== "COMPLETED" || !payment.razorpayPaymentId) {
-      throw new BadRequest("Only completed Razorpay payments can be refunded");
+    const session = sessionOverride || (await mongoose.startSession());
+    const isExternalSession = !!sessionOverride;
+
+    if (!isExternalSession) {
+      session.startTransaction();
     }
 
-    const actorRole = await this.getActorRole(actorUserId);
-    const isOwner = payment.userId.toString() === actorUserId;
-    const isAdmin = actorRole === "ADMIN";
-    let isAssigned = false;
-    if (!isOwner && !isAdmin) {
-      const booking = await Booking.findById(payment.bookingId)
-        .select("bookingType guideId driverId")
-        .lean();
-      if (booking?.bookingType === "GUIDE" && booking.guideId) {
-        const guide = await Guide.findOne({ userId: actorUserId })
-          .select("_id")
-          .lean();
-        isAssigned =
-          !!guide && guide._id.toString() === booking.guideId.toString();
+    try {
+      // 1. Get payment with session
+      const payment = await Payment.findById(paymentId).session(session);
+      if (!payment) throw new NotFound("Payment not found");
+
+      // 2. Ownership check
+      if (payment.userId.toString() !== userId) {
+        throw new Unauthorized("Not your payment");
       }
-      if (booking?.bookingType === "DRIVER" && booking.driverId) {
-        const driver = await Driver.findOne({ userId: actorUserId })
-          .select("_id")
-          .lean();
-        isAssigned =
-          !!driver && driver._id.toString() === booking.driverId.toString();
+
+      // 3. Payment must be COMPLETED
+      if (payment.status !== "COMPLETED") {
+        throw new BadRequest("Cannot refund incomplete payment");
       }
-    }
-    if (!isOwner && !isAdmin && !isAssigned) {
-      throw new Unauthorized("Not allowed to create refund for this payment");
-    }
 
-    const amount = roundMoney(payload.amount);
-    if (amount <= 0) {
-      throw new BadRequest("Refund amount must be positive");
-    }
+      // 4. Prevent over-refund
+      const alreadyRefunded = roundMoney(payment.refundedAmount || 0);
+      const chargedAmount = roundMoney(effectiveLineAmount(payment));
+      const maxRefundable = roundMoney(chargedAmount - alreadyRefunded);
 
-    const paid = roundMoney(effectiveLineAmount(payment));
-    const refundedSoFar = roundMoney(payment.refundedAmount ?? 0);
-    const refundable = roundMoney(paid - refundedSoFar);
-    if (amount > refundable + 0.01) {
-      throw new BadRequest(
-        `Refund exceeds refundable amount (max ₹${refundable.toFixed(2)})`,
+      if (maxRefundable <= 0) {
+        throw new BadRequest("Payment already fully refunded");
+      }
+
+      const refundAmount = roundMoney(Math.min(data.amount, maxRefundable));
+
+      // 5. Get booking with session
+      const booking = await Booking.findById(payment.bookingId).session(
+        session,
       );
-    }
+      if (!booking) throw new NotFound("Booking not found");
 
-    const razorpay = getRazorpayClient();
-    const rpRefund = (await razorpay.payments.refund(
-      payment.razorpayPaymentId,
-      {
-        amount: Math.round(amount * 100),
-        notes: {
-          bookingId: payment.bookingId.toString(),
-          reason: payload.reason || "",
-        },
-      },
-    )) as { id: string; status?: string };
-
-    const status = rpRefund.status === "processed" ? "PROCESSED" : "REQUESTED";
-    const refund = await Refund.create({
-      paymentId: payment._id,
-      bookingId: payment.bookingId,
-      userId: actorUserId,
-      amount,
-      reason: payload.reason,
-      status,
-      razorpayRefundId: rpRefund.id,
-      razorpayPaymentId: payment.razorpayPaymentId,
-      processedAt: status === "PROCESSED" ? new Date() : undefined,
-    });
-
-    if (status === "PROCESSED") {
-      const session = await mongoose.startSession();
-      try {
-        await session.withTransaction(async () => {
-          const freshPayment = await Payment.findById(payment._id).session(
-            session,
-          );
-          if (!freshPayment) throw new NotFound("Payment not found");
-          const newRefunded = roundMoney(
-            (freshPayment.refundedAmount ?? 0) + amount,
-          );
-          freshPayment.refundedAmount = newRefunded;
-          freshPayment.lastRefundedAt = new Date();
-          await freshPayment.save({ session });
-
-          const booking = await Booking.findById(
-            freshPayment.bookingId,
-          ).session(session);
-          if (booking) {
-            const finalPrice = booking.finalPrice ?? booking.totalPrice;
-            const paidAmount = roundMoney(
-              Math.max(0, (booking.paidAmount ?? 0) - amount),
-            );
-            booking.paidAmount = paidAmount;
-            booking.remainingAmount = roundMoney(
-              Math.max(0, finalPrice - paidAmount),
-            );
-            booking.paymentStatus =
-              booking.remainingAmount <= 0.01
-                ? "COMPLETED"
-                : paidAmount > 0
-                  ? "PARTIAL"
-                  : "PENDING";
-            applyPlatformSplitToBooking(booking);
-            await booking.save({ session });
-          }
-        });
-      } finally {
-        await session.endSession();
+      if (booking.status === "COMPLETED") {
+        throw new BadRequest("Cannot refund completed booking");
       }
+
+      // 6. Create refund document
+      const refund = await Refund.create(
+        [
+          {
+            paymentId: payment._id,
+            bookingId: booking._id,
+            userId,
+            amount: refundAmount,
+            reason: data.reason,
+            status: "PROCESSED",
+            processedAt: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      // 7. Update payment - increment refunded amount
+      payment.refundedAmount = roundMoney(alreadyRefunded + refundAmount);
+      payment.lastRefundedAt = new Date();
+
+      if (payment.refundedAmount >= chargedAmount - 0.01) {
+        payment.status = "REFUNDED";
+      }
+
+      await payment.save({ session });
+
+      // 8. Update booking - decrement paid amount
+      const finalPrice = booking.finalPrice ?? booking.totalPrice;
+      const paidBefore = roundMoney(booking.paidAmount || 0);
+      const paidAfter = roundMoney(Math.max(0, paidBefore - refundAmount));
+
+      booking.paidAmount = paidAfter;
+      booking.remainingAmount = roundMoney(Math.max(0, finalPrice - paidAfter));
+      booking.paymentStatus =
+        booking.remainingAmount <= 0.01
+          ? "COMPLETED"
+          : paidAfter > 0.01
+            ? "PARTIAL"
+            : "PENDING";
+
+      if (paidAfter <= 0.01) {
+        booking.paymentStatus = "PENDING";
+      }
+
+      applyPlatformSplitToBooking(booking);
+      await booking.save({ session });
+
+      // 9. Audit log
+      await financialAuditService.log({
+        action: "REFUND_CREATED",
+        actorUserId: userId,
+        bookingId: booking._id.toString(),
+        paymentId: payment._id.toString(),
+        refundId: refund[0]._id.toString(),
+        metadata: {
+          amount: refundAmount,
+        },
+      });
+
+      if (!isExternalSession) {
+        await session.commitTransaction();
+        session.endSession();
+      }
+
+      return refund[0];
+    } catch (error) {
+      if (!isExternalSession) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      throw error;
     }
-
-    await financialAuditService.log({
-      action: "REFUND_CREATED",
-      actorUserId,
-      actorRole,
-      bookingId: payment.bookingId.toString(),
-      paymentId: payment._id.toString(),
-      refundId: refund._id.toString(),
-      metadata: {
-        amount,
-        status,
-        reason: payload.reason,
-        razorpayRefundId: rpRefund.id,
-      },
-    });
-
-    return Refund.findById(refund._id)
-      .populate("paymentId")
-      .populate("bookingId");
   }
 
   async getRefundsForPayment(actorUserId: string, paymentId: string) {
@@ -1070,109 +1227,154 @@ export class PaymentService {
     bookingId: string,
     reason?: string,
   ) {
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      throw new NotFound("Booking not found");
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    const actorRole = await this.getActorRole(actorUserId);
-    const isOwner = booking.userId.toString() === actorUserId;
-    const isAdmin = actorRole === "ADMIN";
-
-    let isAssigned = false;
-    if (!isOwner && !isAdmin) {
-      if (booking.bookingType === "GUIDE" && booking.guideId) {
-        const guide = await Guide.findOne({ userId: actorUserId })
-          .select("_id")
-          .lean();
-        isAssigned =
-          !!guide && guide._id.toString() === booking.guideId.toString();
+    try {
+      // 1. Get booking with session
+      const booking = await Booking.findById(bookingId).session(session);
+      if (!booking) {
+        throw new NotFound("Booking not found");
       }
-      if (booking.bookingType === "DRIVER" && booking.driverId) {
-        const driver = await Driver.findOne({ userId: actorUserId })
-          .select("_id")
-          .lean();
-        isAssigned =
-          !!driver && driver._id.toString() === booking.driverId.toString();
+
+      // 2. Authorization check
+      const actorRole = await this.getActorRole(actorUserId);
+      const isOwner = booking.userId.toString() === actorUserId;
+      const isAdmin = actorRole === "ADMIN";
+
+      let isAssigned = false;
+      if (!isOwner && !isAdmin) {
+        if (booking.bookingType === "GUIDE" && booking.guideId) {
+          const guide = await Guide.findOne({ userId: actorUserId })
+            .select("_id")
+            .lean();
+          isAssigned =
+            !!guide && guide._id.toString() === booking.guideId.toString();
+        }
+        if (booking.bookingType === "DRIVER" && booking.driverId) {
+          const driver = await Driver.findOne({ userId: actorUserId })
+            .select("_id")
+            .lean();
+          isAssigned =
+            !!driver && driver._id.toString() === booking.driverId.toString();
+        }
       }
-    }
- 
-    if (!isOwner && !isAdmin && !isAssigned) {
-      throw new Unauthorized(
-        "Not allowed to create cancellation refund for this booking",
-      );
-    }
- 
-    const paidAmount = roundMoney(booking.paidAmount ?? 0);
-    if (paidAmount <= 0) {
-      throw new BadRequest("No paid amount available for refund");
-    }
 
-    if (booking.paymentStatus === "REFUNDED") {
-      throw new BadRequest("Booking is already refunded");
-    }
+      if (!isOwner && !isAdmin && !isAssigned) {
+        throw new Unauthorized(
+          "Not allowed to create cancellation refund for this booking",
+        );
+      }
 
-    const alreadyRefunded = await Refund.aggregate<{ total: number }>([
-      {
-        $match: {
-          bookingId: booking._id,
-          status: { $in: ["REQUESTED", "PROCESSED"] },
+      // 3. Check paid amount and refund eligibility
+      const paidAmount = roundMoney(booking.paidAmount ?? 0);
+      if (paidAmount <= 0) {
+        throw new BadRequest("No paid amount available for refund");
+      }
+
+      if (booking.paymentStatus === "REFUNDED") {
+        throw new BadRequest("Booking is already refunded");
+      }
+
+      // 4. Check already refunded amount
+      const alreadyRefunded = await Refund.aggregate<{ total: number }>([
+        {
+          $match: {
+            bookingId: booking._id,
+            status: { $in: ["REQUESTED", "PROCESSED"] },
+          },
         },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const refundedTotal = roundMoney(alreadyRefunded[0]?.total ?? 0);
-    if (refundedTotal >= paidAmount - 0.01) {
-      throw new BadRequest("Refund already initiated for this booking");
-    }
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]);
 
-    const completedPayments = await Payment.find({
-      bookingId: booking._id,
-      status: "COMPLETED",
-      razorpayPaymentId: { $exists: true, $ne: null },
-    }).sort({ paidAt: -1, createdAt: -1 });
+      const refundedTotal = roundMoney(alreadyRefunded[0]?.total ?? 0);
+      if (refundedTotal >= paidAmount - 0.01) {
+        throw new BadRequest("Refund already initiated for this booking");
+      }
 
-    if (!completedPayments.length) {
-      throw new BadRequest("No completed online payment found for refund");
-    }
+      // 5. Get completed payments with session
+      const completedPayments = await Payment.find({
+        bookingId: booking._id,
+        status: "COMPLETED",
+        razorpayPaymentId: { $exists: true, $ne: null },
+      })
+        .session(session)
+        .sort({ paidAt: -1, createdAt: -1 });
 
-    const createdRefunds: any[] = [];
-    let left = roundMoney(paidAmount - refundedTotal);
-    for (const p of completedPayments) {
-      if (left <= 0.01) break;
-      const refundable = roundMoney(
-        effectiveLineAmount(p) - (p.refundedAmount ?? 0),
-      );
-      if (refundable <= 0.01) continue;
-      const amount = roundMoney(Math.min(left, refundable));
-      const refund = await this.createRefund(actorUserId, p._id.toString(), {
-        amount,
-        reason: reason || "Booking cancelled",
+      if (!completedPayments.length) {
+        throw new BadRequest("No completed online payment found for refund");
+      }
+
+      // 6. Create refunds for each payment
+      const createdRefunds: any[] = [];
+      let left = roundMoney(paidAmount - refundedTotal);
+
+      for (const p of completedPayments) {
+        if (left <= 0.01) break;
+
+        const refundable = roundMoney(
+          effectiveLineAmount(p) - (p.refundedAmount ?? 0),
+        );
+        if (refundable <= 0.01) continue;
+
+        const amount = roundMoney(Math.min(left, refundable));
+
+        // Call createRefund with the session to avoid nested transactions
+        const refund = await this.createRefund(
+          actorUserId,
+          p._id.toString(),
+          {
+            amount,
+            reason: reason || "Booking cancelled",
+          },
+          session, // Pass session to createRefund
+        );
+
+        createdRefunds.push(refund);
+        left = roundMoney(left - amount);
+      }
+
+      if (!createdRefunds.length) {
+        throw new BadRequest("No refundable payment lines found");
+      }
+
+      // 7. Update booking status if fully refunded
+      const pendingOrProcessed = await Refund.aggregate<{ total: number }>([
+        {
+          $match: {
+            bookingId: booking._id,
+            status: { $in: ["REQUESTED", "PROCESSED"] },
+          },
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]);
+
+      const totalAfter = roundMoney(pendingOrProcessed[0]?.total ?? 0);
+      if (totalAfter >= paidAmount - 0.01) {
+        booking.paymentStatus = "REFUNDED";
+        await booking.save({ session });
+      }
+
+      // 8. Log audit
+      await financialAuditService.log({
+        action: "CANCELLATION_REFUNDS_CREATED",
+        actorUserId: actorUserId,
+        bookingId: booking._id.toString(),
+        metadata: {
+          refundsCount: createdRefunds.length,
+          totalRefundAmount: roundMoney(paidAmount - left),
+        },
       });
-      createdRefunds.push(refund);
-      left = roundMoney(left - amount);
-    }
 
-    if (!createdRefunds.length) {
-      throw new BadRequest("No refundable payment lines found");
-    }
+      await session.commitTransaction();
+      session.endSession();
 
-    const pendingOrProcessed = await Refund.aggregate<{ total: number }>([
-      {
-        $match: {
-          bookingId: booking._id,
-          status: { $in: ["REQUESTED", "PROCESSED"] },
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const totalAfter = roundMoney(pendingOrProcessed[0]?.total ?? 0);
-    if (totalAfter >= paidAmount - 0.01) {
-      booking.paymentStatus = "REFUNDED";
-      await booking.save();
+      return createdRefunds;
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
     }
-
-    return createdRefunds;
   }
 
   async retryFailedPayment(userId: string, paymentId: string) {
@@ -1180,6 +1382,7 @@ export class PaymentService {
     if (!payment) {
       throw new NotFound("Payment not found");
     }
+
     if (payment.userId.toString() !== userId) {
       throw new Unauthorized("Not your payment");
     }
@@ -1209,10 +1412,9 @@ export class PaymentService {
       .limit(Math.max(1, Math.min(500, safeLimit)))
       .lean();
   }
-  /**
-   * Legacy / manual processor (mock or admin). Prefer verifyAndCompleteRazorpayPayment in production.
-   */
+
   async processPayment(paymentId: string, data: any, userId: string) {
+    // If Razorpay signature data provided, delegate to dedicated handler
     if (
       data?.razorpay_order_id &&
       data?.razorpay_payment_id &&
@@ -1225,87 +1427,124 @@ export class PaymentService {
       });
     }
 
-    const payment = await Payment.findById(paymentId);
+    // Manual payment processing within transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (!payment) {
-      throw new NotFound("Payment not found");
-    }
-    if (!["COMPLETED", "FAILED"].includes(data.status)) {
-      throw new BadRequest("Invalid payment status");
-    }
-    if (payment.status === "COMPLETED") {
-      throw new BadRequest("Payment already completed");
-    }
-    if (payment.userId.toString() !== userId) {
-      throw new Unauthorized("Not your payment");
-    }
+    try {
+      // 1. Fetch payment with session
+      const payment = await Payment.findById(paymentId).session(session);
 
-    const lineAmount = effectiveLineAmount(payment);
+      if (!payment) {
+        throw new NotFound("Payment not found");
+      }
 
-    const updatedPayment = await Payment.findByIdAndUpdate(
-      paymentId,
-      {
-        status: data.status,
-        transactionId: data.transactionId,
-        paymentMethod: data.paymentMethod,
-        failureReason: data.failureReason,
-        paidAt: data.status === "COMPLETED" ? new Date() : null,
-      },
-      { new: true },
-    ).populate("bookingId");
+      // 2. Validate status
+      if (!["COMPLETED", "FAILED"].includes(data.status)) {
+        throw new BadRequest("Invalid payment status");
+      }
 
-    if (data.status === "COMPLETED") {
-      const booking = await Booking.findById(payment.bookingId);
-      if (booking) {
-        const finalPrice = booking.finalPrice ?? booking.totalPrice;
-        const paidBefore = booking.paidAmount ?? 0;
-        const paidAfter = roundMoney(paidBefore + lineAmount);
-        const remainingAfter = roundMoney(finalPrice - paidAfter);
-        booking.paidAmount = paidAfter;
-        booking.remainingAmount = Math.max(0, remainingAfter);
-        booking.paymentStatus =
-          remainingAfter <= 0.01
-            ? "COMPLETED"
-            : paidAfter > 0
-              ? "PARTIAL"
-              : "PENDING";
-        applyPlatformSplitToBooking(booking);
-        await booking.save();
+      if (payment.status === "COMPLETED") {
+        throw new BadRequest("Payment already completed");
+      }
+
+      // 3. Ownership check
+      if (payment.userId.toString() !== userId) {
+        throw new Unauthorized("Not your payment");
+      }
+
+      // 4. Update payment
+      const lineAmount = effectiveLineAmount(payment);
+
+      payment.status = data.status;
+      payment.transactionId = data.transactionId;
+      payment.paymentMethod = data.paymentMethod;
+      payment.failureReason = data.failureReason;
+      payment.paidAt = data.status === "COMPLETED" ? new Date() : undefined;
+
+      await payment.save({ session });
+
+      // 5. If payment completed, update booking
+      if (data.status === "COMPLETED") {
+        const booking = await Booking.findById(payment.bookingId).session(
+          session,
+        );
+
+        if (booking) {
+          const finalPrice = booking.finalPrice ?? booking.totalPrice;
+          const paidBefore = roundMoney(booking.paidAmount ?? 0);
+          const paidAfter = roundMoney(paidBefore + lineAmount);
+          const remainingAfter = roundMoney(finalPrice - paidAfter);
+
+          // Prevent overpayment
+          if (paidAfter > finalPrice + 0.01) {
+            throw new BadRequest("This payment would overpay the booking");
+          }
+
+          booking.paidAmount = paidAfter;
+          booking.remainingAmount = Math.max(0, remainingAfter);
+          booking.paymentStatus =
+            remainingAfter <= 0.01
+              ? "COMPLETED"
+              : paidAfter > 0.01
+                ? "PARTIAL"
+                : "PENDING";
+
+          applyPlatformSplitToBooking(booking);
+          await booking.save({ session });
+
+          // 6. Audit log
+          await financialAuditService.log({
+            action: "PAYMENT_COMPLETED",
+            actorUserId: userId,
+            bookingId: booking._id.toString(),
+            paymentId: payment._id.toString(),
+            metadata: {
+              source: "manual",
+              amount: lineAmount,
+            },
+          });
+
+          console.log(
+            `[PAYMENT] 💰 Payment Success for paymentId: ${paymentId}, bookingId: ${payment.bookingId}`,
+          );
+
+          // 7. Send notification (non-blocking, outside transaction)
+          await session.commitTransaction();
+          session.endSession();
+
+          try {
+            await NotificationService.sendPaymentSuccess(paymentId);
+          } catch (error) {
+            console.warn("Notification send failed (non-blocking):", error);
+          }
+
+          return Payment.findById(paymentId).populate("bookingId");
+        }
+      }
+
+      if (data.status === "FAILED") {
         await financialAuditService.log({
-          action: "PAYMENT_COMPLETED",
+          action: "PAYMENT_FAILED",
           actorUserId: userId,
-          bookingId: booking._id.toString(),
+          bookingId: payment.bookingId.toString(),
           paymentId: payment._id.toString(),
           metadata: {
             source: "manual",
-            amount: lineAmount,
+            reason: data.failureReason,
           },
         });
       }
 
-      console.log(
-        `[PAYMENT] 💰 Payment Success for paymentId: ${paymentId}, bookingId: ${payment.bookingId}`,
-      );
-      try {
-        await NotificationService.sendPaymentSuccess(paymentId);
-      } catch (error) {
-        console.warn("Notification send failed (non-blocking):", error);
-      }
-    }
-    if (data.status === "FAILED") {
-      await financialAuditService.log({
-        action: "PAYMENT_FAILED",
-        actorUserId: userId,
-        bookingId: payment.bookingId.toString(),
-        paymentId: payment._id.toString(),
-        metadata: {
-          source: "manual",
-          reason: data.failureReason,
-        },
-      });
-    }
+      await session.commitTransaction();
+      session.endSession();
 
-    return updatedPayment;
+      return Payment.findById(paymentId).populate("bookingId");
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 
   async getPaymentsByUser(userId: string) {
@@ -1671,6 +1910,7 @@ export class PaymentService {
     booking.paidAmount = finalPrice;
     booking.remainingAmount = 0;
     booking.paymentStatus = "COMPLETED";
+    booking.status = "COMPLETED"; // Also mark booking as completed
     applyPlatformSplitToBooking(booking);
     await booking.save();
 

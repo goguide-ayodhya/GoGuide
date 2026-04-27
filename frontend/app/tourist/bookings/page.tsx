@@ -308,7 +308,7 @@ export default function BookingsPage() {
           ) : (
             <div className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-                <aside className="hidden lg:block sticky top-28 self-start">
+                <aside className="hidden sticky lg:block sticky top-28 self-start">
                   <Card className="space-y-4">
                     <CardHeader>
                       <CardTitle className="text-xl">Filters</CardTitle>

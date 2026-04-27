@@ -5,8 +5,16 @@ import { AuthRequest } from "../middleware/auth";
 export class AdminController {
   async getUsers(req: AuthRequest, res: Response) {
     const role = typeof req.query.role === "string" ? req.query.role.toUpperCase() : undefined;
-    const users = await userService.getAllUsers(role);
+    const status = typeof req.query.status === "string" ? req.query.status.toUpperCase() : undefined;
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+
+    const users = await userService.getAllUsers({ role, status, search });
     res.json(users);
+  }
+
+  async getUserDetail(req: AuthRequest, res: Response) {
+    const user = await userService.getUserDetail(req.params.id);
+    res.json(user);
   }
 
   async blockUser(req: AuthRequest, res: Response) {

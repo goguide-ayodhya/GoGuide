@@ -20,7 +20,7 @@ router.post(
   "/",
   authenticate,
   authorize(["ADMIN"]),
-  upload.fields([{ name: "images", maxCount: 10 }]),
+  upload.fields([{ name: "images", maxCount: 10 }, { name: "mainImageFile", maxCount: 1 }]),
   (req, res, next) => {
     tourPackageController.createPackage(req, res).catch(next);
   },
@@ -31,7 +31,7 @@ router.put(
   "/:packageId",
   authenticate,
   authorize(["ADMIN"]),
-  upload.fields([{ name: "images", maxCount: 10 }]),
+  upload.fields([{ name: "images", maxCount: 10 }, { name: "mainImageFile", maxCount: 1 }]),
   (req, res, next) => {
     tourPackageController.updatePackage(req, res).catch(next);
   },

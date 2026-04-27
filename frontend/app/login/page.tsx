@@ -83,7 +83,7 @@ function LoginPageContent(): JSX.Element {
       // Send OTP for password reset
       try {
         if (!identifier) {
-          setError("Please enter your email or phone");
+          setError("Please enter your email");
           return;
         }
         await forgotPassword(identifier);
@@ -201,18 +201,10 @@ function LoginPageContent(): JSX.Element {
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        defaultChecked
-                      />
-                      <span className="text-foreground">Remember me</span>
-                    </label>
                     <button
                       type="button"
                       onClick={() => setMode("forgot")}
-                      className="text-primary hover:underline"
+                      className="text-primary cursor-pointer hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -237,7 +229,7 @@ function LoginPageContent(): JSX.Element {
                 <>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">
-                      Email/Phone
+                      Email
                     </label>
                     <Input
                       type="text"

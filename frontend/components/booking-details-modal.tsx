@@ -24,6 +24,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { BookingStatus } from "@/contexts/BookingsContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   formatPaymentAmounts,
   getPaymentStatusLabel,
@@ -52,11 +53,32 @@ export function BookingDetailsModal({
 
   const [codLoading, setCodLoading] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleStatusChange = (newStatus: BookingStatus) => {
-    if (onStatusChange) {
-      onStatusChange(booking.id, newStatus);
+  const handleStatusChange = async (newStatus: BookingStatus) => {
+    if (!onStatusChange) return;
+    setStatusLoading(true);
+    try {
+      await onStatusChange(booking.id, newStatus);
+      toast({
+        title: "Booking completed",
+        description: "Booking status updated successfully.",
+        variant: "success",
+      });
       onClose();
+    } catch (error) {
+      toast({
+        title: "Unable to complete booking",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong while updating the booking.",
+        variant: "destructive",
+      });
+      console.error("Error updating booking status:", error);
+    } finally {
+      setStatusLoading(false);
     }
   };
 
@@ -344,7 +366,7 @@ export function BookingDetailsModal({
                 onCashCollected && (
                   <Button
                     className="w-full bg-amber-600 hover:bg-amber-700"
-                    disabled={codLoading}
+                    disabled={codLoading || statusLoading}
                     onClick={handleMarkCashCollected}
                   >
                     {codLoading ? "Updating…" : "Mark as Cash Collected"}
@@ -355,7 +377,7 @@ export function BookingDetailsModal({
                 onRetryPayment && (
                   <Button
                     className="w-full bg-red-600 hover:bg-red-700"
-                    disabled={retryLoading}
+                    disabled={retryLoading || statusLoading}
                     onClick={handleRetryPayment}
                   >
                     {retryLoading ? "Processing…" : "Retry Payment"}

@@ -67,6 +67,8 @@ export function verifyPaymentSignature(
   razorpayPaymentId: string,
   signature: string,
 ): boolean {
+  // Razorpay payment signature verification uses: orderId + "|" + razorpayPaymentId
+  // This matches Razorpay's checkout completion signature format
   const { key_secret } = requireKeys();
   const body = `${orderId}|${razorpayPaymentId}`;
   const expected = crypto
@@ -80,6 +82,8 @@ export function verifyWebhookSignature(
   rawBody: Buffer,
   signature: string,
 ): boolean {
+  // Razorpay webhook signature verification uses the raw request body (Buffer)
+  // This matches Razorpay's webhook signature format for security validation
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!secret) {
     throw new Error(

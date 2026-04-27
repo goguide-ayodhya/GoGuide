@@ -5,6 +5,13 @@ import { getPackages, getPackageById } from "@/lib/api/tourPackages";
 
 // ---------------- TYPES ----------------
 export interface Package {
+  mainImage: any;
+  images: any;
+  discount: any;
+  locations: any[];
+  durationType: string;
+  includesCab: import("react/jsx-runtime").JSX.Element;
+  includesGuide: import("react/jsx-runtime").JSX.Element;
   _id: string;
   title: string;
   location: string;
@@ -35,7 +42,14 @@ export const PackageProvider = ({ children }: any) => {
     setLoading(true);
     try {
       const data = await getPackages();
-      setPackages(data || []);
+      // Normalize API shapes: array | { packages: [...] } | { data: [...] } | { items: [...] }
+      let list: any = [];
+      if (Array.isArray(data)) list = data;
+      else if (data && Array.isArray(data.packages)) list = data.packages;
+      else if (data && Array.isArray(data.data)) list = data.data;
+      else if (data && Array.isArray(data.items)) list = data.items;
+      else list = [];
+      setPackages(Array.isArray(list) ? list : []);
     } catch (err) {
       console.log("Fetch packages error", err);
     } finally {
@@ -46,7 +60,13 @@ export const PackageProvider = ({ children }: any) => {
   const fetchPackageById = async (id: string) => {
     try {
       const data = await getPackageById(id);
-      setSelectedPackage(data);
+      // API may return { package: {...} } or { data: {...} } or the package object directly
+      let pkg: any = null;
+      if (!data) pkg = null;
+      else if (data.package) pkg = data.package;
+      else if (data.data && !Array.isArray(data.data)) pkg = data.data;
+      else pkg = data;
+      setSelectedPackage(pkg as Package | null);
     } catch (err) {
       console.log("Fetch package error", err);
     }

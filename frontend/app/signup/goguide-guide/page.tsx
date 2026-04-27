@@ -175,7 +175,7 @@ export default function GuideForm() {
     }
 
     try {
-      await signup({
+      const user = await signup({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -189,7 +189,15 @@ export default function GuideForm() {
         languages: formData.languages,
         profileImage: formData.profileImage,
       });
-      router.push("/");
+      
+      // Redirect based on role
+      if (user.role === "GUIDE") {
+        router.push("/guide/dashboard");
+      } else if (user.role === "DRIVER") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/");
+      }
     } catch (err: any) {
       setError(err.message || "Signup failed");
     } finally {
@@ -237,7 +245,7 @@ export default function GuideForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email (Optional)</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"

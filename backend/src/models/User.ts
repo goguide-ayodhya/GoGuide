@@ -17,6 +17,8 @@ export interface IUser extends Document {
   lastLoginAt?: Date;
   isDeleted?: boolean;
 
+  socketId: string;
+
   isEmailVerified: boolean;
   otp?: string;
   otpExpiresAt?: Date;
@@ -45,10 +47,10 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: true,
     },
-    phone: { 
-      type: String, 
-      required: true, 
-      unique: true 
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
     },
     avatar: String, // avatar as profileImage
     vehiclePhoto: {
@@ -66,6 +68,9 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+
+    socketId: { type: String },
+
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED", "DELETED"],

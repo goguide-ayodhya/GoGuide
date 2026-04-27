@@ -19,12 +19,12 @@ import adminDashboardRoutes from "./routes/adminDashboard.routes";
 import adminRoutes from "./routes/admin.routes";
 import cabRoutes from "./routes/cab.routes";
 import driverRoutes from "./routes/driver.routes";
-import passRoutes from "./routes/pass.routes";
 import tourPackageRoutes from "./routes/tourPackage.routes";
 import settingsRoutes from "./routes/setting.routes";
 import notificationRoutes from "./routes/notification.routes";
 import payoutRoutes from "./routes/payout.routes";
 import supportRoutes from "./routes/setting.routes";
+import path from "path";
 
 const app: Application = express();
 dotenv.config();
@@ -79,12 +79,14 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/adminDashboard", adminDashboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/cabs", cabRoutes);
-app.use("/api/passes", passRoutes);
 app.use("/api/packages", tourPackageRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/support", supportRoutes);
+
+// Serve uploaded files when using local fallback storage
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // 404 handler
 app.use((req: Request, res: Response) => {

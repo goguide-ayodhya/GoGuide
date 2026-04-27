@@ -122,14 +122,22 @@ export default function UserForm() {
     }
 
     try {
-      await signup({
+      const user = await signup({
         name: formData.name,
         email: formData.email || undefined,
         password: formData.password,
         phone: formData.phone,
         role: "TOURIST",
       });
-      router.push("/");
+      
+      // Redirect based on role
+      if (user.role === "GUIDE") {
+        router.push("/guide/dashboard");
+      } else if (user.role === "DRIVER") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/");
+      }
     } catch (err: any) {
       // Handle API errors with field-level validation errors
       if (err instanceof ApiError && err.fieldErrors) {

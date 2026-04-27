@@ -209,18 +209,19 @@ function PaymentPageContent() {
       ? Math.round(booking.remainingAmount)
       : Math.max(0, Math.round(finalDisplay - paidAmount));
 
-  // Backend `finalPrice` is GST-inclusive. Compute GST portion for display.
+  // Backend `finalPrice` is GST-inclusive. Use backend-calculated GST amount.
   const roundedOriginal = Math.round(originalPrice);
   const roundedPaid = Math.round(paidAmount);
   const roundedDiscount = Math.round(discountDisplay || 0);
   const roundedTotal = Math.round(finalDisplay || 0);
-  // GST portion of an inclusive total = total * 18/118
-  const gstAmount = Math.round((roundedTotal * 18) / 118);
+  const gstAmount = Math.round(booking.gstAmount || 0);
 
   const priceItems: { label: string; amount: number }[] = [
     { label: "Original price", amount: roundedOriginal },
-    ...(roundedDiscount > 0 ? [{ label: "Discount", amount: -roundedDiscount }] : []),
-    { label: "GST (18%)", amount: gstAmount },
+    ...(roundedDiscount > 0
+      ? [{ label: "Discount", amount: -roundedDiscount }]
+      : []),
+    { label: "GST (5%)", amount: gstAmount },
     { label: "Paid", amount: roundedPaid },
   ];
   // GST is included in the service amount
@@ -461,7 +462,10 @@ function PaymentPageContent() {
               items={priceItems}
               total={roundedTotal}
               paymentStatus={booking.paymentStatus}
-              remainingAmount={Math.max(0, Math.round(roundedTotal - roundedPaid))}
+              remainingAmount={Math.max(
+                0,
+                Math.round(roundedTotal - roundedPaid),
+              )}
             />
           </Card>
 
@@ -484,7 +488,7 @@ function PaymentPageContent() {
             </p>
           )}
           {/* Refund message and quick cancellation refund flow */}
-          <div className="text-sm mt-2">
+          {/* <div className="text-sm mt-2">
             {(() => {
               // compute refund percent
               const now = new Date();
@@ -554,7 +558,8 @@ function PaymentPageContent() {
                 </div>
               );
             })()}
-          </div>
+          </div> */}
+
           <div className="space-y-3">
             <div className="hidden md:block">
               <TermsAndConditions checked={agreed} onChange={setAgreed} />
@@ -569,7 +574,7 @@ function PaymentPageContent() {
                 isProcessing ||
                 (booking.paymentStatus !== "PARTIAL" && !selectedMode) ||
                 // require agreement for online payments (not COD)
-                (!(selectedMode === "COD") && !agreed)
+                !agreed
               }
               className="w-full h-12 text-base font-semibold cursor-pointer"
             >

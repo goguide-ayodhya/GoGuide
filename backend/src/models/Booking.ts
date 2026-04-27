@@ -29,6 +29,8 @@ export interface IBooking extends Document {
   originalPrice?: number;
   /** 5% discount amount when partial plan applies; 0 for COD or full-price upfront. */
   discount: number;
+  /** GST amount calculated on price after discount */
+  gstAmount: number;
   /** Amount all payments are based on (after discount when applicable). */
   finalPrice?: number;
 
@@ -138,6 +140,10 @@ const BookingSchema = new Schema<IBooking>(
       type: Number,
       default: 0,
     },
+    gstAmount: {
+      type: Number,
+      default: 0,
+    },
     finalPrice: {
       type: Number,
     },
@@ -205,3 +211,8 @@ BookingSchema.pre("validate", function (next) {
 });
 
 export const Booking = model<IBooking>("Booking", BookingSchema);
+
+BookingSchema.index({ userId: 1 });
+BookingSchema.index({ guideId: 1 });
+BookingSchema.index({ driverId: 1 });
+BookingSchema.index({ status: 1 });

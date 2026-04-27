@@ -130,117 +130,6 @@ export default function EarningsPage() {
         </p>
       </div>
 
-      {/* Platform payout wallet */}
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-primary" />
-            Payouts (70% share)
-          </CardTitle>
-          <CardDescription>
-            Admin sends transfers; confirm here when you receive the payment.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {payoutLoading ? (
-            <p className="text-sm text-muted-foreground">
-              Loading payout info…
-            </p>
-          ) : wallet ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-xl border border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                  Total earnings (accrued)
-                </p>
-                <p className="text-2xl font-bold text-foreground">
-                  ₹{wallet.totalEarnings.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border p-4">
-                <p className="text-xs text-muted-foreground">
-                  Available for next payout
-                </p>
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
-                  ₹{wallet.availableForPayout.toLocaleString("en-IN")}
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Admin can send up to this (70% share, minus pending sends)
-                </p>
-              </div>
-              <div className="rounded-xl border border-border p-4">
-                <p className="text-xs text-muted-foreground">Paid out</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                  ₹{wallet.paidOut.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {wallet && wallet.pendingConfirmation > 0 && (
-            <p className="text-sm text-amber-800 dark:text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-              ₹{wallet.pendingConfirmation.toLocaleString("en-IN")} in payouts
-              waiting for your confirmation.
-            </p>
-          )}
-
-          {payoutRows.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left">
-                    <th className="p-3 font-medium">Amount</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Sent</th>
-                    <th className="p-3 font-medium">Confirmed</th>
-                    <th className="p-3 font-medium w-[180px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payoutRows.map((row) => (
-                    <tr key={row._id} className="border-b border-border/60">
-                      <td className="p-3 font-semibold">
-                        ₹{row.amount.toLocaleString("en-IN")}
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant={
-                            row.status === "COMPLETED" ? "default" : "secondary"
-                          }
-                        >
-                          {row.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {new Date(row.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {row.confirmedAt
-                          ? new Date(row.confirmedAt).toLocaleString()
-                          : "—"}
-                      </td>
-                      <td className="p-3">
-                        {row.status === "PENDING" && (
-                          <Button
-                            size="sm"
-                            className="bg-primary"
-                            disabled={confirmingId === row._id}
-                            onClick={() => handleConfirmPayout(row._id)}
-                          >
-                            {confirmingId === row._id
-                              ? "Confirming…"
-                              : "Confirm payment received"}
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
@@ -251,7 +140,7 @@ export default function EarningsPage() {
         />
         <StatsCard
           title={`${timeframeLabel} Revenue`}
-          value={`$${currentTimeframeRevenue.toLocaleString()}`}
+          value={`₹${currentTimeframeRevenue.toLocaleString()}`}
           icon={TrendingUp}
           description={`Average per ${timeframeLabel.toLowerCase()}: ₹${averageRevenue.toLocaleString()}`}
         />
@@ -358,7 +247,7 @@ export default function EarningsPage() {
         <CardContent>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={monthlyData || []}>
+              <BarChart data={chartData as any}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="oklch(0.25 0.03 240)"
@@ -391,91 +280,6 @@ export default function EarningsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Revenue Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Payment Methods */}
-        <Card className="bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Payment Status Breakdown</CardTitle>
-            <CardDescription>Current payment statuses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {["completed", "pending", "failed"].map((status) => {
-                const payments = recentTransactions.filter(
-                  (p) => p.status === status,
-                );
-                const total =
-                  payments.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
-                const percentage =
-                  Math.round((total / (totalEarnings || 1)) * 100) || 0;
-
-                return (
-                  <div key={status}>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-foreground capitalize">
-                        {status} ({payments.length})
-                      </p>
-                      <span className="text-sm font-semibold text-foreground">
-                        ${total.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="w-full bg-secondary rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${
-                          status === "completed"
-                            ? "bg-green-500"
-                            : status === "pending"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Revenue by Tour Type */}
-        <Card className="bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Revenue by Tour Type</CardTitle>
-            <CardDescription>
-              Earnings breakdown by tour category
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {revenueByTourType.length > 0 ? (
-                revenueByTourType.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between pb-3 border-b border-border last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{item.type}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.bookings} booking{item.bookings !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                    <span className="font-semibold text-foreground">
-                      ${item.revenue.toLocaleString()}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  No tour type data available yet.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Recent Transactions */}
       <Card className="bg-card border border-border">
@@ -513,7 +317,7 @@ export default function EarningsPage() {
                         TXN-{payment.id}
                       </td>
                       <td className="py-3 px-4 font-semibold text-foreground">
-                        `₹{payment.amount}
+                        ₹{payment.amount}
                       </td>
                       <td className="py-3 px-4 text-foreground">
                         {new Date(payment.transactionDate).toLocaleDateString()}

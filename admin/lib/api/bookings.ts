@@ -24,7 +24,7 @@ const authHeaders = () => {
 
 const handleRes = async (res: Response) => {
   const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "API error");
+  if (!res.ok) throw new Error(json.message || "Unable to complete booking");
   return json.data;
 };
 
@@ -118,11 +118,14 @@ export const completeBookingApi = async (bookingId: string) => {
 };
 
 export const refundBookingApi = async (bookingId: string, reason?: string) => {
-  const res = await fetch(`${base_url}payments/booking/${bookingId}/refund/cancellation`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ reason: reason || "Admin refund" }),
-  });
+  const res = await fetch(
+    `${base_url}payments/booking/${bookingId}/refund/cancellation`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ reason: reason || "Admin refund" }),
+    },
+  );
 
   return handleRes(res);
 };
@@ -135,12 +138,15 @@ export const getAllBookings = async (filters?: {
   search?: string;
 }) => {
   const params = new URLSearchParams();
-  if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
-  if (filters?.paymentStatus && filters.paymentStatus !== 'all') params.append('paymentStatus', filters.paymentStatus);
-  if (filters?.dateRange && filters.dateRange !== 'all') params.append('dateRange', filters.dateRange);
-  if (filters?.search) params.append('search', filters.search);
+  if (filters?.status && filters.status !== "all")
+    params.append("status", filters.status);
+  if (filters?.paymentStatus && filters.paymentStatus !== "all")
+    params.append("paymentStatus", filters.paymentStatus);
+  if (filters?.dateRange && filters.dateRange !== "all")
+    params.append("dateRange", filters.dateRange);
+  if (filters?.search) params.append("search", filters.search);
 
-  const url = `${base_url}bookings/admin/all${params.toString() ? '?' + params.toString() : ''}`;
+  const url = `${base_url}bookings/admin/all${params.toString() ? "?" + params.toString() : ""}`;
   const res = await fetch(url, {
     headers: authHeaders(),
   });

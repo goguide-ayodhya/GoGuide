@@ -2,6 +2,8 @@
 import admin from "../firebase/admin";
 
 import { User } from "../models/User";
+import { Notification } from "../models/Notification";
+import { Types } from "mongoose";
 import { Booking } from "../models/Booking";
 import { Payment } from "../models/Payment";
 
@@ -45,6 +47,20 @@ export class NotificationService {
         return false;
       }
 
+      // Persist notification in DB (so it's visible in-app even if push fails)
+      try {
+        await Notification.create({
+          userId: new Types.ObjectId(userId),
+          title: payload.title,
+          description: payload.body,
+          type: (payload.data && (payload.data.type as string)) || payload.data?.type || "GENERIC",
+          data: payload.data || {},
+          read: false,
+        });
+      } catch (dbErr) {
+        console.warn("Failed to persist notification in DB:", dbErr);
+      }
+
       console.log("🚀 Sending Notification");
       console.log(`userId: ${userId}`);
       console.log(`fcmToken: ${user.fcmToken}`);
@@ -63,6 +79,60 @@ export class NotificationService {
       console.error(`❌ Notification Failed for user ${userId}:`, error);
       return false;
     }
+  }
+
+  /* DB-backed notification utilities */
+  static async getNotifications(
+    userId: string,
+    unreadOnly = false,
+    page = 1,
+    limit = 50,
+  ) {
+    const query: any = { userId: new Types.ObjectId(userId) };
+    if (unreadOnly) query.read = false;
+
+    const skip = (page - 1) * limit;
+    const docs = await Notification.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return docs.map((d: any) => ({
+      id: d._id.toString(),
+      title: d.title,
+      description: d.description,
+      type: d.type,
+      read: d.read,
+      createdAt: d.createdAt,
+      data: d.data || {},
+    }));
+  }
+
+  static async getUnreadCount(userId: string) {
+    return await Notification.countDocuments({ userId: new Types.ObjectId(userId), read: false });
+  }
+
+  static async markAsRead(notificationId: string, userId: string) {
+    const res = await Notification.findOneAndUpdate(
+      { _id: new Types.ObjectId(notificationId), userId: new Types.ObjectId(userId) },
+      { read: true },
+      { new: true },
+    );
+    return !!res;
+  }
+
+  static async markAllAsRead(userId: string) {
+    await Notification.updateMany({ userId: new Types.ObjectId(userId), read: false }, { read: true });
+  }
+
+  static async deleteNotification(notificationId: string, userId: string) {
+    const res = await Notification.findOneAndDelete({ _id: new Types.ObjectId(notificationId), userId: new Types.ObjectId(userId) });
+    return !!res;
+  }
+
+  static async deleteAll(userId: string) {
+    await Notification.deleteMany({ userId: new Types.ObjectId(userId) });
   }
 
   /**

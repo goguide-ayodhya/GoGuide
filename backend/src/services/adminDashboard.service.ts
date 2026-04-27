@@ -2,31 +2,72 @@ import { User } from "../models/User";
 import { Guide } from "../models/Guide";
 import { Booking } from "../models/Booking";
 import { Payment } from "../models/Payment";
+import { Notification } from "../models/Notification";
+import { Review } from "../models/Review";
 
 export class DashboardService {
-  // ---------------- ADMIN DASHBOARD ----------------
-  async getAdminDashboard() {
-    const totalUsers = await User.countDocuments({ isDeleted: false });
+  // ---------------- PUBLIC STATS ----------------
+  async getPublicStats() {
+    const totalUsers = await User.countDocuments({
+      isDeleted: false
+    });
 
     const totalGuides = await Guide.countDocuments({
-      verificationStatus: "VERIFIED",
+      verificationStatus: "VERIFIED"
     });
 
     const totalBookings = await Booking.countDocuments();
 
+    const totalReviews = await Review.countDocuments();
+
+    // Get unique cities from guides
+    const uniqueCities = await Guide.distinct("city", {
+      verificationStatus: "VERIFIED",
+      city: { $exists: true, $ne: null }
+    });
+
+    return {
+      bookings: totalBookings,
+      guides: totalGuides,
+      cities: uniqueCities.length,
+      reviews: totalReviews,
+    };
+  }
+
+  // ---------------- ADMIN DASHBOARD ----------------
+  async getAdminDashboard(startDate?: Date, endDate?: Date) {
+    const dateFilter = startDate && endDate ? {
+      createdAt: { $gte: startDate, $lte: endDate }
+    } : {};
+
+    const totalUsers = await User.countDocuments({
+      isDeleted: false,
+      ...dateFilter
+    });
+
+    const totalGuides = await Guide.countDocuments({
+      verificationStatus: "VERIFIED",
+      ...dateFilter
+    });
+
+    const totalBookings = await Booking.countDocuments(dateFilter);
+
     const unseenBookings = await Booking.countDocuments({
       isSeenByAdmin: false,
+      ...dateFilter
     });
     const completedBookings = await Booking.countDocuments({
       status: "COMPLETED",
+      ...dateFilter
     });
 
     const pendingBookings = await Booking.countDocuments({
       status: "PENDING",
+      ...dateFilter
     });
 
     const revenueAgg = await Payment.aggregate([
-      { $match: { status: "COMPLETED" } },
+      { $match: { status: "COMPLETED", ...dateFilter } },
       {
         $group: {
           _id: null,
@@ -44,6 +85,7 @@ export class DashboardService {
     const activeGuides = await Guide.countDocuments({
       verificationStatus: "VERIFIED",
       isAvailable: true,
+      ...dateFilter
     });
 
     const weeklyBookings = await this.getWeeklyBookings();
@@ -65,6 +107,77 @@ export class DashboardService {
       monthlyRevenue,
       recentBookings,
     };
+  }
+
+  async getRecentUsers(limit = 10) {
+    const users = await User.find({ isDeleted: false })
+      .select('name email phone createdAt')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    return users.map(user => ({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      joinedAt: user.createdAt,
+    }));
+  }
+
+  async getRecentGuides(limit = 10) {
+    const guides = await Guide.find({ verificationStatus: "VERIFIED" })
+      .populate('userId', 'name email phone')
+      .select('specialities yearsOfExperience createdAt')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    return guides.map(guide => ({
+      id: guide._id.toString(),
+      name: (guide.userId as any)?.name || 'N/A',
+      email: (guide.userId as any)?.email || 'N/A',
+      phone: (guide.userId as any)?.phone || 'N/A',
+      specialization: guide.specialities.join(', '),
+      experience: guide.yearsOfExperience,
+      joinedAt: guide.createdAt,
+    }));
+  }
+
+  async getRecentAlerts(limit = 10) {
+    const alerts = await Notification.find({})
+      .populate('userId', 'name email')
+      .select('title description type read createdAt')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    return alerts.map(alert => ({
+      id: alert._id.toString(),
+      title: alert.title,
+      description: alert.description,
+      type: alert.type,
+      read: alert.read,
+      userName: (alert.userId as any)?.name || 'System',
+      userEmail: (alert.userId as any)?.email || '',
+      createdAt: alert.createdAt,
+    }));
+  }
+
+  async getPendingGuides(limit = 10) {
+    const guides = await Guide.find({ verificationStatus: "PENDING" })
+      .populate('userId', 'name email phone')
+      .select('specialities yearsOfExperience bio createdAt')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    return guides.map(guide => ({
+      id: guide._id.toString(),
+      name: (guide.userId as any)?.name || 'N/A',
+      email: (guide.userId as any)?.email || 'N/A',
+      phone: (guide.userId as any)?.phone || 'N/A',
+      specialization: guide.specialities.join(', '),
+      experience: guide.yearsOfExperience,
+      bio: guide.bio || '',
+      appliedAt: guide.createdAt,
+    }));
   }
 
   private async getWeeklyBookings(days = 7) {

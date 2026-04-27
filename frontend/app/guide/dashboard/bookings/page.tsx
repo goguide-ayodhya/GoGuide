@@ -30,6 +30,7 @@ import {
   MoreHorizontal,
   Smartphone,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Booking } from "@/contexts/BookingsContext";
 import {
   completeCodPaymentApi,
@@ -81,34 +82,82 @@ export default function BookingsPage() {
     error,
     refreshBookings,
   } = useBooking();
+  const { toast } = useToast();
+  const [statusLoadingId, setStatusLoadingId] = useState<string | null>(null);
 
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsModalOpen(true);
   };
 
-  const handleStatusChange = (bookingId: string, newStatus: BookingStatus) => {
-    updateBookingStatus(bookingId, newStatus as BookingStatus);
+  const handleStatusChange = async (
+    bookingId: string,
+    newStatus: BookingStatus,
+  ) => {
+    setStatusLoadingId(bookingId);
+    try {
+      await updateBookingStatus(bookingId, newStatus as BookingStatus);
+      toast({
+        title: "Booking updated",
+        description: `Booking marked ${newStatus.toLowerCase()}.`,
+        variant: "success",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to update booking status.";
+      toast({
+        title: "Update failed",
+        description: message,
+        variant: "destructive",
+      });
+      console.error("Booking status update failed", error);
+    } finally {
+      setStatusLoadingId(null);
+    }
   };
 
   const handleCashCollected = async (bookingId: string) => {
-    const data = await completeCodPaymentApi(bookingId);
-    const patch = {
-      paymentStatus: data.paymentStatus as Booking["paymentStatus"],
-      paidAmount: data.paidAmount,
-      remainingAmount: data.remainingAmount,
-      paymentType: data.paymentType as Booking["paymentType"],
-      discount: data.discount,
-      finalPrice: data.finalPrice,
-      originalPrice: data.originalPrice,
-    };
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, ...patch } : b)),
-    );
-    setSelectedBooking((prev) =>
-      prev?.id === bookingId ? { ...prev, ...patch } : prev,
-    );
-    await refreshBookings();
+    setStatusLoadingId(bookingId);
+    try {
+      const data = await completeCodPaymentApi(bookingId);
+      const patch = {
+        status: data.status,
+        paymentStatus: data.paymentStatus as Booking["paymentStatus"],
+        paidAmount: data.paidAmount,
+        remainingAmount: data.remainingAmount,
+        paymentType: data.paymentType as Booking["paymentType"],
+        discount: data.discount,
+        finalPrice: data.finalPrice,
+        originalPrice: data.originalPrice,
+      };
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, ...patch } : b)),
+      );
+      setSelectedBooking((prev) =>
+        prev?.id === bookingId ? { ...prev, ...patch } : prev,
+      );
+      toast({
+        title: "Cash collected",
+        description: "COD payment has been marked as collected.",
+        variant: "success",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to update COD payment status.";
+      toast({
+        title: "Action failed",
+        description: message,
+        variant: "destructive",
+      });
+      console.error("COD cash collection failed", error);
+    } finally {
+      setStatusLoadingId(null);
+      await refreshBookings();
+    }
   };
 
   const handleRetryPayment = async (bookingId: string) => {
@@ -200,10 +249,33 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus && matchesPaymentStatus;
   });
 
+  // Sort bookings: Pending first (by date), then others by status priority and date
+  const statusPriority = {
+    PENDING: 1,
+    ACCEPTED: 2,
+    REJECTED: 3,
+    CANCELLED: 4,
+    COMPLETED: 5,
+  };
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    const aPriority =
+      statusPriority[a.status as keyof typeof statusPriority] || 99;
+    const bPriority =
+      statusPriority[b.status as keyof typeof statusPriority] || 99;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return (
+      new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
+    );
+  });
+
   // Pagination
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedFiltered.length / ITEMS_PER_PAGE);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedBookings = filtered.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+  const paginatedBookings = sortedFiltered.slice(
+    startIdx,
+    startIdx + ITEMS_PER_PAGE,
+  );
 
   const statusOptions: Array<BookingStatus> = [
     "PENDING",
@@ -446,8 +518,8 @@ export default function BookingsPage() {
               <div>
                 <CardTitle className="text-xl">Recent Bookings</CardTitle>
                 <CardDescription>
-                  {filtered.length} booking{filtered.length !== 1 ? "s" : ""}{" "}
-                  found
+                  {sortedFiltered.length} booking
+                  {sortedFiltered.length !== 1 ? "s" : ""} found
                 </CardDescription>
               </div>
             </div>
@@ -491,7 +563,7 @@ export default function BookingsPage() {
                       paginatedBookings.map((booking) => (
                         <tr
                           key={booking.id}
-                          className="border-t border-border/50 hover:bg-secondary/20 transition-colors"
+                          className={`border-t border-border/50 hover:bg-secondary/20 transition-colors ${booking.status === "PENDING" ? "bg-primary/10" : ""}`}
                         >
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
@@ -499,9 +571,24 @@ export default function BookingsPage() {
                                 {booking.touristName.charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p className="font-semibold text-foreground">
-                                  {booking.touristName}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold text-foreground">
+                                    {booking.touristName}
+                                  </p>
+                                  {booking.status === "PENDING" && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-xs px-1.5 py-0.5"
+                                    >
+                                      NEW
+                                    </Badge>
+                                  )}
+                                  {booking.status === "ACCEPTED" && (
+                                    <Badge className="text-[10px] px-2 py-0.5 bg-green-500/90 text-white rounded-full">
+                                      ACTIVE
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-sm text-muted-foreground">
                                   {booking.email}
                                 </p>
@@ -620,21 +707,29 @@ export default function BookingsPage() {
                                   )}
                                   {booking.status === "ACCEPTED" && (
                                     <>
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleStatusChange(
-                                            booking.id,
-                                            "COMPLETED",
-                                          )
-                                        }
-                                      >
-                                        <CheckCircle className="h-4 w-4 mr-2" />
-                                        Mark Completed
-                                      </DropdownMenuItem>
+                                      {!(booking.paymentMethod === "COD") && (
+                                        <DropdownMenuItem
+                                          disabled={
+                                            statusLoadingId === booking.id
+                                          }
+                                          onClick={() =>
+                                            handleStatusChange(
+                                              booking.id,
+                                              "COMPLETED",
+                                            )
+                                          }
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Mark Completed
+                                        </DropdownMenuItem>
+                                      )}
                                       {booking.paymentMethod === "COD" &&
                                         booking.paymentStatus !==
                                           "COMPLETED" && (
                                           <DropdownMenuItem
+                                            disabled={
+                                              statusLoadingId === booking.id
+                                            }
                                             onClick={() =>
                                               handleCashCollected(booking.id)
                                             }
@@ -647,6 +742,9 @@ export default function BookingsPage() {
                                       {booking.paymentStatus === "FAILED" &&
                                         booking.paymentType !== "COD" && (
                                           <DropdownMenuItem
+                                            disabled={
+                                              statusLoadingId === booking.id
+                                            }
                                             onClick={() =>
                                               handleRetryPayment(booking.id)
                                             }
@@ -693,7 +791,7 @@ export default function BookingsPage() {
                   {paginatedBookings.map((booking) => (
                     <div
                       key={booking.id}
-                      className="p-4 hover:bg-secondary/20 transition-colors"
+                      className={`p-4 hover:bg-secondary/20 transition-colors ${booking.status === "PENDING" ? "bg-primary/20  border-l-4 border-primary" : ""}`}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -701,9 +799,16 @@ export default function BookingsPage() {
                             {booking.touristName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <h4 className="font-semibold text-foreground">
-                              {booking.touristName}
-                            </h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-foreground">
+                                {booking.touristName}
+                              </h4>
+                              {booking.status === "PENDING" && (
+                                <Badge className="text-[10px] px-2 py-0.5 bg-primary text-white rounded-full animate-pulse">
+                                  NEW
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               {booking.email}
                             </p>
@@ -867,8 +972,8 @@ export default function BookingsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border-t border-border bg-secondary/10">
                 <p className="text-sm text-muted-foreground">
                   Showing {startIdx + 1} to{" "}
-                  {Math.min(startIdx + ITEMS_PER_PAGE, filtered.length)} of{" "}
-                  {filtered.length} bookings
+                  {Math.min(startIdx + ITEMS_PER_PAGE, sortedFiltered.length)}{" "}
+                  of {sortedFiltered.length} bookings
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
