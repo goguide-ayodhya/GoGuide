@@ -205,8 +205,8 @@ export const validateTokenApi = async () => {
   return json.data;
 };
 
-export const getUserById = async (id: string) => {
-  const res = await fetch(`${base_url}auth/user/${id}`, {
+export const getMe = async () => {
+  const res = await fetch(`${base_url}auth/me`, {
     headers: authHeaders(),
   });
 
@@ -215,7 +215,7 @@ export const getUserById = async (id: string) => {
     throw new Error(json.message || "Failed to fetch user");
   }
 
-  return json.data as User;
+  return json.data;
 };
 
 // Change Password

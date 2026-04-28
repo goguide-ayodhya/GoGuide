@@ -36,12 +36,12 @@ export class AuthService {
         throw new BadRequest("Please verify your email before continuing");
       }
       // Check if profile is complete
-      if (!user.isProfileComplete) {
-        throw new BadRequest("Please complete your profile before continuing");
-      }
-      if (!user.status || user.status !== "ACTIVE") {
-        throw new BadRequest("Account is inactive");
-      }
+      // if (!user.isProfileComplete) {
+      //   throw new BadRequest("Please complete your profile before continuing");
+      // }
+      // if (!user.status || user.status !== "ACTIVE") {
+      //   throw new BadRequest("Account is inactive");
+      // }
     }
 
     await User.findByIdAndUpdate(user._id, {
@@ -200,15 +200,32 @@ export class AuthService {
     const hashedOtp = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    await User.updateOne(
-      { _id: user._id },
-      { otp: hashedOtp, otpExpiresAt },
-    );
+    await User.updateOne({ _id: user._id }, { otp: hashedOtp, otpExpiresAt });
 
     await sendEmail(
       user.email!,
-      "Email Verification OTP - GoGuide",
-      `Your email verification OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nPlease use this OTP to verify your email address.`,
+      "Verify Your Email Address - GoGuide",
+      `Hi ${user.name || "User"},
+      Thank you for joining GoGuide!
+      To complete your registration, please verify your email address using the One-Time Password (OTP) below:
+ <div style="
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 6px;
+      margin: 20px 0;
+      padding: 15px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    ">
+      🔐 ${otp}
+    </div>
+This OTP is valid for the next 10 minutes.
+Please do not share this OTP with anyone & if you did not request this, you can safely ignore this email.
+
+Best regards,  
+Team GoGuide`,
     );
 
     return { message: "OTP sent successfully to your email" };
@@ -267,7 +284,35 @@ export class AuthService {
     await sendEmail(
       user.email!,
       "Password Reset OTP - GoGuide",
-      `Your password reset OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.`,
+      `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <p>Hi ${user.name}</p>
+
+    <p>Your Password reset OTP is:</p>
+
+    <div style="
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 6px;
+      margin: 20px 0;
+      padding: 15px;
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    ">
+      🔐 ${otp}
+    </div>
+
+    <p>This OTP is valid for <strong>10 minutes</strong>.</p>
+
+    <p style="color: #888; font-size: 12px;">
+      If you did not request this, you can safely ignore this email.
+    </p>
+
+    <p>Best regards,<br/>Team GoGuide</p>
+  </div>
+  `,
     );
 
     return { message: "Password reset OTP sent to your email" };

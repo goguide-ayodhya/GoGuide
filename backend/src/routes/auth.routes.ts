@@ -81,8 +81,12 @@ router.get("/user/:id", authenticate, (req, res, next) => {
   authController.getUserById(req, res).catch(next);
 });
 
-router.get("/validate-token", authenticate, (req, res, next) => {
-  authController.validateToken(req, res).catch(next);
+// router.get("/validate-token", authenticate, (req, res, next) => {
+//   authController.validateToken(req, res).catch(next);
+// });
+
+router.get("/me", authenticate, (req, res, next) => {
+  authController.getMe(req, res).catch(next);
 });
 
 export default router;

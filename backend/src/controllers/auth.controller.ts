@@ -70,23 +70,12 @@ export class AuthController {
     }
   }
 
-  async validateToken(req: AuthRequest, res: Response) {
+  async getMe(req: AuthRequest, res: Response) {
     try {
-      const token = req.headers.authorization?.substring(7);
-
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          message: "Token is required",
-        });
-      }
-
-      const decoded = await authService.validateToken(token);
-
       res.status(200).json({
         success: true,
-        message: "Token is valid",
-        data: decoded,
+        message: "User retrieved successfully",
+        data: req.user,
       });
     } catch (error) {
       throw error;

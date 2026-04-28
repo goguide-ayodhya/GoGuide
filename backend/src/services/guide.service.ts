@@ -115,7 +115,7 @@ export class GuideService {
   async completeProfile(userId: string) {
     const user = await User.findByIdAndUpdate(
       userId,
-      { isProfileComplete: true, status: "ACTIVE" },
+      { isProfileComplete: true },
       { new: true },
     );
 

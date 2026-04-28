@@ -5,7 +5,7 @@ import {
   loginUser,
   logoutUser,
   validateTokenApi,
-  getUserById,
+  getMe,
 } from "@/lib/api/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -44,7 +44,7 @@ export type SignupData = {
   price?: string;
   duration?: string;
   certificates?: (File | { name: string; image: File })[];
-  
+
   // Driver & legacy fields
   speciality?: string;
   experience?: string;
@@ -73,7 +73,7 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
-  refreshUser: () => Promise<User>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -170,26 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log("[AUTH] Signing up user:", data.email || data.phone);
 
-      let payload: any = data;
-
-      if (data.avatar || data.profileImage) {
-        const formData = new FormData();
-
-        Object.entries(data).forEach(([key, value]) => {
-          if (value === undefined || value === null) return;
-
-          if (Array.isArray(value)) {
-            formData.append(key, JSON.stringify(value));
-          } else {
-            formData.append(key, value as any);
-          }
-        });
-        if (data.profileImage) {
-          formData.append("avatar", data.profileImage);
-        }
-        payload = formData;
-      }
-      const res = await signupUser(payload);
+      const res = await signupUser(data);
 
       if (!res || !res.user || !res.token) {
         throw new Error("Invalid signup response");
@@ -225,25 +206,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
-
   const refreshUser = async () => {
-    const currentUserId =
-      user?.id ??
-      (() => {
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) return null;
-        try {
-          return JSON.parse(storedUser)?.id;
-        } catch {
-          return null;
-        }
-      })();
-
-    if (!currentUserId) {
-      throw new Error("Unable to refresh user without a valid user id");
-    }
-
-    const freshUser = await getUserById(currentUserId);
+    const freshUser = await getMe();
     setUser(freshUser);
     localStorage.setItem("user", JSON.stringify(freshUser));
     return freshUser;

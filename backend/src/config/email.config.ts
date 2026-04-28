@@ -7,22 +7,23 @@ import nodemailer from "nodemailer";
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, 
+    user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 });
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
+export const sendEmail = async (to: string, subject: string, html: string) => {
   try {
     const info = await transporter.sendMail({
-      from: `"GoGuide" <${process.env.EMAIL_USER}>`,
+      from: `"GoGuide Team"`,
       to,
       subject,
-      text,
+      html,
     });
     return info;
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown email error";
+    const message =
+      error instanceof Error ? error.message : "Unknown email error";
     throw new Error(`Email send failed: ${message}`);
   }
 };
