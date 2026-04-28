@@ -1,5 +1,5 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
-import { LoginData, SignupData } from "@/contexts/AuthContext";
+import { LoginData, SignupData, User } from "@/contexts/AuthContext";
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -84,12 +84,36 @@ export const resetPassword = async (
 
 // Signup
 export const signupUser = async (data: SignupData) => {
+  const hasFiles = data.avatar || data.profileImage || data.certificates || data.driverPhoto || data.vehiclePhoto;
+
+  if (!hasFiles) {
+    // Send as JSON
+    const res = await fetch(`${base_url}auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      throw new ApiError(
+        json.message || "Signup failed",
+        json.errors,
+        res.status,
+      );
+    }
+
+    return json.data;
+  }
+
+  // Send as FormData
   const form = new FormData();
   const { email } = data;
 
   form.append("name", data.name);
   form.append("email", email || "");
-  // form.append("email", data.email);
   form.append("password", data.password);
   form.append("role", data.role);
 
@@ -107,7 +131,6 @@ export const signupUser = async (data: SignupData) => {
   }
   if (data.certificates && Array.isArray(data.certificates)) {
     data.certificates.forEach((cert) => {
-      // Certificates can be either File objects or { name, image } objects
       if (cert instanceof File) {
         form.append("certificates", cert);
       } else if (cert && typeof cert === 'object' && 'image' in cert && cert.image instanceof File) {
@@ -182,6 +205,19 @@ export const validateTokenApi = async () => {
   return json.data;
 };
 
+export const getUserById = async (id: string) => {
+  const res = await fetch(`${base_url}auth/user/${id}`, {
+    headers: authHeaders(),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message || "Failed to fetch user");
+  }
+
+  return json.data as User;
+};
+
 // Change Password
 export const changePassword = async (data: {
   currentPassword: string;
@@ -203,6 +239,38 @@ export const changePassword = async (data: {
     }
     throw new Error(json.message);
   }
+
+  return json.data;
+};
+
+// Send OTP API
+export const sendOtpApi = async (data: { email: string }) => {
+  const res = await fetch(`${base_url}auth/send-otp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to send OTP");
+
+  return json.data;
+};
+
+// Verify Email OTP API
+export const verifyEmailOtp = async (data: { email: string; otp: string }) => {
+  const res = await fetch(`${base_url}auth/verify-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Invalid or expired OTP");
 
   return json.data;
 };

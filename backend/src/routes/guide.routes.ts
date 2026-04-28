@@ -33,6 +33,10 @@ router.patch("/me/availability", authenticate, (req, res, next) => {
   guideController.setAvailability(req, res).catch(next);
 });
 
+router.patch("/me/complete-profile", authenticate, (req, res, next) => {
+  guideController.completeProfile(req, res).catch(next);
+});
+
 router.patch(
   "/:guideId/verify",
   authenticate,

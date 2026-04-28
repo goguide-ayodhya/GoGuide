@@ -5,6 +5,7 @@ import {
   loginUser,
   logoutUser,
   validateTokenApi,
+  getUserById,
 } from "@/lib/api/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -25,6 +26,8 @@ export interface User {
   isAvailable?: boolean;
   isOnline?: boolean;
   isEmailVerified?: boolean;
+  isProfileComplete?: boolean;
+  status?: string;
 }
 
 export type SignupData = {
@@ -34,12 +37,14 @@ export type SignupData = {
   role: string;
   phone: string;
   avatar?: File;
+
   // Guide fields
   specialities?: string[];
   locations?: string[];
   price?: string;
   duration?: string;
   certificates?: (File | { name: string; image: File })[];
+  
   // Driver & legacy fields
   speciality?: string;
   experience?: string;
@@ -68,6 +73,7 @@ interface AuthContextType {
   signup: (data: SignupData) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
+  refreshUser: () => Promise<User>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,8 +87,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
-
-      console.log("[AUTH] Initializing auth - token exists:", !!token, "user exists:", !!storedUser);
+      console.log(
+        "[AUTH] Initializing auth - token exists:",
+        !!token,
+        "user exists:",
+        !!storedUser,
+      );
 
       if (token === "null" || token === "undefined") {
         console.log("[AUTH] Clearing invalid token");
@@ -115,7 +125,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("[AUTH] Setting user from localStorage:", parsedUser?.id);
         setUser(parsedUser || null);
       } catch (parseError) {
         console.error("[AUTH] Failed to parse stored user:", parseError);
@@ -160,7 +169,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       console.log("[AUTH] Signing up user:", data.email || data.phone);
-      const res = await signupUser(data);
+
+      let payload: any = data;
+
+      if (data.avatar || data.profileImage) {
+        const formData = new FormData();
+
+        Object.entries(data).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value as any);
+          }
+        });
+        if (data.profileImage) {
+          formData.append("avatar", data.profileImage);
+        }
+        payload = formData;
+      }
+      const res = await signupUser(payload);
+
       if (!res || !res.user || !res.token) {
         throw new Error("Invalid signup response");
       }
@@ -196,6 +226,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("token");
   };
 
+  const refreshUser = async () => {
+    const currentUserId =
+      user?.id ??
+      (() => {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return null;
+        try {
+          return JSON.parse(storedUser)?.id;
+        } catch {
+          return null;
+        }
+      })();
+
+    if (!currentUserId) {
+      throw new Error("Unable to refresh user without a valid user id");
+    }
+
+    const freshUser = await getUserById(currentUserId);
+    setUser(freshUser);
+    localStorage.setItem("user", JSON.stringify(freshUser));
+    return freshUser;
+  };
+
   const updateUser = (data: Partial<User>) => {
     setUser((currentUser) => {
       if (!currentUser) return currentUser;
@@ -215,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signup,
         logout,
         updateUser,
+        refreshUser,
       }}
     >
       {children}

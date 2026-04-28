@@ -35,6 +35,10 @@ export class AuthService {
       if (!user.isEmailVerified) {
         throw new BadRequest("Please verify your email before continuing");
       }
+      // Check if profile is complete
+      if (!user.isProfileComplete) {
+        throw new BadRequest("Please complete your profile before continuing");
+      }
       if (!user.status || user.status !== "ACTIVE") {
         throw new BadRequest("Account is inactive");
       }
@@ -54,6 +58,7 @@ export class AuthService {
         role: user.role,
         phone: user.phone,
         isEmailVerified: user.isEmailVerified,
+        isProfileComplete: user.isProfileComplete,
       },
       token,
     };
@@ -86,16 +91,15 @@ export class AuthService {
     if (input.role === "GUIDE") {
       await Guide.create({
         userId: user._id,
-        specialities: input.specialities || [],
-        locations: input.locations || [],
-        price: input.price || 500,
-        duration: input.duration || "4 hours",
-        certificates: input.certificates || [],
-        yearsOfExperience: input.experience || 0,
-        languages: input.languages || [],
+        specialities: [],
+        locations: [],
+        price: 500,
+        duration: "4 hours",
+        certificates: [],
+        yearsOfExperience: 0,
+        languages: [],
         verificationStatus: "PENDING",
         isAvailable: false,
-        // isOnline: false,
         averageRating: 0,
         totalReviews: 0,
       });
@@ -234,8 +238,9 @@ export class AuthService {
     user.otpExpiresAt = undefined;
     user.isEmailVerified = true;
 
-    // Activate GUIDE and DRIVER accounts after email verification
-    if (user.role === "GUIDE" || user.role === "DRIVER") {
+    // DO NOT activate GUIDE/DRIVER here - they must complete profile first
+    // Only TOURIST gets activated
+    if (user.role === "TOURIST") {
       user.status = "ACTIVE";
     }
 

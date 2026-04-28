@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useGuideAuthGuard } from "@/hooks/useGuideAuthGuard";
+import { AccountRestrictionBanner } from "@/components/guide/AccountRestrictionBanner";
 import { StatsCard } from "@/components/stats-card";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
@@ -53,6 +55,9 @@ import { useBooking } from "@/contexts/BookingsContext";
 import { useReview } from "@/contexts/ReviewContext";
 
 export default function DashboardPage() {
+  // Auth guard
+  const { user, loading } = useGuideAuthGuard();
+
   const { myGuide } = useGuide();
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
@@ -172,6 +177,14 @@ export default function DashboardPage() {
             <GuideAvailabilityToggle />
           </div>
         </div>
+
+        {/* Account Restriction Banner */}
+        <AccountRestrictionBanner
+          isEmailVerified={user?.isEmailVerified}
+          isProfileComplete={user?.isProfileComplete}
+          accountStatus={user?.status}
+          email={user?.email}
+        />
 
         <p className="text-muted-foreground text-sm mt-2">
           Dear, Best of Luck from{" "}

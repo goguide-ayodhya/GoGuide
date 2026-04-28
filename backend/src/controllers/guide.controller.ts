@@ -70,6 +70,12 @@ export class GuideController {
         ...req.body,
       };
       delete updateData.isOnline;
+      delete updateData.bio;
+
+      // Update User bio
+      if (req.body.bio) {
+        await User.findByIdAndUpdate(req.userId, { bio: req.body.bio });
+      }
 
       // 🔹 AVATAR UPLOAD
       if (avatarFile) {
@@ -94,9 +100,8 @@ export class GuideController {
 
       // 🔹 CERTIFICATES UPLOAD
       if (certificateFiles?.length) {
-        const names = Array.isArray(req.body.certificateNames)
-          ? req.body.certificateNames
-          : [req.body.certificateNames];
+        const names = req.body.certificateNames;
+        const nameArray = Array.isArray(names) ? names : [names].filter(Boolean);
 
         for (let i = 0; i < certificateFiles.length; i++) {
           const file = certificateFiles[i];
@@ -161,22 +166,17 @@ export class GuideController {
     }
   }
 
-  // async setOnlineStatus(req: AuthRequest, res: Response) {
-  //   try {
-  //     const guideId = req.userId!;
-  //     const { isOnline } = req.body;
-
-  //     const guide = await guideService.setOnlineStatus(guideId, isOnline);
-
-  //     res.status(200).json({
-  //       success: true,
-  //       message: "Online status updated",
-  //       data: guide,
-  //     });
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
+  async completeProfile(req: AuthRequest, res: Response) {
+    try {
+      const result = await guideService.completeProfile(req.userId!);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 
   async verifyGuide(req: AuthRequest, res: Response) {
     const guide = await guideService.verifyGuide(req.params.guideId);

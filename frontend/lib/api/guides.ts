@@ -84,7 +84,7 @@ export const updateGuide = async (data: any) => {
 
     if (Array.isArray(value)) {
       value.forEach((item: any) => {
-        formData.append(`${key}[]`, String(item));
+        formData.append(key, String(item));
       });
       return;
     }
@@ -128,6 +128,16 @@ export const setAvailabilityApi = async (isAvailable: boolean) => {
 
 //   return handleRes(res);
 // };
+
+// Complete Profile
+export const completeProfileApi = async () => {
+  const res = await fetch(`${base_url}guides/me/complete-profile`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
 
 // ADMIN
 export const verifyGuide = async (id: string) => {

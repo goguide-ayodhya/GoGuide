@@ -20,6 +20,7 @@ export interface IUser extends Document {
   socketId: string;
 
   isEmailVerified: boolean;
+  isProfileComplete?: boolean; // for GUIDE/DRIVER - profile completion step
   otp?: string;
   otpExpiresAt?: Date;
   resetPasswordToken?: string;
@@ -81,6 +82,10 @@ const UserSchema = new Schema<IUser>(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    isProfileComplete: {
+      type: Boolean,
+      default: false, // GUIDE/DRIVER must complete profile to become ACTIVE
     },
     otp: String,
     otpExpiresAt: Date,

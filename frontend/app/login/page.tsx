@@ -50,7 +50,6 @@ function LoginPageContent(): JSX.Element {
     e.preventDefault();
     setError("");
     setSuccess("");
-    setLoading(true);
 
     if (mode === "login") {
       try {
@@ -58,6 +57,8 @@ function LoginPageContent(): JSX.Element {
           setError("Please fill in all fields");
           return;
         }
+
+        setLoading(true);
 
         const user = await login({ identifier, password });
         if (!user) {
@@ -222,6 +223,7 @@ function LoginPageContent(): JSX.Element {
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="bg-muted border-border"
                     disabled={loading}
+                    required
                   />
                 </div>
               ) : (
@@ -265,6 +267,7 @@ function LoginPageContent(): JSX.Element {
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="bg-muted"
                       disabled={loading}
+                      required
                     />
                   </div>
                 </>

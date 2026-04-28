@@ -27,6 +27,7 @@ import suryaKundLaserShow from "./destinations/SuryaKundLaserShow.jpeg";
 import swamiNarayanChhapiya from "./destinations/SwamiNarayanChhapiya.jpeg";
 import dashrathMahal from "./destinations/dashrathMahal.png";
 import valmikiBhawan from "./destinations/ValmikiBhawan.jpeg";
+import ramMandir from "./destinations/RamMandir.jpeg";
 
 import adityaSahu from "./team/adityaSahu.png";
 import rahulSrivastava from "./team/rahulSrivastava.png";
@@ -61,6 +62,7 @@ export const assets = {
   swamiNarayanChhapiya,
   dashrathMahal,
   valmikiBhawan,
+  ramMandir,
   
   adityaSahu,
   rahulSrivastava,

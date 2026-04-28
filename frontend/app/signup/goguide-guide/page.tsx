@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -15,83 +14,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, X, Upload } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { MapPin, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { poppins } from "@/lib/fonts";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
 
-type GuideFormData = {
+type GuideSignupData = {
   name: string;
   email: string;
   password: string;
   confirmPassword: string;
   phone: string;
-  specialities: string[];
-  locations: string[];
-  price: string;
-  duration: string;
-  experience: string;
-  languages: string[];
-  profileImage: File | null;
 };
 
-const SPECIALITIES = [
-  "Historical Tours",
-  "Adventure Tours",
-  "Cultural Tours",
-  "Food Tours",
-  "Nature Tours",
-  "City Tours",
-  "Photography Tours",
-  "Wildlife Tours",
-];
-
-const COMMON_LANGUAGES = [
-  "English",
-  "Spanish",
-  "French",
-  "German",
-  "Italian",
-  "Portuguese",
-  "Chinese",
-  "Japanese",
-  "Korean",
-  "Hindi",
-  "Arabic",
-  "Russian",
-];
-
-export default function GuideForm() {
+export default function GuideSignupPage() {
   const router = useRouter();
   const { signup } = useAuth();
-  const [formData, setFormData] = useState<GuideFormData>({
+  const [formData, setFormData] = useState<GuideSignupData>({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     phone: "",
-    specialities: [],
-    locations: [],
-    price: "",
-    duration: "4 hours",
-    experience: "",
-    languages: [],
-    profileImage: null,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [currentLanguage, setCurrentLanguage] = useState("");
-  const [currentSpeciality, setCurrentSpeciality] = useState("");
-  const [currentLocation, setCurrentLocation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const passwordStrength = {
     hasLength: formData.password.length >= 8,
@@ -100,79 +49,63 @@ export default function GuideForm() {
     hasNumber: /[0-9]/.test(formData.password),
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const isStrongPassword = Object.values(passwordStrength).every(Boolean);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, profileImage: file }));
-  };
-
-  const addLanguage = () => {
-    if (currentLanguage && !formData.languages.includes(currentLanguage)) {
-      setFormData((prev) => ({
-        ...prev,
-        languages: [...prev.languages, currentLanguage],
-      }));
-      setCurrentLanguage("");
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError("Full name is required");
+      return false;
     }
-  };
-
-  const removeLanguage = (language: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      languages: prev.languages.filter((lang) => lang !== language),
-    }));
-  };
-
-  const addSpeciality = () => {
-    if (currentSpeciality && !formData.specialities.includes(currentSpeciality)) {
-      setFormData((prev) => ({
-        ...prev,
-        specialities: [...prev.specialities, currentSpeciality],
-      }));
-      setCurrentSpeciality("");
+    if (!formData.email.trim()) {
+      setError("Email is required");
+      return false;
     }
-  };
-
-  const removeSpeciality = (speciality: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      specialities: prev.specialities.filter((spec) => spec !== speciality),
-    }));
-  };
-
-  const addLocation = () => {
-    if (currentLocation && !formData.locations.includes(currentLocation)) {
-      setFormData((prev) => ({
-        ...prev,
-        locations: [...prev.locations, currentLocation],
-      }));
-      setCurrentLocation("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Please enter a valid email");
+      return false;
     }
-  };
-
-  const removeLocation = (location: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      locations: prev.locations.filter((loc) => loc !== location),
-    }));
+    if (!formData.phone.trim()) {
+      setError("Phone number is required");
+      return false;
+    }
+    if (formData.phone.length < 10) {
+      setError("Phone number must be at least 10 digits");
+      return false;
+    }
+    if (!formData.password) {
+      setError("Password is required");
+      return false;
+    }
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return false;
+    }
+    if (!isStrongPassword) {
+      setError("Password must contain uppercase, lowercase, and numbers");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
+    
+    if (!validateForm()) {
       return;
     }
+
+    setLoading(true);
+    setError("");
 
     try {
       const user = await signup({
@@ -181,22 +114,10 @@ export default function GuideForm() {
         password: formData.password,
         phone: formData.phone,
         role: "GUIDE",
-        specialities: formData.specialities,
-        locations: formData.locations,
-        price: formData.price,
-        duration: formData.duration,
-        experience: formData.experience,
-        languages: formData.languages,
-        profileImage: formData.profileImage,
       });
-      
-      // Redirect based on role
-      if (user.role === "GUIDE") {
-        router.push("/guide/dashboard");
-      } else if (user.role === "DRIVER") {
-        router.push("/driver/dashboard");
-      } else {
-        router.push("/");
+
+      if (user.email) {
+        router.push(`/verify-email?email=${encodeURIComponent(user.email)}`);
       }
     } catch (err: any) {
       setError(err.message || "Signup failed");
@@ -206,362 +127,247 @@ export default function GuideForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="max-w-md md:max-w-lg w-full">
-        <div className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md shadow-lg">
+        {/* Logo Section */}
+        <div className="text-center pt-6">
           <Image
             src={assets.logo}
-            alt="GoGuide - Ayodhya"
-            width={96}
-            height={96}
-            className="mx-auto"
+            alt="GoGuide"
+            width={80}
+            height={80}
+            className="mx-auto mb-2"
           />
-          <p className="text-muted-foreground pt-2">Book ● Feel ● Remember</p>
+          <p className="text-sm text-muted-foreground">Book • Feel • Remember</p>
         </div>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-8 w-8 text-secondary" />
-            <h1 className={`${poppins.className} text-secondary text-xl`}>
-              {" "}
+
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+            <MapPin className="h-6 w-6 text-orange-500" />
+            <span className={`${poppins.className} text-orange-600`}>
               Join as a Guide
-            </h1>
+            </span>
           </CardTitle>
+          <CardDescription className="text-base mt-2">
+            Create your account and start earning
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="bg-muted"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="bg-muted"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="bg-muted"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="specialities">Specialities</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="specialities"
-                    type="text"
-                    placeholder="Enter a speciality (e.g., Historical Tours)"
-                    value={currentSpeciality}
-                    onChange={(e) => setCurrentSpeciality(e.target.value)}
-                    className="bg-muted flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpeciality())}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="cursor-pointer bg-secondary text-white"
-                    onClick={addSpeciality}
-                  >
-                    Add
-                  </Button>
-                </div>
-                {formData.specialities.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.specialities.map((speciality) => (
-                      <Badge key={speciality} variant="secondary" className="flex items-center gap-1">
-                        {speciality}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() => removeSpeciality(speciality)}
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (₹)</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  placeholder="500"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  className="bg-muted"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration</Label>
-                <Select
-                  value={formData.duration}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, duration: value }))
-                  }
-                >
-                  <SelectTrigger className="bg-muted">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2 hours">2 hours</SelectItem>
-                    <SelectItem value="4 hours">4 hours</SelectItem>
-                    <SelectItem value="6 hours">6 hours</SelectItem>
-                    <SelectItem value="8 hours">8 hours</SelectItem>
-                    <SelectItem value="Full day">Full day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="locations">Locations</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="locations"
-                  type="text"
-                  placeholder="Enter a location (e.g., Ram Mandir)"
-                  value={currentLocation}
-                  onChange={(e) => setCurrentLocation(e.target.value)}
-                  className="bg-muted flex-1"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLocation())}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="cursor-pointer bg-secondary text-white"
-                  onClick={addLocation}
-                >
-                  Add
-                </Button>
-              </div>
-              {formData.locations.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.locations.map((location) => (
-                    <Badge key={location} variant="secondary" className="flex items-center gap-1">
-                      {location}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeLocation(location)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experience">Years of Experience</Label>
-              <Input
-                id="experience"
-                name="experience"
-                type="number"
-                placeholder="5"
-                value={formData.experience}
-                onChange={handleInputChange}
-                className="bg-muted"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Languages</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={currentLanguage}
-                  onValueChange={setCurrentLanguage}
-                >
-                  <SelectTrigger className="flex-1 bg-muted">
-                    <SelectValue placeholder="Select a language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMMON_LANGUAGES.map((language) => (
-                      <SelectItem key={language} value={language}>
-                        {language}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="cursor-pointer bg-secondary text-white"
-                  onClick={addLanguage}
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.languages.map((language) => (
-                  <Badge
-                    key={language}
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    {language}
-                    <X
-                      className="h-3 w-3 cursor-pointer"
-                      onClick={() => removeLanguage(language)}
-                    />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="profileImage">Profile Image (Optional)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="profileImage"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Label
-                  htmlFor="profileImage"
-                  className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 bg-muted"
-                >
-                  <Upload className="h-4 w-4" />
-                  {formData.profileImage
-                    ? formData.profileImage.name
-                    : "Choose file"}
-                </Label>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="bg-muted"
-                required
-              />
-              {formData.password && (
-                <div className="space-y-1">
-                  <div className="flex gap-1 text-xs">
-                    <div
-                      className={cn(
-                        "flex items-center gap-1",
-                        passwordStrength.hasLength
-                          ? "text-green-600"
-                          : "text-gray-400",
-                      )}
-                    >
-                      <Check className="h-3 w-3" />
-                      8+ characters
-                    </div>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1",
-                        passwordStrength.hasUpperCase
-                          ? "text-green-600"
-                          : "text-gray-400",
-                      )}
-                    >
-                      <Check className="h-3 w-3" />
-                      Uppercase
-                    </div>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1",
-                        passwordStrength.hasLowerCase
-                          ? "text-green-600"
-                          : "text-gray-400",
-                      )}
-                    >
-                      <Check className="h-3 w-3" />
-                      Lowercase
-                    </div>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1",
-                        passwordStrength.hasNumber
-                          ? "text-green-600"
-                          : "text-gray-400",
-                      )}
-                    >
-                      <Check className="h-3 w-3" />
-                      Number
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                className="bg-muted"
-                required
-              />
-            </div>
-
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Error Message */}
             {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                {error}
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
+            {/* Full Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-medium">
+                Full Name
+              </Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="bg-slate-50 border-slate-200"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="bg-slate-50 border-slate-200"
+                required
+              />
+            </div>
+
+            {/* Phone */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Phone Number
+              </Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="10-digit phone number"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="bg-slate-50 border-slate-200"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="bg-slate-50 border-slate-200 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              {/* Password Strength Indicator */}
+              <div className="space-y-2">
+                <div className="flex gap-1">
+                  {[
+                    passwordStrength.hasLength,
+                    passwordStrength.hasUpperCase,
+                    passwordStrength.hasLowerCase,
+                    passwordStrength.hasNumber,
+                  ].map((check, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full ${
+                        check ? "bg-green-500" : "bg-slate-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <ul className="text-xs space-y-1 text-slate-600">
+                  <li className="flex items-center gap-1">
+                    <span
+                      className={`h-3 w-3 rounded-full flex items-center justify-center text-white text-[10px] ${
+                        passwordStrength.hasLength ? "bg-green-500" : "bg-slate-300"
+                      }`}
+                    >
+                      {passwordStrength.hasLength ? "✓" : ""}
+                    </span>
+                    At least 8 characters
+                  </li>
+                  <li className="flex items-center gap-1">
+                    <span
+                      className={`h-3 w-3 rounded-full flex items-center justify-center text-white text-[10px] ${
+                        passwordStrength.hasUpperCase
+                          ? "bg-green-500"
+                          : "bg-slate-300"
+                      }`}
+                    >
+                      {passwordStrength.hasUpperCase ? "✓" : ""}
+                    </span>
+                    One uppercase letter
+                  </li>
+                  <li className="flex items-center gap-1">
+                    <span
+                      className={`h-3 w-3 rounded-full flex items-center justify-center text-white text-[10px] ${
+                        passwordStrength.hasLowerCase
+                          ? "bg-green-500"
+                          : "bg-slate-300"
+                      }`}
+                    >
+                      {passwordStrength.hasLowerCase ? "✓" : ""}
+                    </span>
+                    One lowercase letter
+                  </li>
+                  <li className="flex items-center gap-1">
+                    <span
+                      className={`h-3 w-3 rounded-full flex items-center justify-center text-white text-[10px] ${
+                        passwordStrength.hasNumber ? "bg-green-500" : "bg-slate-300"
+                      }`}
+                    >
+                      {passwordStrength.hasNumber ? "✓" : ""}
+                    </span>
+                    One number
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirm Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="bg-slate-50 border-slate-200 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full cursor-pointer"
               disabled={loading}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white h-10 font-medium"
             >
-              {loading ? "Creating Account..." : "Become a Guide"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
-          </form>
 
-          <div className="mt-6 text-center text-sm">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </div>
+            {/* Login Link */}
+            <div className="text-center pt-2">
+              <p className="text-sm text-slate-600">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

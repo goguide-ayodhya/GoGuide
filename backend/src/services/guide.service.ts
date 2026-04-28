@@ -110,6 +110,20 @@ export class GuideService {
       totalReviews: reviews.length,
     });
   }
+
+  // Mark guide profile as complete after multi-step onboarding
+  async completeProfile(userId: string) {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { isProfileComplete: true, status: "ACTIVE" },
+      { new: true },
+    );
+
+    if (!user) throw new NotFound("User not found");
+
+    return { message: "Profile completed successfully" };
+  }
+
   async verifyGuide(guideId: string) {
     const guide = await Guide.findByIdAndUpdate(
       guideId,

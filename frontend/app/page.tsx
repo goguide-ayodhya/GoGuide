@@ -38,19 +38,20 @@ export default function Home() {
     .slice(0, 6);
 
   const destinations = [
-    { name: "Ram Mandir", image: assets.digambarJainMandir },
-    { name: "Guptar Ghar", image: assets.hanumanGufa },
+    { name: "Ram Mandir Mahal", image: assets.dashrathMahal },
     { name: "Hanuman Garhi", image: assets.hanumanGarhi },
-    { name: "Bharat Kund", image: assets.kanakBhawan },
-    { name: "Ayodhya", image: assets.lataMangeshkar },
+    { name: "Hanuman Gufa", image: assets.hanumanGufa },
+    { name: "Surya Kund", image: assets.suryaKundLaserShow },
+    { name: "Valmiki Bhawan", image: assets.valmikiBhawan },
+    { name: "Dashrath Mahal", image: assets.dashrathMahal },
+    { name: "Kanak Bhawan", image: assets.kanakBhawan },
+    { name: "Lata Mangeshkar Chowk", image: assets.lataMangeshkar },
+    { name: "Digambar Jain Mandir Mandir", image: assets.digambarJainMandir },
     { name: "Mani Parvat", image: assets.maniParvatAyodhya },
     { name: "Shwetambar Mandir", image: assets.shwetambarMandir },
     { name: "Sita Ki Rasoi", image: assets.sitaKiRasoi },
     { name: "Sri Ram Lala Sadan", image: assets.sriRamLalaSadan },
     { name: "Swami Narayan Chhapiya", image: assets.swamiNarayanChhapiya },
-    { name: "Surya Kund", image: assets.suryaKundLaserShow },
-    { name: "Valmiki Bhawan", image: assets.valmikiBhawan },
-    { name: "Dashrath Mahal", image: assets.dashrathMahal },
   ];
 
   const partners = [
@@ -181,12 +182,12 @@ export default function Home() {
               </b>{" "}
             </h2>
 
-            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth">
               {destinations.map((item, index) => (
                 <div
                   key={index}
                   className="
-              min-w-[30%] sm:min-w-[22%] md:min-w-[18%] lg:min-w-[16%]
+              min-w-[35%] sm:min-w-[22%] md:min-w-[18%] lg:min-w-[16%]
               snap-start
               rounded-xl overflow-hidden hover:shadow-sm
             "
@@ -207,6 +208,13 @@ export default function Home() {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent"></div>
+
+            <div className="flex justify-center mt-2 sm:hidden">
+              <p className="text-xs text-slate-500 animate-pulse">
+                ← Swipe to explore →
+              </p>
             </div>
             <div className="flex items-center justify-center">
               <Link href="/tourist/packages">
@@ -314,7 +322,7 @@ export default function Home() {
         <Features />
 
         {/* Team Section */}
-        <TeamSection />
+        {/* <TeamSection /> */}
 
         {/* How it works */}
         <HowItWorks />
