@@ -24,7 +24,7 @@ const handleRes = async (res: Response) => {
 
 // ---------------- GET ALL ----------------
 export const getPackages = async () => {
-  const res = await fetch(`${base_url}packages`, {
+  const res = await fetch(`${base_url}packages?isActive=true`, {
     headers: authHeaders(),
   });
   return handleRes(res);

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { tourPackageController } from "../controllers/tourPackage.controller";
 import { authenticate, authorize } from "../middleware/auth";
 import { upload } from "../middleware/upload";
+import { bookingController } from "../controllers/booking.controller";
 
 const router = Router();
 

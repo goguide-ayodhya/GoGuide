@@ -4,6 +4,7 @@ export type PaymentType = "FULL" | "PARTIAL" | "COD" | "REMAINING";
 
 export interface IBooking extends Document {
   guideId?: Types.ObjectId;
+  packageId: Types.ObjectId;
   userId: Types.ObjectId;
   driverId?: Types.ObjectId;
 
@@ -49,7 +50,7 @@ export interface IBooking extends Document {
 
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
 
-  bookingType: "GUIDE" | "DRIVER" | "TOKEN";
+  bookingType: "GUIDE" | "DRIVER" | "TOKEN" | "PACKAGE";
 
   paymentStatus: "PENDING" | "PARTIAL" | "COMPLETED" | "FAILED" | "REFUNDED";
   notes?: string;
@@ -70,6 +71,10 @@ const BookingSchema = new Schema<IBooking>(
         return this.bookingType === "GUIDE";
       },
     },
+    packageId: {
+      type: Schema.Types.ObjectId,
+      ref: "TourPackage",
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -81,7 +86,7 @@ const BookingSchema = new Schema<IBooking>(
     },
     bookingType: {
       type: String,
-      enum: ["GUIDE", "DRIVER", "TOKEN"],
+      enum: ["GUIDE", "DRIVER", "TOKEN", "PACKAGE"],
       required: true,
     },
     touristName: {

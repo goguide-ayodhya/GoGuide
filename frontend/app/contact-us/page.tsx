@@ -37,7 +37,7 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Call */}
             <a
-              href="tel:+919876543210"
+              href="tel:+918881993735"
               className="p-5 border border-border rounded-xl flex items-start gap-4 hover:shadow-md hover:border-primary transition"
             >
               <Phone className="text-primary" />

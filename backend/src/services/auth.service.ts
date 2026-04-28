@@ -32,9 +32,9 @@ export class AuthService {
     }
 
     if (user.role === "GUIDE" || user.role === "DRIVER") {
-      if (!user.isEmailVerified) {
-        throw new BadRequest("Please verify your email before continuing");
-      }
+      // if (!user.isEmailVerified) {
+      //   throw new BadRequest("Please verify your email before continuing");
+      // }
       // Check if profile is complete
       // if (!user.isProfileComplete) {
       //   throw new BadRequest("Please complete your profile before continuing");

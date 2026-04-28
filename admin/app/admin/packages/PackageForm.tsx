@@ -7,12 +7,6 @@ import {
   createPackageForm,
   updatePackageForm,
 } from "@/lib/api/tourPackages";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 type Props = {
   existing?: any;
@@ -23,12 +17,12 @@ type Props = {
 const emptyForm = () => ({
   title: "",
   description: "",
-  city: "",
+  // city: "",
   state: "",
   price: "",
-  basePrice: "",
-  cabPrice: "",
-  guidePrice: "",
+  // basePrice: "",
+  // cabPrice: "",
+  // guidePrice: "",
   duration: "",
   durationType: "hours",
   startTime: "",
@@ -44,27 +38,28 @@ const emptyForm = () => ({
 
 function normalizeExisting(e: any) {
   if (!e) return emptyForm();
+
   return {
     ...emptyForm(),
     title: e.title ?? "",
     description: e.description ?? "",
-    city: e.location ?? e.city ?? "",
     state: e.state ?? "",
+
     price: e.price ?? "",
-    basePrice: e.basePrice ?? e.priceBreakdown?.basePrice ?? "",
-    cabPrice: e.cabPrice ?? e.priceBreakdown?.cabPrice ?? "",
-    guidePrice: e.guidePrice ?? e.priceBreakdown?.guidePrice ?? "",
     duration: e.duration ?? "",
     durationType: e.durationType ?? "hours",
     startTime: e.startTime ?? "",
+
     maxGroupSize: e.maxGroupSize ?? "",
+
     includesCab: !!e.includesCab,
     includesGuide: !!e.includesGuide,
+
     images: Array.isArray(e.images) ? e.images : [],
-    mainImage:
-      e.mainImage ??
-      (Array.isArray(e.images) && e.images[0] ? e.images[0] : ""),
+    mainImage: e.mainImage || e.images?.[0] || "",
+
     locations: Array.isArray(e.locations) ? e.locations : [],
+
     type: e.type ?? "basic",
     discount: e.discount ?? "",
   };
@@ -72,8 +67,18 @@ function normalizeExisting(e: any) {
 
 export default function PackageForm({ existing, onSuccess, onClose }: Props) {
   const [form, setForm] = useState(() => normalizeExisting(existing));
+  const [previewMain, setPreviewMain] = useState<string | null>(null);
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
-  useEffect(() => setForm(normalizeExisting(existing)), [existing]);
+  const [previewImages, setPreviewImages] = useState<(string | null)[]>([]);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([]);
+
+  useEffect(() => {
+    setForm(normalizeExisting(existing));
+    setPreviewMain(null);
+    setMainImageFile(null);
+    setPreviewImages([]);
+    setImageFiles([]);
+  }, [existing]);
 
   const [showDiscount, setShowDiscount] = useState(
     !!(existing && existing.discount),
@@ -105,18 +110,43 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       locations: (p.locations || []).filter((_: any, i: number) => i !== index),
     }));
 
-  const [files, setFiles] = useState<File[]>([]);
-
   const handleSingleImage = (index: number, file: File) => {
-    const updated = [...(form.images || [])];
-    updated[index] = URL.createObjectURL(file);
-
-    setForm({ ...form, images: updated });
-
-    setFiles((prev) => {
+    const preview = URL.createObjectURL(file);
+    setPreviewImages((prev) => {
+      const copy = [...prev];
+      copy[index] = preview;
+      return copy;
+    });
+    setImageFiles((prev) => {
       const copy = [...prev];
       copy[index] = file;
       return copy;
+    });
+    setForm((prev: any) => {
+      const nextImages = [...(prev.images || [])];
+      while (nextImages.length <= index) nextImages.push(undefined);
+      nextImages[index] = undefined;
+      return { ...prev, images: nextImages };
+    });
+  };
+
+  const removeImageSlot = (index: number) => {
+    setPreviewImages((prev) => {
+      const copy = [...prev];
+      copy[index] = null;
+      return copy;
+    });
+    setImageFiles((prev) => {
+      const copy = [...prev];
+      copy[index] = null;
+      return copy;
+    });
+    setForm((prev: any) => {
+      const nextImages = [...(prev.images || [])];
+      if (index < nextImages.length) {
+        nextImages[index] = undefined;
+      }
+      return { ...prev, images: nextImages };
     });
   };
 
@@ -128,46 +158,55 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
         .map((s: string) => s.trim())
         .filter(Boolean),
     }));
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setFiles(e.target.files ? Array.from(e.target.files) : []);
 
   const handleSubmit = async () => {
+    const actualImages = (form.images || []).filter(
+      (img: string | null) => typeof img === "string" && img.trim(),
+    );
+
     const payload: any = {
       title: form.title,
       description: form.description,
-      location: form.city,
       state: form.state,
       price: Number(form.price || 0),
-      basePrice: Number(form.basePrice || 0),
-      cabPrice: Number(form.cabPrice || 0),
-      guidePrice: Number(form.guidePrice || 0),
+
       duration: Number(form.duration || 0),
       durationType: form.durationType,
       startTime: form.startTime,
+
       maxGroupSize: Number(form.maxGroupSize || 0),
+
       includesCab: !!form.includesCab,
       includesGuide: !!form.includesGuide,
-      images: form.images,
+
+      images: actualImages,
       mainImage: form.mainImage,
+
       locations: form.locations || [],
+
       type: form.type,
       discount:
         showDiscount && form.discount ? Number(form.discount) : undefined,
     };
 
+    const newFiles = (imageFiles || []).filter(
+      (file): file is File => file instanceof File,
+    );
+
     try {
-      if (files.length > 0) {
+      if (newFiles.length > 0 || mainImageFile) {
         const formData = new FormData();
         Object.keys(payload).forEach((k) => {
-          if (payload[k] !== undefined)
+          if (payload[k] !== undefined && !(mainImageFile && k === "mainImage")) {
             formData.append(
               k,
               typeof payload[k] === "object"
                 ? JSON.stringify(payload[k])
                 : String(payload[k]),
             );
+          }
         });
-        files.forEach((f) => formData.append("images", f));
+        newFiles.forEach((f) => formData.append("images", f));
         if (mainImageFile) {
           formData.append("mainImageFile", mainImageFile);
         }
@@ -201,10 +240,14 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
 
         {/* MAIN IMAGE PREVIEW + CLICK */}
         <label className="cursor-pointer block mb-3">
-          {form.mainImage ? (
+          {previewMain || form.mainImage ? (
             <img
-              src={form.mainImage}
+              src={previewMain || form.mainImage}
+              alt="Main package preview"
               className="w-full h-48 object-cover rounded-lg border"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
           ) : (
             <div className="w-full h-48 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 border-2 border-dashed">
@@ -220,11 +263,7 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
               if (file) {
                 const preview = URL.createObjectURL(file);
 
-                setForm({
-                  ...form,
-                  mainImage: preview,
-                });
-
+                setPreviewMain(preview);
                 setMainImageFile(file);
               }
             }}
@@ -238,15 +277,31 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
           {[0, 1, 2, 3].map((i) => (
             <label
               key={i}
-              className="cursor-pointer border-2 border-dashed border-gray-300 rounded-lg h-24 flex items-center justify-center overflow-hidden hover:border-black transition"
+              className="relative cursor-pointer border-2 border-dashed border-gray-300 rounded-lg h-24 flex items-center justify-center overflow-hidden hover:border-black transition"
             >
-              {form.images[i] ? (
+              {previewImages[i] || form.images[i] ? (
                 <img
-                  src={form.images[i]}
+                  src={previewImages[i] || form.images[i]}
+                  alt={`Package image ${i + 1}`}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
               ) : (
                 <span className="text-xs text-gray-400">Add</span>
+              )}
+              {(previewImages[i] || form.images[i]) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImageSlot(i);
+                  }}
+                  className="absolute top-1 right-1 z-10 bg-black/60 text-white rounded-full p-1"
+                >
+                  ×
+                </button>
               )}
 
               <input
@@ -255,21 +310,7 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    const preview = URL.createObjectURL(file);
-
-                    const updatedImages = [...form.images];
-                    updatedImages[i] = preview; 
-
-                    setForm({
-                      ...form,
-                      images: updatedImages,
-                    });
-
-                    setFiles((prev) => {
-                      const copy = [...prev];
-                      copy[i] = file;
-                      return copy;
-                    });
+                    handleSingleImage(i, file);
                   }
                 }}
               />
@@ -288,7 +329,7 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
             className="input w-full border rounded-lg border-2 pl-1"
           />
         </div>
-        <div>
+        {/* <div>
           <label className="block text-sm mb-1">City</label>
           <input
             name="city"
@@ -296,7 +337,7 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
             onChange={handleChange}
             className="input w-full border rounded-lg border-2 pl-1"
           />
-        </div>
+        </div> */}
       </div>
 
       <div>
@@ -338,30 +379,6 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
           onChange={handleChange}
           className="input w-full border rounded-lg border-2 pl-1"
           placeholder="Price"
-        />
-        <input
-          name="basePrice"
-          value={form.basePrice}
-          type="number"
-          onChange={handleChange}
-          className="input w-full border rounded-lg border-2 pl-1"
-          placeholder="Base"
-        />
-        <input
-          name="cabPrice"
-          value={form.cabPrice}
-          type="number"
-          onChange={handleChange}
-          className="input w-full border rounded-lg border-2 pl-1"
-          placeholder="Cab"
-        />
-        <input
-          name="guidePrice"
-          value={form.guidePrice}
-          type="number"
-          onChange={handleChange}
-          className="input w-full border rounded-lg border-2 pl-1"
-          placeholder="Guide"
         />
       </div>
 

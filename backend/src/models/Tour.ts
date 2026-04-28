@@ -3,22 +3,22 @@ import { Schema, model, Document, Types } from "mongoose";
 export interface ItineraryStop {
   title: string;
   description?: string;
-  location?: { city?: string; state?: string };
+  // location?: { city?: string; state?: string };
   order: number;
 }
 
 export interface ITourPackage extends Document {
   title: string;
   description: string;
-  location: string;
+  // location: string;
   state?: string;
   duration: number;
   durationType: "hours" | "days";
   startTime?: string;
   price: number;
-  basePrice: number;
-  cabPrice: number;
-  guidePrice: number;
+  // basePrice: number;
+  // cabPrice: number;
+  // guidePrice: number;
   maxGroupSize?: number;
   itinerary: ItineraryStop[];
   includesCab: boolean;
@@ -39,10 +39,10 @@ const ItineraryStopSchema = new Schema<ItineraryStop>(
   {
     title: { type: String, required: true },
     description: { type: String },
-    location: {
-      city: { type: String },
-      state: { type: String },
-    },
+    // location: {
+    //   city: { type: String },
+    //   state: { type: String },
+    // },
     order: { type: Number, required: true },
   },
   { _id: false },
@@ -52,12 +52,12 @@ const TourPackageSchema = new Schema<ITourPackage>(
   {
     title: { type: String, required: true },
     description: { type: String, required: true },
-    location: { type: String, required: true },
+    // location: { type: String, required: true },
     state: { type: String },
     price: { type: Number, required: true },
-    basePrice: { type: Number, default: 0 },
-    cabPrice: { type: Number, default: 0 },
-    guidePrice: { type: Number, default: 0 },
+    // basePrice: { type: Number, default: 0 },
+    // cabPrice: { type: Number, default: 0 },
+    // guidePrice: { type: Number, default: 0 },
     duration: { type: Number, default: 1 },
     durationType: { type: String, enum: ["hours", "days"], default: "hours" },
     startTime: { type: String },

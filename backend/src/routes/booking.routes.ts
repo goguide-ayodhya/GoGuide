@@ -31,17 +31,27 @@ router.get("/driver", authenticate, (req, res, next) => {
   bookingController.getDriverBookings(req, res).catch(next);
 });
 
-router.get("/admin/all", authenticate, authorize(["ADMIN"]), (req, res, next) => {
-  bookingController.getAllBookings(req, res).catch(next);
-});
+router.get(
+  "/admin/all",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    bookingController.getAllBookings(req, res).catch(next);
+  },
+);
 
 router.get("/:bookingId", authenticate, (req, res, next) => {
   bookingController.getBookingById(req, res).catch(next);
 });
 
-router.patch("/:bookingId/cancel", authenticate, validate(cancelBookingSchema), (req, res, next) => {
-  bookingController.cancelBooking(req, res).catch(next);
-});
+router.patch(
+  "/:bookingId/cancel",
+  authenticate,
+  validate(cancelBookingSchema),
+  (req, res, next) => {
+    bookingController.cancelBooking(req, res).catch(next);
+  },
+);
 
 // guide actions
 router.patch("/:bookingId/accept", authenticate, (req, res, next) => {
@@ -50,6 +60,10 @@ router.patch("/:bookingId/accept", authenticate, (req, res, next) => {
 
 router.patch("/:bookingId/reject", authenticate, (req, res, next) => {
   bookingController.rejectBooking(req, res).catch(next);
+});
+
+router.post("/:packageId/create-order", authenticate, (req, res, next) => {
+  bookingController.createPackageBooking(req, res).catch(next);
 });
 
 router.patch("/:bookingId/complete", authenticate, (req, res, next) => {

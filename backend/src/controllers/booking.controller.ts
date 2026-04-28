@@ -56,9 +56,12 @@ export class BookingController {
       }
 
       console.log("Querying bookings for guideId:", guide._id.toString());
-      const bookings = await bookingService.getBookingsByGuide(guide._id.toString(), {
-        status: status as string,
-      });
+      const bookings = await bookingService.getBookingsByGuide(
+        guide._id.toString(),
+        {
+          status: status as string,
+        },
+      );
 
       console.log("Found bookings:", bookings.length);
       res.status(200).json({
@@ -113,9 +116,12 @@ export class BookingController {
       }
 
       console.log("Querying bookings for driverId:", driver._id.toString());
-      const bookings = await bookingService.getBookingsByDriver(driver._id.toString(), {
-        status: status as string,
-      });
+      const bookings = await bookingService.getBookingsByDriver(
+        driver._id.toString(),
+        {
+          status: status as string,
+        },
+      );
 
       console.log("Found bookings:", bookings.length);
       res.status(200).json({
@@ -155,7 +161,9 @@ export class BookingController {
       }
 
       const cancelledBy =
-        user.role === "GUIDE" || user.role === "TOURIST" || user.role === "DRIVER"
+        user.role === "GUIDE" ||
+        user.role === "TOURIST" ||
+        user.role === "DRIVER"
           ? (user.role as "GUIDE" | "TOURIST" | "DRIVER")
           : undefined;
 
@@ -180,7 +188,12 @@ export class BookingController {
       const userId = req.userId!;
       const { bookingId } = req.params;
 
-      console.log("[BOOKING] acceptBooking - userId:", userId, "bookingId:", bookingId);
+      console.log(
+        "[BOOKING] acceptBooking - userId:",
+        userId,
+        "bookingId:",
+        bookingId,
+      );
 
       const booking = await bookingService.getBookingById(bookingId);
       if (!booking) {
@@ -197,10 +210,14 @@ export class BookingController {
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
-          console.error("[BOOKING] Guide profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Guide profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found. Please complete your guide profile setup.",
+            message:
+              "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
@@ -208,10 +225,14 @@ export class BookingController {
       } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
-          console.error("[BOOKING] Driver profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Driver profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found. Please complete your driver profile setup.",
+            message:
+              "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
@@ -258,10 +279,14 @@ export class BookingController {
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
-          console.error("[BOOKING] Guide profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Guide profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found. Please complete your guide profile setup.",
+            message:
+              "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
@@ -269,16 +294,23 @@ export class BookingController {
       } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
-          console.error("[BOOKING] Driver profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Driver profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found. Please complete your driver profile setup.",
+            message:
+              "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
         console.log("[BOOKING] Found driver for rejection:", driver._id);
       } else {
-        console.error("[BOOKING] Invalid booking type for rejection:", booking.bookingType);
+        console.error(
+          "[BOOKING] Invalid booking type for rejection:",
+          booking.bookingType,
+        );
         return res.status(400).json({
           success: false,
           message: `Invalid booking type: ${booking.bookingType}`,
@@ -319,25 +351,36 @@ export class BookingController {
       if (booking.bookingType === "GUIDE") {
         const guide = await Guide.findOne({ userId });
         if (!guide) {
-          console.error("[BOOKING] Guide profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Guide profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Guide profile not found. Please complete your guide profile setup.",
+            message:
+              "Guide profile not found. Please complete your guide profile setup.",
           });
         }
         actorId = guide._id.toString();
       } else if (booking.bookingType === "DRIVER") {
         const driver = await Driver.findOne({ userId });
         if (!driver) {
-          console.error("[BOOKING] Driver profile not found for userId:", userId);
+          console.error(
+            "[BOOKING] Driver profile not found for userId:",
+            userId,
+          );
           return res.status(404).json({
             success: false,
-            message: "Driver profile not found. Please complete your driver profile setup.",
+            message:
+              "Driver profile not found. Please complete your driver profile setup.",
           });
         }
         actorId = driver._id.toString();
       } else {
-        console.error("[BOOKING] Invalid booking type for completion:", booking.bookingType);
+        console.error(
+          "[BOOKING] Invalid booking type for completion:",
+          booking.bookingType,
+        );
         return res.status(400).json({
           success: false,
           message: `Invalid booking type: ${booking.bookingType}`,
@@ -369,6 +412,20 @@ export class BookingController {
         message: "Unable to complete booking at this time.",
       });
     }
+  }
+
+  async createPackageBooking(req: AuthRequest, res: Response) {
+    const { packageId } = req.params;
+
+    const booking = await bookingService.createPackageBooking(
+      req.userId!,
+      packageId,
+    );
+
+    res.status(201).json({
+      success: true,
+      data: booking,
+    });
   }
 
   async markSeen(req: AuthRequest, res: Response) {

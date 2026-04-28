@@ -11,6 +11,7 @@ import { NotificationService } from "./notification.service";
 import { roundMoney } from "../utils/bookingPricing";
 import { applyPlatformSplitToBooking } from "./bookingCommission.service";
 import { CreateBookingInput } from "../validations/booking";
+import { TourPackage } from "../models/Tour";
 
 export class BookingService {
   async createBooking(userId: string, input: CreateBookingInput) {
@@ -590,11 +591,14 @@ export class BookingService {
     }
 
     booking.status = "COMPLETED";
-    await booking.save();
+    if ((booking as any).packageId) {
+      const { TourPackage } = await import("../models/Tour");
 
-    console.log(
-      `[BOOKING] ✅ Booking Completed: ${bookingId}, bookingType: ${bookingType}`,
-    );
+      await TourPackage.findByIdAndUpdate(booking.packageId, {
+        $inc: { soldCount: 1 },
+      });
+    }
+    await booking.save();
 
     // Send notification to user (async - don't block response)
     try {
@@ -605,6 +609,65 @@ export class BookingService {
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
     }
+
+    return booking;
+  }
+
+  async createPackageBooking(userId: string, packageId: string) {
+    const pkg = await TourPackage.findById(packageId);
+    if (!pkg) throw new NotFound("Package not found");
+
+    if (!pkg.isActive) {
+      throw new BadRequest("Package not available");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw new NotFound("User not found");
+    if (!user.name || !user.email || !user.phone) {
+      throw new BadRequest(
+        "User profile must include name, email, and phone",
+      );
+    }
+
+    const meetingPoint =
+      Array.isArray(pkg.locations) && pkg.locations.length > 0
+        ? pkg.locations[0]
+        : pkg.title || "Meeting point not specified";
+    const dropoffLocation =
+      Array.isArray(pkg.locations) && pkg.locations.length > 0
+        ? pkg.locations[pkg.locations.length - 1]
+        : pkg.title || "Dropoff location not specified";
+
+    const booking = await Booking.create({
+      userId,
+      packageId,
+      bookingType: "PACKAGE",
+
+      touristName: user.name,
+      email: user.email,
+      phone: user.phone,
+
+      groupSize: 1,
+      bookingDate: new Date(),
+      startTime: pkg.startTime || "03:00",
+
+      tourType: pkg.title,
+      meetingPoint,
+      dropoffLocation,
+
+      totalPrice: pkg.price,
+      originalPrice: pkg.price,
+      finalPrice: pkg.price,
+
+      paidAmount: 0,
+      remainingAmount: pkg.price,
+
+      guideEarning: 0,
+      adminCommission: 0,
+
+      status: "PENDING",
+      paymentStatus: "PENDING",
+    });
 
     return booking;
   }

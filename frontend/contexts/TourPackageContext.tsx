@@ -5,20 +5,30 @@ import { getPackages, getPackageById } from "@/lib/api/tourPackages";
 
 // ---------------- TYPES ----------------
 export interface Package {
-  mainImage: any;
-  images: any;
-  discount: any;
-  locations: any[];
-  durationType: string;
-  includesCab: import("react/jsx-runtime").JSX.Element;
-  includesGuide: import("react/jsx-runtime").JSX.Element;
   _id: string;
   title: string;
-  location: string;
-  duration: number;
-  price: number;
-  image: string;
   description: string;
+
+  price: number;
+  discount?: number;
+
+  duration: number;
+  durationType: "hours" | "days";
+
+  locations: string[];
+  state?: string;
+
+  includesCab: boolean;
+  includesGuide: boolean;
+
+  images: string[];
+  mainImage?: string;
+
+  type: "basic" | "medium" | "premium";
+
+  maxGroupSize?: number;
+
+  soldCount?: number;
 }
 
 interface PackageContextType {
@@ -42,8 +52,9 @@ export const PackageProvider = ({ children }: any) => {
     setLoading(true);
     try {
       const data = await getPackages();
-      // Normalize API shapes: array | { packages: [...] } | { data: [...] } | { items: [...] }
-      let list: any = [];
+
+      let list: Package[] = [];
+
       if (Array.isArray(data)) list = data;
       else if (data && Array.isArray(data.packages)) list = data.packages;
       else if (data && Array.isArray(data.data)) list = data.data;
@@ -60,12 +71,12 @@ export const PackageProvider = ({ children }: any) => {
   const fetchPackageById = async (id: string) => {
     try {
       const data = await getPackageById(id);
-      // API may return { package: {...} } or { data: {...} } or the package object directly
-      let pkg: any = null;
-      if (!data) pkg = null;
-      else if (data.package) pkg = data.package;
-      else if (data.data && !Array.isArray(data.data)) pkg = data.data;
-      else pkg = data;
+      let pkg: Package = data?.package || data?.data || data;
+      
+      // if (!data) pkg = null;
+      // else if (data.package) pkg = data.package;
+      // else if (data.data && !Array.isArray(data.data)) pkg = data.data;
+      // else pkg = data;
       setSelectedPackage(pkg as Package | null);
     } catch (err) {
       console.log("Fetch package error", err);

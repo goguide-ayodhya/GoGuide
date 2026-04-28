@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { getPackages, deletePackage } from "@/lib/api/tourPackages";
 import PackageForm from "./PackageForm";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Plus, Trash2, Edit, Truck, User, Percent } from "lucide-react";
+import { Plus, Trash2, Edit, Truck, User, Percent } from "lucide-react";
 import { SelectTrigger } from "@radix-ui/react-select";
 
 export default function TourPackagesPage() {
@@ -76,18 +76,20 @@ export default function TourPackagesPage() {
     }
   };
 
-  const filtered = packages.filter((p) => {
-    if (typeFilter && p.type !== typeFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        (p.title || "").toLowerCase().includes(q) ||
-        (p.location || "").toLowerCase().includes(q) ||
-        (p.state || "").toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+  const filtered = packages
+    .filter((p) => p.isActive !== false)
+    .filter((p) => {
+      if (typeFilter && p.type !== typeFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          (p.title || "").toLowerCase().includes(q) ||
+          (p.locations?.join(" ") || "").toLowerCase().includes(q) ||
+          (p.state || "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
 
   return (
     <div className="p-6">
@@ -134,10 +136,17 @@ export default function TourPackagesPage() {
             >
               <div className="relative">
                 <div className="h-48 w-full bg-gray-100">
-                  <img
-                    src={p.mainImage || (p.images && p.images[0])}
-                    className="w-full h-full object-cover"
-                  />
+                  {(p?.mainImage || p?.images?.[0]) ? (
+  <img
+    src={p.mainImage || p.images?.[0]}
+    alt={p?.title || "Package image"}
+    className="w-full h-full object-cover"
+  />
+) : (
+  <div className="w-full h-full flex items-center justify-center text-gray-400">
+    No Image
+  </div>
+)}
                 </div>
                 {p.discount ? (
                   <div className="absolute top-3 left-3 bg-white/90 rounded-full px-3 py-1 flex items-center gap-2 text-sm font-semibold">
@@ -163,7 +172,7 @@ export default function TourPackagesPage() {
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-1">{p.title}</h3>
                 <p className="text-sm text-muted-foreground mb-2">
-                  {p.location}
+                  {p.locations?.[0]}
                   {p.state ? `, ${p.state}` : ""}
                 </p>
 

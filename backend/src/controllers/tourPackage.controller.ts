@@ -3,6 +3,17 @@ import { AuthRequest } from "../middleware/auth";
 import { tourPackageService } from "../services/tourPackage.service";
 import fileUploadService from "../services/fileUpload.service";
 
+function parseJSONField(field: any) {
+  if (typeof field === "string") {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return field;
+    }
+  }
+  return field;
+}
+
 export class TourPackageController {
   async createPackage(req: AuthRequest, res: Response) {
     try {
@@ -35,24 +46,17 @@ export class TourPackageController {
       if (body.includesGuide === "true" || body.includesGuide === "false") {
         body.includesGuide = body.includesGuide === "true";
       }
-      if (body.price) body.price = Number(body.price);
-      if (body.basePrice) body.basePrice = Number(body.basePrice);
-      if (body.cabPrice) body.cabPrice = Number(body.cabPrice);
-      if (body.guidePrice) body.guidePrice = Number(body.guidePrice);
-      if (body.discount) body.discount = Number(body.discount);
+      if (body.price !== undefined) body.price = Number(body.price);
+      // if (body.basePrice) body.basePrice = Number(body.basePrice);
+      // if (body.cabPrice) body.cabPrice = Number(body.cabPrice);
+      // if (body.guidePrice) body.guidePrice = Number(body.guidePrice);
+      if (body.discount !== undefined) body.discount = Number(body.discount);
       if (body.soldCount) body.soldCount = Number(body.soldCount);
       if (body.type) body.type = String(body.type).toLowerCase();
-      if (body.location) body.location = String(body.location);
+      // if (body.location) body.location = String(body.location);
       if (body.state) body.state = String(body.state);
-      if (body.duration) body.duration = Number(body.duration);
-      if (body.maxGroupSize) body.maxGroupSize = Number(body.maxGroupSize);
-      if (body.priceBreakdown && typeof body.priceBreakdown === "string") {
-        try {
-          body.priceBreakdown = JSON.parse(body.priceBreakdown);
-        } catch (e) {
-          body.priceBreakdown = body.priceBreakdown;
-        }
-      }
+      if (body.duration !== undefined) body.duration = Number(body.duration);
+      if (body.maxGroupSize !== undefined) body.maxGroupSize = Number(body.maxGroupSize);
 
       const images: string[] = [];
       let uploadedMainImage: string | undefined;
@@ -163,16 +167,9 @@ export class TourPackageController {
       if (body.includesGuide === "true" || body.includesGuide === "false") {
         body.includesGuide = body.includesGuide === "true";
       }
-      if (body.price) body.price = Number(body.price);
-      if (body.duration) body.duration = Number(body.duration);
-      if (body.maxGroupSize) body.maxGroupSize = Number(body.maxGroupSize);
-      if (body.priceBreakdown && typeof body.priceBreakdown === "string") {
-        try {
-          body.priceBreakdown = JSON.parse(body.priceBreakdown);
-        } catch (e) {
-          body.priceBreakdown = body.priceBreakdown;
-        }
-      }
+      if (body.price !== undefined) body.price = Number(body.price);
+      if (body.duration !== undefined) body.duration = Number(body.duration);
+      if (body.maxGroupSize !== undefined) body.maxGroupSize = Number(body.maxGroupSize);
 
       const images: string[] = [];
       let uploadedMainImage: string | undefined;
@@ -194,7 +191,7 @@ export class TourPackageController {
       } else if (images.length) {
         body.images = images;
       }
-      if (!body.mainImage) {
+      if (body.mainImage === undefined) {
         if (uploadedMainImage) body.mainImage = uploadedMainImage;
         else if (body.images && body.images.length) body.mainImage = body.images[0];
         else if (images.length) body.mainImage = images[0];
