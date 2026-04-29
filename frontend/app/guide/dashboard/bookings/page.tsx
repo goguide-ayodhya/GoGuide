@@ -542,6 +542,9 @@ export default function BookingsPage() {
                         Date
                       </th>
                       <th className="text-left py-4 px-6 font-semibold text-foreground">
+                        St. Time
+                      </th>
+                      <th className="text-left py-4 px-6 font-semibold text-foreground">
                         Group
                       </th>
                       <th className="text-left py-4 px-6 font-semibold text-foreground">
@@ -609,6 +612,16 @@ export default function BookingsPage() {
                               <span className="text-foreground">
                                 {new Date(
                                   booking.bookingDate,
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-foreground">
+                                {new Date(
+                                  booking.startTime,
                                 ).toLocaleDateString()}
                               </span>
                             </div>

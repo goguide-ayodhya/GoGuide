@@ -38,7 +38,7 @@ export default function Home() {
     .slice(0, 6);
 
   const destinations = [
-    { name: "Ram Mandir Mahal", image: assets.dashrathMahal },
+    { name: "Ram Mandir", image: assets.ramMandir },
     { name: "Hanuman Garhi", image: assets.hanumanGarhi },
     { name: "Hanuman Gufa", image: assets.hanumanGufa },
     { name: "Surya Kund", image: assets.suryaKundLaserShow },

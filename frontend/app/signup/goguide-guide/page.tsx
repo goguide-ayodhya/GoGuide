@@ -343,7 +343,7 @@ export default function GuideSignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white h-10 font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-white h-10 font-medium"
             >
               {loading ? (
                 <>

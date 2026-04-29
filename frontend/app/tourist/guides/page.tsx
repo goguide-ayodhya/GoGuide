@@ -145,7 +145,7 @@ export default function GuidesPage() {
                 </div>
               </div>
 
-              <div className="grid gap-8 md:grid-cols-[1.6fr_1fr]">
+              <div className="grid gap-8 md:grid-cols-[1.6fr_1fr] flex items-end">
                 <label className="relative block flex items-center">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -156,7 +156,7 @@ export default function GuidesPage() {
                   />
                 </label>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">
                       Sort by
@@ -170,30 +170,17 @@ export default function GuidesPage() {
                       <SelectTrigger className="rounded-3xl font-medium text-slate-700 border border-slate-200 bg-slate-50">
                         <SelectValue placeholder="Highest rating" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem
-                          className="font-medium text-slate-700"
-                          value="rating"
-                        >
-                          Highest rating
+
+                      <SelectContent className="rounded-3xl border border-slate-200 text-sm font-medium bg-white shadow-xl p-2">
+                        <SelectItem value="rating">Highest rating</SelectItem>
+                        <SelectItem value="price-low">
+                          Price: Low to High
                         </SelectItem>
-                        <SelectItem
-                          className="font-medium text-slate-700"
-                          value="price-low"
-                        >
-                          Price: low to high
+                        <SelectItem value="price-high">
+                          Price: High to Low
                         </SelectItem>
-                        <SelectItem
-                          className="font-medium text-slate-700"
-                          value="price-high"
-                        >
-                          Price: high to low
-                        </SelectItem>
-                        <SelectItem
-                          className="font-medium text-slate-700"
-                          value="experience"
-                        >
-                          Most experience
+                        <SelectItem value="experience">
+                          Most Experience
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -209,10 +196,10 @@ export default function GuidesPage() {
                         setLanguageFilter(value === "all" ? "" : value)
                       }
                     >
-                      <SelectTrigger className="rounded-3xl border border-slate-200 bg-slate-50">
+                      <SelectTrigger className="rounded-3xl border border-slate-500">
                         <SelectValue placeholder="All languages" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="rounded-3xl border border-slate-200 bg-white text-sm font-medium shadow-xl p-2">
                         <SelectItem value="all">All languages</SelectItem>
                         {allLanguages.map((lang) => (
                           <SelectItem key={lang} value={lang}>

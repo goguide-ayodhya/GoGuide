@@ -6,6 +6,7 @@ import {
   logoutUser,
   validateTokenApi,
   getMe,
+  ApiError,
 } from "@/lib/api/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -87,13 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
 
-      console.log(
-        "[AUTH] Initializing auth - token exists:",
-        !!token,
-        "user exists:",
-        !!storedUser,
-      );
-
       if (token === "null" || token === "undefined") {
         console.log("[AUTH] Clearing invalid token");
         localStorage.removeItem("token");
@@ -104,20 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!token || !storedUser) {
-        console.log("[AUTH] No token or user - staying logged out");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        console.log("[AUTH] Validating token with backend...");
-        await validateTokenApi();
-        console.log("[AUTH] Token validation successful");
-      } catch (error) {
-        console.warn("[AUTH] Token validation failed, logging out:", error);
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
         setUser(null);
         setLoading(false);
         return;
@@ -127,12 +107,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser || null);
       } catch (parseError) {
-        console.error("[AUTH] Failed to parse stored user:", parseError);
         localStorage.removeItem("user");
         setUser(null);
-      } finally {
         setLoading(false);
+        return;
       }
+
+      setLoading(false);
+
+      validateTokenApi().catch((error) => {
+        const invalidToken =
+          error instanceof ApiError &&
+          (error.statusCode === 401 || error.statusCode === 403);
+
+        if (invalidToken) {
+          console.warn("[AUTH] Token invalid, clearing stored auth state", error);
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          setUser(null);
+          return;
+        }
+
+        console.warn(
+          "[AUTH] Token validation failed but token may still be valid. Keeping stored auth state.",
+          error,
+        );
+      });
     };
 
     initAuth();

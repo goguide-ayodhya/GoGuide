@@ -200,7 +200,7 @@ export const validateTokenApi = async () => {
 
   const json = await res.json();
   if (!res.ok) {
-    throw new Error("Validate Token Failed");
+    throw new ApiError(json.message || "Validate Token Failed", json.errors, res.status);
   }
   return json.data;
 };

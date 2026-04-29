@@ -17,12 +17,8 @@ type Props = {
 const emptyForm = () => ({
   title: "",
   description: "",
-  // city: "",
   state: "",
   price: "",
-  // basePrice: "",
-  // cabPrice: "",
-  // guidePrice: "",
   duration: "",
   durationType: "hours",
   startTime: "",

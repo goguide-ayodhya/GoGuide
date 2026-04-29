@@ -9,7 +9,14 @@ export const getPackages = async () => {
 // ---------------- GET BY ID ----------------
 export const getPackageById = async (id: string) => {
   const res = await fetch(`${base_url}packages/${id}`);
-  return res.json();
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message || "Failed to fetch package");
+  }
+  // Handle multiple response formats
+  if (json.data) return json.data;
+  if (json.package) return json.package;
+  return json; // Return as-is if it's the package object directly
 };
 
 // ---------------- CREATE (ADMIN) ----------------

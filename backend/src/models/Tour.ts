@@ -16,9 +16,7 @@ export interface ITourPackage extends Document {
   durationType: "hours" | "days";
   startTime?: string;
   price: number;
-  // basePrice: number;
-  // cabPrice: number;
-  // guidePrice: number;
+  
   maxGroupSize?: number;
   itinerary: ItineraryStop[];
   includesCab: boolean;

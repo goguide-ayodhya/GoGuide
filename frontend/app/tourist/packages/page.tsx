@@ -159,7 +159,7 @@ export default function PackagesPage() {
                       <SelectTrigger className="rounded-3xl border-slate-200 bg-slate-50 text-slate-900">
                         <SelectValue placeholder="Sort" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="text-sm font-semibold text-slate-500 mb-2">
                         <SelectItem value="popular">Most Popular</SelectItem>
                         <SelectItem value="price-low">
                           Price: Low to High
@@ -182,7 +182,7 @@ export default function PackagesPage() {
                       <SelectTrigger className="rounded-3xl border-slate-200 bg-slate-50 text-slate-900">
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="text-sm font-semibold text-slate-500 mb-2">
                         <SelectItem value="all">All</SelectItem>
                         <SelectItem value="basic">Basic</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
