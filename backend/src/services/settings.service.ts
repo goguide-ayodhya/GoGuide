@@ -1,19 +1,13 @@
 import { PlatformSetting } from "../models/PlatformSetting";
 
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 const DEFAULT_CAB_PRICING = {
   baseFare: 50,
   pricePerKm: 12,
 };
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class SettingsService {
   async sendMail({
@@ -25,11 +19,11 @@ export class SettingsService {
     subject: string;
     text: string;
   }) {
-    await transporter.sendMail({
-      from: `GoGuide <noreply@goguide.in>`,
+    await resend.emails.send({
+      from: "GoGuide <onboarding@resend.dev>",
       to,
       subject,
-      text,
+      html: `<p>${text}</p>`,
     });
   }
 
