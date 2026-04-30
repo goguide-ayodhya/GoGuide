@@ -1,21 +1,11 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-//   throw new Error("EMAIL_USER and EMAIL_PASS environment variables are required");
-// }
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
   try {
-    const info = await transporter.sendMail({
-      from: '"GoGuide" <no-reply@goguide.in>',
+    const info = await resend.emails.send({
+      from: "GoGuide <no-reply@goguide.in>",
       to,
       subject,
       html,

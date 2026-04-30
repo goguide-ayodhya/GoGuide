@@ -43,10 +43,18 @@ router.post("/logoutall", authenticate, (req, res, next) => {
   authController.logoutAll(req, res).catch(next);
 });
 
-router.post("/send-otp", validate(sendOtpSchema), (req, res, next) => {
-  authController.sendOtp(req, res).catch(next);
+// router.post("/send-otp", validate(sendOtpSchema), (req, res, next) => {
+//   authController.sendOtp(req, res).catch(next);
+// });
+router.post("/send-otp", validate(sendOtpSchema), (req, res) => {
+  authController.sendOtp(req, res).catch((err) => {
+    console.error("SEND OTP ERROR:", err);
+    return res.status(200).json({
+      success: false,
+      message: "Failed to send OTP",
+    });
+  });
 });
-
 router.post("/verify-email", (req, res, next) => {
   authController.verifyEmail(req, res).catch(next);
 });

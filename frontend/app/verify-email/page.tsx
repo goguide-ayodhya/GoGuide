@@ -87,6 +87,11 @@ function VerifyEmailContent() {
   const isOtpComplete = otp.every((digit) => digit !== "");
 
   const handleVerify = async () => {
+    if (!email) {
+      setError("Missing email address. Please restart signup.");
+      return;
+    }
+
     if (!isOtpComplete) {
       setError("Please enter all 6 digits");
       return;
@@ -103,6 +108,10 @@ function VerifyEmailContent() {
       });
 
       const refreshedUser = await refreshUser();
+      if (!refreshedUser) {
+        setError("Email verified, but could not refresh user. Please log in again.");
+        return;
+      }
       setSuccess(true);
 
       const destination = nextRedirect && nextRedirect.startsWith("/")
@@ -124,6 +133,11 @@ function VerifyEmailContent() {
   };
 
   const handleResendOtp = async () => {
+    if (!email) {
+      setError("Missing email address. Please restart signup.");
+      return;
+    }
+
     if (resendTimer > 0) return;
 
     setResendLoading(true);
