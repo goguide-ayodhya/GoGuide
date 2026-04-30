@@ -73,7 +73,9 @@ export function ConfirmationModal({
                 <User className="h-4 w-4 text-primary" />
                 <div>
                   <p className="text-xs text-muted-foreground">Guide</p>
-                  <p className="font-medium text-foreground">{guide.name}</p>
+                  <p className="font-medium text-foreground">
+                    {guide.userId?.name || guide.name}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

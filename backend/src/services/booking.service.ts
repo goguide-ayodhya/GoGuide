@@ -20,6 +20,7 @@ export class BookingService {
     console.log(
       `[BOOKING] Creating booking - userId: ${userId}, bookingType: ${input.bookingType}`,
     );
+
     if (input.bookingType === "GUIDE") {
       const guide = await Guide.findById(input.guideId);
       if (!guide) {
@@ -58,6 +59,24 @@ export class BookingService {
       entity = driver;
       assignedUserId = driver.userId?.toString();
       console.log(`[BOOKING] Driver verified: ${driver._id}`);
+    }
+
+    if (input.bookingType === "PACKAGE") {
+      if (!input.packageId) {
+        throw new BadRequest("packageId is required for PACKAGE bookings");
+      }
+
+      const pkg = await TourPackage.findById(input.packageId);
+      if (!pkg) {
+        throw new NotFound("Package not found");
+      }
+      if (!pkg.isActive) {
+        throw new BadRequest("Package is not available");
+      }
+
+      entity = pkg;
+      // No assigned user for packages
+      console.log(`[BOOKING] Package verified: ${pkg._id}`);
     }
 
     if (!entity) {
@@ -347,6 +366,7 @@ export class BookingService {
     }
 
     booking.status = "CANCELLED";
+    booking.paymentStatus = "REJECTED";
     booking.cancellationReason = reason;
     booking.cancelledBy = cancelledBy;
     booking.cancelledAt = new Date();
@@ -383,6 +403,60 @@ export class BookingService {
     }
 
     return { booking, refundAmount };
+  }
+
+  async adminAcceptBooking(bookingId: string) {
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) throw new NotFound("Booking not found");
+
+    if (booking.bookingType !== "PACKAGE") {
+      throw new BadRequest("Admin can only accept PACKAGE bookings");
+    }
+
+    booking.status = "ACCEPTED";
+    booking.isSeenByAdmin = true;
+
+    await booking.save();
+
+    console.log(`[BOOKING] 📦 Package Booking Admin Accepted: ${bookingId}`);
+
+    try {
+      await paymentService.ensureInitialPayment(
+        booking.userId.toString(),
+        booking._id.toString(),
+      );
+    } catch (err) {
+      console.error("[PAYMENT INIT FAILED]", err);
+      throw new Error("Failed to initialize payment after booking acceptance");
+    }
+
+    try {
+      await NotificationService.sendNotification(
+        booking.userId.toString(),
+        "Booking Confirmed",
+        `Your package booking has been confirmed by admin. Booking ID: ${booking._id}`,
+        {
+          bookingId: booking._id.toString(),
+          type: "booking_confirmed",
+        },
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate({
+        path: "guideId",
+        populate: { path: "userId" },
+      })
+      .populate({
+        path: "driverId",
+        populate: { path: "userId" },
+      })
+      .populate("userId");
+
+    return populatedBooking;
   }
 
   async acceptBooking(
@@ -624,9 +698,7 @@ export class BookingService {
     const user = await User.findById(userId);
     if (!user) throw new NotFound("User not found");
     if (!user.name || !user.email || !user.phone) {
-      throw new BadRequest(
-        "User profile must include name, email, and phone",
-      );
+      throw new BadRequest("User profile must include name, email, and phone");
     }
 
     const meetingPoint =

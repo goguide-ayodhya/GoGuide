@@ -51,6 +51,21 @@ export const updatePackage = async (id: string, data: any) => {
   return res.json();
 };
 
+export const createPackageBooking = async (data: any) => {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}bookings/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  return res; 
+};
+
 // ---------------- DELETE (ADMIN) ----------------
 export const deletePackage = async (id: string) => {
   const token = localStorage.getItem("token");

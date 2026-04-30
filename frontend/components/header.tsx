@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { assets } from "@/public/assets/assets";
 
@@ -91,13 +90,10 @@ export function Header() {
                 />
               ) : (
                 <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                  {user.name.charAt(0).toUpperCase()}
+                  {user.name?.charAt(0) ?? "?"}
                 </div>
               )}
             </div>
-            {/* {user.isOnline && (
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>
-            )} */}
           </div>
         </div>
       </div>

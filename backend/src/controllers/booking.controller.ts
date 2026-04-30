@@ -261,6 +261,40 @@ export class BookingController {
     }
   }
 
+  async adminAcceptBooking(req: AuthRequest, res: Response) {
+    try {
+      const { bookingId } = req.params;
+
+      console.log("[BOOKING] adminAcceptBooking - bookingId:", bookingId);
+
+      const booking = await bookingService.getBookingById(bookingId);
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      // Only allow admin to accept PACKAGE bookings
+      if (booking.bookingType !== "PACKAGE") {
+        return res.status(400).json({
+          success: false,
+          message: "Admin can only accept PACKAGE bookings",
+        });
+      }
+
+      const updatedBooking = await bookingService.adminAcceptBooking(bookingId);
+
+      res.status(200).json({
+        success: true,
+        message: "Package booking accepted successfully",
+        data: updatedBooking,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async rejectBooking(req: AuthRequest, res: Response) {
     try {
       const userId = req.userId!;

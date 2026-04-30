@@ -47,7 +47,7 @@ router.post("/send-otp", validate(sendOtpSchema), (req, res, next) => {
   authController.sendOtp(req, res).catch(next);
 });
 
-router.post("/verify-email", validate(verifyOtpSchema), (req, res, next) => {
+router.post("/verify-email", (req, res, next) => {
   authController.verifyEmail(req, res).catch(next);
 });
 
@@ -81,9 +81,9 @@ router.get("/user/:id", authenticate, (req, res, next) => {
   authController.getUserById(req, res).catch(next);
 });
 
-// router.get("/validate-token", authenticate, (req, res, next) => {
-//   authController.validateToken(req, res).catch(next);
-// });
+router.get("/validate-token", authenticate, (req, res, next) => {
+  authController.validateToken(req, res).catch(next);
+});
 
 router.get("/me", authenticate, (req, res, next) => {
   authController.getMe(req, res).catch(next);

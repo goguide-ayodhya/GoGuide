@@ -258,7 +258,7 @@ export default function Home() {
                       {guide.image ? (
                         <Image
                           src={guide.image}
-                          alt={guide.name}
+                          alt={guide.userId?.name || guide.name || "Guide"}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
@@ -277,7 +277,7 @@ export default function Home() {
                     </div>
                     <div className="p-4">
                       <h3 className="text-lg font-semibold text-slate-900 truncate">
-                        {guide.name}
+                        {guide.userId?.name || guide.name || "Verified guide"}
                       </h3>
                       <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">

@@ -23,6 +23,7 @@ import {
 import { useEffect, useState } from "react";
 import { poppins } from "@/lib/fonts";
 import { getPackageById } from "@/lib/api/tourPackages";
+import { createBooking } from "@/lib/api/bookings";
 
 const getPackageTypeStyles = (type?: string) => {
   switch (type) {
@@ -120,9 +121,59 @@ export default function PackageBookingPage() {
 
     setIsSubmitting(true);
     try {
-      console.log("Booking data:", data);
-      // TODO: Process booking and redirect to payment
-      router.push("/tourist/payment");
+      if (!pkg) {
+        throw new Error("Package data is not loaded yet");
+      }
+
+      const packageId = pkg._id || pkg.id;
+      if (!packageId) {
+        throw new Error("Invalid package identifier");
+      }
+
+      const bookingPayload = {
+        packageId,
+        touristName: data.touristName,
+        email: data.email,
+        phone: data.phone,
+        // groupSize: data.groupSize,
+        groupSize: Number(data.groupSize),
+        // bookingDate: data.bookingDate,
+        bookingDate: new Date(data.bookingDate).toISOString(),
+        bookingType: "PACKAGE",
+        startTime: pkg.startTime || "09:00",
+        tourType: pkg.title,
+        meetingPoint: pkg.locations?.[0] || "Meeting point to be confirmed",
+        dropoffLocation:
+          pkg.locations?.[pkg.locations.length - 1] ||
+          "Dropoff point to be confirmed",
+        // totalPrice: data.totalPrice,
+        totalPrice: Number(data.totalPrice),
+        notes: data.notes,
+      };
+
+      console.log("DATE:", data.bookingDate)
+      console.log(pkg.startTime)
+      console.log("Creating package booking:", bookingPayload);
+
+      const booking = await createBooking(bookingPayload);
+      console.log("PAYMENT BOOKING PAYLOAD:", booking);
+      const bookingId = booking._id || booking.id;
+      if (!bookingId) {
+        throw new Error("Booking response did not include a booking ID");
+      }
+
+      console.log("Booking created successfully:", booking);
+
+      router.push(`/tourist/payment?bookingId=${bookingId}`);
+    } catch (error: any) {
+      console.error("Booking creation error:", error);
+      setIsSubmitting(false);
+      if (error?.message) {
+        alert(error.message);
+      } else {
+        alert("Failed to create package booking. Please try again.");
+      }
+      return;
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +205,7 @@ export default function PackageBookingPage() {
                       <Button
                         onClick={() =>
                           router.push(
-                            `/login?redirect=/packages/book/${packageId}`,
+                            `/login?redirect=/tourist/packages/book/${packageId}`,
                           )
                         }
                         className={`w-full rounded-2xl h-12 ${styles.button}`}

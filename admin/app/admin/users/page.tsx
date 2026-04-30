@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
-import { getUsersApi, blockUserApi, activateUserApi, suspendUserApi, deleteUserApi } from "@/lib/api/admin"
+import { getUsersApi, blockUserApi, activateUserApi, suspendUserApi, deleteUserApi, verifyUserApi, unverifyUserApi } from "@/lib/api/admin"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +30,8 @@ type AdminUser = {
   status: string
   phone?: string
   lastLoginAt?: string
+  verificationStatus?: string
+  isAvailable?: boolean
 }
 
 const roleOptions: Array<{ key: "all" | AdminRole; label: string }> = [
@@ -82,14 +84,15 @@ export default function GuidesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [roleFilter, setRoleFilter] = useState<"all" | AdminRole>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
 
-  const fetchUsers = async (role: "all" | AdminRole) => {
+  const fetchUsers = async (role: "all" | AdminRole, status: string, search?: string) => {
     setLoading(true)
     setError(null)
     setActionError(null)
 
     try {
-      const response = await getUsersApi(role === "all" ? undefined : role)
+      const response = await getUsersApi(role, status, search)
       const apiUsers = Array.isArray(response) ? response : response?.data || []
 
       const normalizedUsers = apiUsers.map((user: any) => ({
@@ -100,6 +103,8 @@ export default function GuidesPage() {
         status: user.status || "INACTIVE",
         phone: user.phone || undefined,
         lastLoginAt: user.lastLoginAt || undefined,
+        verificationStatus: user.verificationStatus || user.guideVerificationStatus || undefined,
+        isAvailable: user.isAvailable || undefined,
       }))
 
       setUsers(normalizedUsers)
@@ -113,23 +118,22 @@ export default function GuidesPage() {
   }
 
   useEffect(() => {
-    fetchUsers(roleFilter)
-  }, [roleFilter])
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim())
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
-  const filteredUsers = users.filter((user) => {
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return true
-    return (
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query) ||
-      user.role.toLowerCase().includes(query)
-    )
-  })
+  useEffect(() => {
+    fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined)
+  }, [roleFilter, statusFilter, debouncedSearch])
 
-  const filteredByStatus = filteredUsers.filter((u) => statusFilter === "all" || u.status === statusFilter)
+  const filteredUsers = users // search is now server-side
+
+  const filteredByStatus = filteredUsers // status is now server-side
 
   const handleUserAction = async (
-    action: "activate" | "block" | "suspend" | "delete",
+    action: "activate" | "block" | "suspend" | "delete" | "verify" | "unverify",
     userId: string,
   ) => {
     setActionLoading(userId)
@@ -148,6 +152,12 @@ export default function GuidesPage() {
         case "suspend":
           result = await suspendUserApi(userId)
           break
+        case "verify":
+          result = await verifyUserApi(userId)
+          break
+        case "unverify":
+          result = await unverifyUserApi(userId)
+          break
         case "delete":
           result = await deleteUserApi(userId)
           break
@@ -157,7 +167,7 @@ export default function GuidesPage() {
         throw new Error(result.message || "Action failed")
       }
 
-      await fetchUsers(roleFilter)
+      await fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined)
     } catch (err: any) {
       console.error(`Failed to ${action} user:`, err)
       setActionError(err.message || `Unable to ${action} user`)
@@ -263,10 +273,47 @@ export default function GuidesPage() {
                       <span className="text-muted-foreground">Last Login:</span>
                       <span className="text-foreground">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "-"}</span>
                     </div>
+                    {(user.role === "GUIDE" || user.role === "DRIVER") && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Verification:</span>
+                          <span className="text-foreground">{user.verificationStatus || "NOT_APPLIED"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Available:</span>
+                          <span className="text-foreground">{user.isAvailable !== undefined ? (user.isAvailable ? "Yes" : "No") : "-"}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t border-border">
                     {getStatusBadge(user.status)}
+                    {user.role === "GUIDE" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="h-9 py-0 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                            {user.verificationStatus === "VERIFIED" ? "Unverify" : "Verify"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{user.verificationStatus === "VERIFIED" ? "Unverify Guide" : "Verify Guide"}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {user.verificationStatus === "VERIFIED"
+                                ? "This will mark the guide as unverified and deactivate guide access."
+                                : "This will verify the guide profile and activate the guide account."}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleUserAction(user.verificationStatus === "VERIFIED" ? "unverify" : "verify", user.id)}>
+                              {user.verificationStatus === "VERIFIED" ? "Unverify" : "Verify"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                     {user.status !== "ACTIVE" && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -349,7 +396,7 @@ export default function GuidesPage() {
             </div>
 
             <div className="hidden lg:block overflow-x-auto -mx-6 px-6">
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[1100px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">User ID</th>
@@ -357,6 +404,8 @@ export default function GuidesPage() {
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">Email</th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">Role</th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">Status</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground py-3">Verification</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground py-3">Available</th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">Last Login</th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">Actions</th>
                   </tr>
@@ -369,6 +418,8 @@ export default function GuidesPage() {
                       <td className="py-3 text-sm text-muted-foreground">{user.email}</td>
                       <td className="py-3 text-sm text-foreground">{user.role}</td>
                       <td className="py-3 text-sm text-muted-foreground">{statusLabels[user.status] || user.status}</td>
+                      <td className="py-3 text-sm text-foreground">{(user.role === "GUIDE" || user.role === "DRIVER") ? (user.verificationStatus || "NOT_APPLIED") : "-"}</td>
+                      <td className="py-3 text-sm text-foreground">{(user.role === "GUIDE" || user.role === "DRIVER") ? (user.isAvailable !== undefined ? (user.isAvailable ? "Yes" : "No") : "-") : "-"}</td>
                       <td className="py-3 text-sm text-foreground">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "-"}</td>
                       <td className="py-3 space-x-1">
                         {user.status !== "ACTIVE" && (
@@ -388,7 +439,32 @@ export default function GuidesPage() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {user.status !== "BLOCKED" && (
+                        {user.role === "GUIDE" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>
+                              {user.verificationStatus === "VERIFIED" ? "Unverify" : "Verify"}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{user.verificationStatus === "VERIFIED" ? "Unverify Guide" : "Verify Guide"}</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {user.verificationStatus === "VERIFIED"
+                                  ? "This will mark the guide as unverified and deactivate guide access."
+                                  : "This will verify the guide profile and activate the guide account."}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleUserAction(user.verificationStatus === "VERIFIED" ? "unverify" : "verify", user.id)}>
+                                {user.verificationStatus === "VERIFIED" ? "Unverify" : "Verify"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                      {user.status !== "BLOCKED" && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="outline" className="h-8 px-2 text-[10px]" disabled={actionLoading === user.id}>Block</Button>

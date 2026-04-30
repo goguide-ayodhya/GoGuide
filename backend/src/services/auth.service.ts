@@ -32,16 +32,17 @@ export class AuthService {
     }
 
     if (user.role === "GUIDE" || user.role === "DRIVER") {
-      // if (!user.isEmailVerified) {
-      //   throw new BadRequest("Please verify your email before continuing");
-      // }
-      // Check if profile is complete
-      // if (!user.isProfileComplete) {
-      //   throw new BadRequest("Please complete your profile before continuing");
-      // }
-      // if (!user.status || user.status !== "ACTIVE") {
-      //   throw new BadRequest("Account is inactive");
-      // }
+      if (!user.isEmailVerified) {
+        throw new BadRequest("EMAIL_NOT_VERIFIED");
+      }
+
+      if (!user.isProfileComplete) {
+        throw new BadRequest("PROFILE_INCOMPLETE");
+      }
+
+      if (!user.status || user.status !== "ACTIVE") {
+        throw new BadRequest("ACCOUNT_INACTIVE");
+      }
     }
 
     await User.findByIdAndUpdate(user._id, {
@@ -205,27 +206,58 @@ export class AuthService {
     await sendEmail(
       user.email!,
       "Verify Your Email Address - GoGuide",
-      `Hi ${user.name || "User"},
-      Thank you for joining GoGuide!
-      To complete your registration, please verify your email address using the One-Time Password (OTP) below:
- <div style="
-      text-align: center;
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 6px;
-      margin: 20px 0;
-      padding: 15px;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-      background-color: #f9f9f9;
-    ">
-      🔐 ${otp}
-    </div>
-This OTP is valid for the next 10 minutes.
-Please do not share this OTP with anyone & if you did not request this, you can safely ignore this email.
+      `
+  <div style="
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+  ">
+    
+    <h2 style="margin-bottom: 10px;">GoGuide</h2>
 
-Best regards,  
-Team GoGuide`,
+    <p style="margin: 10px 0;">
+      Hi ${user.name || "User"},
+    </p>
+
+    <p style="margin: 10px 0; font-size: 14px;">
+      Thank you for joining GoGuide!  
+      Please use the OTP below to verify your email.
+    </p>
+
+    <div style="
+      margin: 20px auto;
+      padding: 12px 20px;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      border: 1px solid #ccc;
+      background-color: #ffffff;
+      display: inline-block;
+      border-radius: 4px;
+    ">
+      ${otp}
+    </div>
+
+    <p style="font-size: 13px; color: #555;">
+      This OTP is valid for 10 minutes.
+    </p>
+
+    <p style="font-size: 12px; color: #888; margin-top: 15px;">
+      Do not share this OTP with anyone.
+      If you didn’t request this, you can ignore this email.
+    </p>
+
+    <p style="margin-top: 20px; font-size: 13px;">
+      — Team GoGuide
+    </p>
+
+  </div>
+  `,
     );
 
     return { message: "OTP sent successfully to your email" };
@@ -285,32 +317,53 @@ Team GoGuide`,
       user.email!,
       "Password Reset OTP - GoGuide",
       `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-      <p>Hi ${user.name}</p>
+  <div style="
+    max-width: 500px;
+    margin: auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+  ">
 
-    <p>Your Password reset OTP is:</p>
+    <h2 style="margin-bottom: 10px;">GoGuide</h2>
 
-    <div style="
-      text-align: center;
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 6px;
-      margin: 20px 0;
-      padding: 15px;
-      border: 2px dashed #ccc;
-      border-radius: 8px;
-      background-color: #f9f9f9;
-    ">
-      🔐 ${otp}
-    </div>
-
-    <p>This OTP is valid for <strong>10 minutes</strong>.</p>
-
-    <p style="color: #888; font-size: 12px;">
-      If you did not request this, you can safely ignore this email.
+    <p style="margin: 10px 0;">
+      Hi ${user.name || "User"},
     </p>
 
-    <p>Best regards,<br/>Team GoGuide</p>
+    <p style="margin: 10px 0; font-size: 14px;">
+      Use the OTP below to reset your password.
+    </p>
+
+    <div style="
+      margin: 20px auto;
+      padding: 12px 20px;
+      font-size: 26px;
+      font-weight: bold;
+      letter-spacing: 4px;
+      border: 1px solid #ccc;
+      background-color: #ffffff;
+      display: inline-block;
+      border-radius: 4px;
+    ">
+      ${otp}
+    </div>
+
+    <p style="font-size: 13px; color: #555;">
+      This OTP is valid for 10 minutes.
+    </p>
+
+    <p style="font-size: 12px; color: #888; margin-top: 15px;">
+      If you didn’t request this, you can safely ignore this email.
+    </p>
+
+    <p style="margin-top: 20px; font-size: 13px;">
+      — Team GoGuide
+    </p>
+
   </div>
   `,
     );

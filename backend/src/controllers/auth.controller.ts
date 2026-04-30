@@ -72,10 +72,40 @@ export class AuthController {
 
   async getMe(req: AuthRequest, res: Response) {
     try {
+      if (!req.userId) {
+        throw new Unauthorized("User not authenticated");
+      }
+
+      const user = await User.findById(req.userId).select("-password");
+      if (!user) {
+        throw new Unauthorized("User not found");
+      }
+
       res.status(200).json({
         success: true,
         message: "User retrieved successfully",
-        data: req.user,
+        data: user,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async validateToken(req: AuthRequest, res: Response) {
+    try {
+      if (!req.userId) {
+        throw new Unauthorized("User not authenticated");
+      }
+
+      const user = await User.findById(req.userId).select("-password");
+      if (!user) {
+        throw new Unauthorized("User not found");
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Token is valid",
+        data: user,
       });
     } catch (error) {
       throw error;

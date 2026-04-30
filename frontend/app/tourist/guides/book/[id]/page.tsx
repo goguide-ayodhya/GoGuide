@@ -118,7 +118,7 @@ export default function GuideBookingPage() {
                   <div className="relative aspect-square overflow-hidden rounded-[1.75rem] bg-slate-100 border shadow-sm border-border">
                     <Image
                       src={guide.avatar || assets.guideImage}
-                      alt={guide.name}
+                      alt={guide.userId?.name || guide.name || "Guide profile"}
                       fill
                       className="object-cover"
                       sizes="160px"
@@ -132,7 +132,7 @@ export default function GuideBookingPage() {
                           Guide profile
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-                          {guide.name}
+                          {guide.userId?.name || guide.name || "Guide"}
                         </h1>
                       </div>
 

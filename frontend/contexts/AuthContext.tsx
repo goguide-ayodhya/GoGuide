@@ -4,7 +4,6 @@ import {
   signupUser,
   loginUser,
   logoutUser,
-  validateTokenApi,
   getMe,
   ApiError,
 } from "@/lib/api/auth";
@@ -14,7 +13,7 @@ export interface User {
   id: string;
   name: string;
   email?: string;
-  role: "GUIDE" | "TOURIST" | "DRIVER";
+  role: "GUIDE" | "TOURIST" | "DRIVER" | "ADMIN";
   avatar?: string;
   bio?: string;
   profileImage?: string;
@@ -79,6 +78,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const normalizeUser = (data: any): User => ({
+  id: data.id || data._id || "",
+  name: data.name || "",
+  email: data.email || undefined,
+  role: data.role || "TOURIST",
+  avatar: data.avatar || data.profileImage || "",
+  bio: data.bio || data.description || "",
+  profileImage: data.profileImage || data.avatar || "",
+  phone: data.phone || "",
+  speciality: Array.isArray(data.specialities)
+    ? data.specialities[0]
+    : data.speciality || undefined,
+  certification: data.certification || undefined,
+  yearsOfExperience: data.yearsOfExperience || data.experience || undefined,
+  languages: Array.isArray(data.languages) ? data.languages : data.languages ? [data.languages] : undefined,
+  averageRating: data.averageRating ?? data.rating ?? 0,
+  isAvailable: data.isAvailable ?? false,
+  isOnline: data.isOnline ?? false,
+  isEmailVerified: data.isEmailVerified ?? false,
+  isProfileComplete: data.isProfileComplete ?? false,
+  status: data.status || undefined,
+});
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,42 +119,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("user");
       }
 
-      if (!token || !storedUser) {
+      if (!token) {
         setUser(null);
         setLoading(false);
         return;
+      }
+
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser) {
+            setUser(normalizeUser(parsedUser));
+          }
+        } catch (parseError) {
+          localStorage.removeItem("user");
+          setUser(null);
+        }
       }
 
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser || null);
-      } catch (parseError) {
-        localStorage.removeItem("user");
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(false);
-
-      validateTokenApi().catch((error) => {
+        const freshUser = await getMe();
+        const normalizedUser = normalizeUser(freshUser);
+        setUser(normalizedUser);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
+      } catch (error: unknown) {
         const invalidToken =
           error instanceof ApiError &&
           (error.statusCode === 401 || error.statusCode === 403);
 
         if (invalidToken) {
-          console.warn("[AUTH] Token invalid, clearing stored auth state", error);
+          console.warn("[AUTH] Token invalid or expired, clearing stored auth state", error);
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setUser(null);
-          return;
+        } else {
+          console.warn("[AUTH] Could not refresh auth state. Keeping stored user if available.", error);
         }
-
-        console.warn(
-          "[AUTH] Token validation failed but token may still be valid. Keeping stored auth state.",
-          error,
-        );
-      });
+      } finally {
+        setLoading(false);
+      }
     };
 
     initAuth();
@@ -147,9 +172,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid login response");
       }
 
+      const normalizedUser = normalizeUser(res.user);
       console.log("[AUTH] Login successful, saving to localStorage");
-      setUser(res.user);
-      localStorage.setItem("user", JSON.stringify(res.user));
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("token", res.token);
       console.log("[AUTH] User and token saved to localStorage");
 
@@ -176,9 +202,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid signup response");
       }
 
+      const normalizedUser = normalizeUser(res.user);
       console.log("[AUTH] Signup successful, saving to localStorage");
-      setUser(res.user);
-      localStorage.setItem("user", JSON.stringify(res.user));
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("token", res.token);
       console.log("[AUTH] User and token saved to localStorage");
 
@@ -208,9 +235,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   const refreshUser = async () => {
     const freshUser = await getMe();
-    setUser(freshUser);
-    localStorage.setItem("user", JSON.stringify(freshUser));
-    return freshUser;
+    const normalizedUser = normalizeUser(freshUser);
+    setUser(normalizedUser);
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
+    return normalizedUser;
   };
 
   const updateUser = (data: Partial<User>) => {
@@ -227,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
-        isLoggedIn: !!user,
+        isLoggedIn: !!user && !loading,
         login,
         signup,
         logout,

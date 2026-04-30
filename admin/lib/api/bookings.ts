@@ -163,3 +163,13 @@ export const seenBooking = async (bookingId: string) => {
 
   return handleRes(res);
 };
+
+// Admin - Accept Package Booking
+export const adminAcceptBookingApi = async (bookingId: string) => {
+  const res = await fetch(`${base_url}bookings/${bookingId}/admin-accept`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};

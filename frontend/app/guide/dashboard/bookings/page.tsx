@@ -52,6 +52,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { CancellationReasonModal } from "@/components/booking/CancellationReasonModal";
+import { useBooking as useBookingContext } from "@/contexts/BookingsContext";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -74,6 +76,9 @@ export default function BookingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
+  const [bookingToCancelId, setBookingToCancelId] = useState<string | null>(null);
+  const [isCancelLoading, setIsCancelLoading] = useState(false);
   const {
     bookings,
     updateBookingStatus,
@@ -81,6 +86,7 @@ export default function BookingsPage() {
     loading,
     error,
     refreshBookings,
+    cancelBooking,
   } = useBooking();
   const { toast } = useToast();
   const [statusLoadingId, setStatusLoadingId] = useState<string | null>(null);
@@ -182,6 +188,65 @@ export default function BookingsPage() {
 
     // Refresh bookings to get updated status
     await refreshBookings();
+  };
+
+  const handleCancelBooking = (bookingId: string) => {
+    setBookingToCancelId(bookingId);
+    setIsCancellationModalOpen(true);
+  };
+
+  const handleConfirmCancellation = async (reason: string) => {
+    if (!bookingToCancelId) return;
+    
+    setIsCancelLoading(true);
+    try {
+      await cancelBooking(bookingToCancelId, reason);
+      
+      // Update local state
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingToCancelId
+            ? { 
+                ...b, 
+                status: "CANCELLED" as BookingStatus,
+                cancellationReason: reason,
+                paymentStatus: "REJECTED" as Booking["paymentStatus"],
+              }
+            : b
+        ),
+      );
+      
+      setSelectedBooking((prev) =>
+        prev?.id === bookingToCancelId
+          ? {
+              ...prev,
+              status: "CANCELLED" as BookingStatus,
+              cancellationReason: reason,
+              paymentStatus: "REJECTED" as Booking["paymentStatus"],
+            }
+          : prev,
+      );
+
+      toast({
+        title: "Booking cancelled",
+        description: "The booking has been cancelled successfully.",
+        variant: "success",
+      });
+
+      await refreshBookings();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to cancel booking.";
+      toast({
+        title: "Cancellation failed",
+        description: message,
+        variant: "destructive",
+      });
+      console.error("Booking cancellation failed", error);
+    } finally {
+      setIsCancelLoading(false);
+      setBookingToCancelId(null);
+    }
   };
 
   if (loading) {
@@ -769,6 +834,21 @@ export default function BookingsPage() {
                                         )}
                                     </>
                                   )}
+                                  {(booking.status === "PENDING" ||
+                                    booking.status === "ACCEPTED") && (
+                                    <>
+                                      <div className="border-t border-slate-200 my-1" />
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          handleCancelBooking(booking.id)
+                                        }
+                                        className="text-red-600"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Cancel Booking
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -1049,6 +1129,18 @@ export default function BookingsPage() {
             onRetryPayment={handleRetryPayment}
           />
         )}
+
+        {/* Cancellation Reason Modal */}
+        <CancellationReasonModal
+          isOpen={isCancellationModalOpen}
+          onClose={() => {
+            setIsCancellationModalOpen(false);
+            setBookingToCancelId(null);
+          }}
+          onConfirm={handleConfirmCancellation}
+          isLoading={isCancelLoading}
+          userRole="GUIDE"
+        />
       </div>
     </div>
   );

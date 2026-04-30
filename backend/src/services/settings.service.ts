@@ -26,7 +26,7 @@ export class SettingsService {
     text: string;
   }) {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: `GoGuide <noreply@goguide.in>`,
       to,
       subject,
       text,

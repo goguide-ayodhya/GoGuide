@@ -8,6 +8,7 @@ import {
   seenBooking,
   completeBookingApi,
   refundBookingApi,
+  adminAcceptBookingApi,
 } from "@/lib/api/bookings";
 import type { Booking as ApiBooking } from "@/contexts/BookingsContext";
 import { BookingFilters } from "@/components/admin/bookings/BookingFilters";
@@ -84,7 +85,9 @@ const convertApiBookingToUi = (apiBooking: any): AdminBooking => {
         ? "Driver"
         : apiBooking.bookingType === "TOKEN"
           ? "Token"
-          : "Normal";
+          : apiBooking.bookingType === "PACKAGE"
+            ? "Package"
+            : "Normal";
 
   const rawDate =
     apiBooking.bookingDate ?? apiBooking.date ?? apiBooking.createdAt;
@@ -176,7 +179,13 @@ export default function BookingsPage() {
 
   const handleApprove = async (booking: AdminBooking) => {
     try {
-      await acceptBookingApi(booking.id);
+      // For package bookings, use admin accept endpoint
+      if (booking.bookingType === "PACKAGE") {
+        await adminAcceptBookingApi(booking.id);
+      } else {
+        // For guide/driver bookings, use regular accept
+        await acceptBookingApi(booking.id);
+      }
       setBookings((prev) =>
         prev.map((b) =>
           b.id === booking.id ? { ...b, status: "Confirmed" } : b,

@@ -52,7 +52,7 @@ export interface IBooking extends Document {
 
   bookingType: "GUIDE" | "DRIVER" | "TOKEN" | "PACKAGE";
 
-  paymentStatus: "PENDING" | "PARTIAL" | "COMPLETED" | "FAILED" | "REFUNDED";
+  paymentStatus: "PENDING" | "PARTIAL" | "COMPLETED" | "FAILED" | "REFUNDED" | "REJECTED";
   notes?: string;
   cancellationReason?: string;
   cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER";
@@ -182,7 +182,7 @@ const BookingSchema = new Schema<IBooking>(
     },
     paymentStatus: {
       type: String,
-      enum: ["PENDING", "PARTIAL", "COMPLETED", "FAILED", "REFUNDED"],
+      enum: ["PENDING", "PARTIAL", "COMPLETED", "FAILED", "REFUNDED", "REJECTED"],
       default: "PENDING",
     },
     paymentMethod: {

@@ -10,8 +10,18 @@ import {
   updateGuide,
 } from "@/lib/api/guides";
 
+export type GuideUser = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  phone: string;
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETED";
+};
+
 export type Guide = {
   id: string;
+  userId?: GuideUser | null;
   name: string;
   email: string;
   bio?: string;
@@ -29,7 +39,6 @@ export type Guide = {
     image: string;
   }[];
   isAvailable: boolean;
-  // isOnline: boolean;
   yearsOfExperience?: number;
   totalReviews?: number;
   recentReviews?: {
@@ -60,33 +69,45 @@ export const GuideProvider = ({ children }: any) => {
   const [myGuide, setMyGuide] = useState<Guide | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const mapGuide = (guide: any): Guide => ({
-    id: guide._id || guide.id || "",
-    name: guide.userId?.name || guide.name || "Unknown",
-    email: guide.userId?.email || guide.email || "",
-    avatar: guide.userId?.avatar || guide.avatar || "",
-    image:
-      guide.userId?.avatar || guide.image || guide.userId?.profileImage || "",
-    bio: guide.bio || guide.userId?.bio || "",
-    experience: guide.yearsOfExperience || guide.experience || 0,
-    rating: guide.averageRating || guide.rating || 0,
-    languages: Array.isArray(guide.languages) ? guide.languages : [],
-    specialities: guide.speciality
-      ? [guide.speciality]
-      : Array.isArray(guide.specialities)
-      ? guide.specialities
-      : [],
-    locations: Array.isArray(guide.locations) ? guide.locations : [],
-    price: guide.price || 0,
-    duration: guide.duration || "4 hours",
-    certificates: Array.isArray(guide.certificates) ? guide.certificates : [],
-    isAvailable: guide.isAvailable ?? false,
-    // isOnline: guide.isOnline ?? false,
-    yearsOfExperience: guide.yearsOfExperience || guide.yearsOfExperience || 0,
-    totalReviews: guide.totalReviews || 0,
-    verificationStatus:
-      guide.verificationStatus || "PENDING",
-  });
+  const mapGuide = (guide: any): Guide => {
+    const normalizedUserId = guide.userId
+      ? {
+          id: guide.userId._id || guide.userId.id || "",
+          name: guide.userId.name || "Unknown",
+          email: guide.userId.email || "",
+          avatar: guide.userId.avatar || "",
+          phone: guide.userId.phone || "",
+          status: guide.userId.status || "ACTIVE",
+        }
+      : null;
+
+    return {
+      id: guide._id || guide.id || "",
+      userId: normalizedUserId,
+      name: normalizedUserId?.name || guide.name || "Unknown",
+      email: normalizedUserId?.email || guide.email || "",
+      avatar: normalizedUserId?.avatar || guide.avatar || "",
+      image:
+        normalizedUserId?.avatar || guide.image || guide.userId?.profileImage || "",
+      bio: guide.bio || guide.userId?.bio || "",
+      experience: guide.yearsOfExperience || guide.experience || 0,
+      rating: guide.averageRating || guide.rating || 0,
+      languages: Array.isArray(guide.languages) ? guide.languages : [],
+      specialities: guide.speciality
+        ? [guide.speciality]
+        : Array.isArray(guide.specialities)
+        ? guide.specialities
+        : [],
+      locations: Array.isArray(guide.locations) ? guide.locations : [],
+      price: guide.price || 0,
+      duration: guide.duration || "4 hours",
+      certificates: Array.isArray(guide.certificates) ? guide.certificates : [],
+      isAvailable: guide.isAvailable ?? false,
+      yearsOfExperience: guide.yearsOfExperience || guide.yearsOfExperience || 0,
+      totalReviews: guide.totalReviews || 0,
+      verificationStatus: guide.verificationStatus || "PENDING",
+    };
+  };
 
   useEffect(() => {
     const fetchGuides = async () => {
@@ -97,6 +118,8 @@ export const GuideProvider = ({ children }: any) => {
           return;
         }
 
+        // Backend already filters for VERIFIED guides with ACTIVE users
+        // No need for additional filtering here
         const formattedData = data.map((guide: any) => mapGuide(guide));
         
         // Sort guides: active guides first, then by rating
@@ -145,8 +168,16 @@ export const GuideProvider = ({ children }: any) => {
 
     const formattedData: Guide = {
       id: updated._id,
-      name: updated.userId?.name,
-      email: updated.userId?.email || "",
+      userId: updated.userId ? {
+        id: updated.userId._id || updated.userId.id || "",
+        name: updated.userId.name || "Unknown",
+        email: updated.userId.email || "",
+        avatar: updated.userId.avatar || "",
+        phone: updated.userId.phone || "",
+        status: updated.userId.status || "ACTIVE",
+      } : null,
+      name: updated.userId?.name || updated.name || "Unknown",
+      email: updated.userId?.email || updated.email || "",
       image: updated.userId?.avatar || null,
       avatar: updated.userId?.avatar || null,
       experience: updated.yearsOfExperience,
@@ -158,7 +189,6 @@ export const GuideProvider = ({ children }: any) => {
       duration: updated.duration || "4 hours",
       certificates: Array.isArray(updated.certificates) ? updated.certificates : [],
       isAvailable: updated.isAvailable,
-      // isOnline: updated.isOnline,
       bio: updated.bio,
       yearsOfExperience: updated.yearsOfExperience,
       totalReviews: updated.totalReviews,

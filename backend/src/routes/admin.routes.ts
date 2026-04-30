@@ -24,6 +24,12 @@ router.patch("/users/:id/activate", adminController.activateUser);
 // Suspend user
 router.patch("/users/:id/suspend", adminController.suspendUser);
 
+// Verify guide
+router.patch("/users/:id/verify", adminController.verifyUser);
+
+// Unverify guide
+router.patch("/users/:id/unverify", adminController.unverifyUser);
+
 // Delete (soft delete)
 router.delete("/users/:id", adminController.deleteUser);
 

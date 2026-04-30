@@ -4,14 +4,19 @@ import { NotificationService } from "./notification.service";
 
 export class UserService {
   async getAllUsers(filters?: { role?: string; status?: string; search?: string }) {
-    const query: any = { isDeleted: false };
+    const query: any = {};
+
+    if (filters?.status === "DELETED") {
+      query.status = "DELETED";
+    } else {
+      query.isDeleted = false;
+      if (filters?.status && ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED"].includes(filters.status)) {
+        query.status = filters.status;
+      }
+    }
 
     if (filters?.role && ["GUIDE", "DRIVER", "TOURIST", "ADMIN"].includes(filters.role)) {
       query.role = filters.role;
-    }
-
-    if (filters?.status && ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED", "DELETED"].includes(filters.status)) {
-      query.status = filters.status;
     }
 
     if (filters?.search) {
@@ -21,7 +26,26 @@ export class UserService {
       ];
     }
 
-    return User.find(query).sort({ createdAt: -1 });
+    const users = await User.find(query).sort({ createdAt: -1 });
+
+    // Enrich with guide/driver specific fields
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      const u = user.toObject() as any;
+      if (u.role === "GUIDE") {
+        const { Guide } = await import("../models/Guide");
+        const guide = await Guide.findOne({ userId: u._id });
+        u.verificationStatus = guide?.verificationStatus || "NOT_APPLIED";
+        u.isAvailable = guide?.isAvailable;
+      } else if (u.role === "DRIVER") {
+        const { Driver } = await import("../models/Driver");
+        const driver = await Driver.findOne({ userId: u._id });
+        u.verificationStatus = driver?.verificationStatus || "NOT_APPLIED";
+        u.isAvailable = driver?.isAvailable;
+      }
+      return u;
+    }));
+
+    return enrichedUsers;
   }
 
   async getUserDetail(userId: string) {
@@ -71,6 +95,16 @@ export class UserService {
 
     await user.save();
 
+    // Update related models
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      await Guide.findOneAndUpdate({ userId: user._id }, { isAvailable: false });
+    }
+    if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      await Driver.findOneAndUpdate({ userId: user._id }, { isAvailable: false });
+    }
+
     try {
       await NotificationService.sendNotification(
         userId,
@@ -94,6 +128,16 @@ export class UserService {
     );
     if (!user) throw new NotFound("User not found");
 
+    // Update related models
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      await Guide.findOneAndUpdate({ userId: user._id }, { isAvailable: true });
+    }
+    if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      await Driver.findOneAndUpdate({ userId: user._id }, { isAvailable: true });
+    }
+
     try {
       await NotificationService.sendNotification(
         userId,
@@ -108,6 +152,72 @@ export class UserService {
     return user;
   }
 
+  async verifyUser(userId: string) {
+    console.log(`[ADMIN] Verifying guide ${userId}`);
+    const user = await User.findById(userId);
+    if (!user) throw new NotFound("User not found");
+    if (user.role !== "GUIDE") {
+      throw new BadRequest("Only guides can be verified");
+    }
+
+    const { Guide } = await import("../models/Guide");
+    const guide = await Guide.findOneAndUpdate(
+      { userId: user._id },
+      { verificationStatus: "VERIFIED", isAvailable: true },
+      { new: true },
+    );
+    if (!guide) throw new NotFound("Guide profile not found");
+
+    user.status = "ACTIVE";
+    await user.save();
+
+    try {
+      await NotificationService.sendNotification(
+        userId,
+        "Guide Verified",
+        "Your guide profile has been verified and is now active.",
+        { type: "admin_guide_verified" },
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    return guide;
+  }
+
+  async unverifyUser(userId: string) {
+    console.log(`[ADMIN] Unverifying guide ${userId}`);
+    const user = await User.findById(userId);
+    if (!user) throw new NotFound("User not found");
+    if (user.role !== "GUIDE") {
+      throw new BadRequest("Only guides can be unverified");
+    }
+
+    const { Guide } = await import("../models/Guide");
+    const guide = await Guide.findOneAndUpdate(
+      { userId: user._id },
+      { verificationStatus: "REJECTED", isAvailable: false },
+      { new: true },
+    );
+    if (!guide) throw new NotFound("Guide profile not found");
+
+    user.status = "INACTIVE";
+    await user.save();
+
+    try {
+      await NotificationService.sendNotification(
+        userId,
+        "Guide Unverified",
+        "Your guide profile has been marked as unverified.",
+        { type: "admin_guide_unverified" },
+      );
+    } catch (error) {
+      console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    return guide;
+  }
+
   async softDeleteUser(userId: string) {
     console.log(`[ADMIN] Soft deleting user ${userId}`);
     const user = await User.findById(userId);
@@ -117,6 +227,16 @@ export class UserService {
     user.isDeleted = true;
 
     await user.save();
+
+    // Update related models
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      await Guide.findOneAndUpdate({ userId: user._id }, { isAvailable: false, verificationStatus: "REJECTED" });
+    }
+    if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      await Driver.findOneAndUpdate({ userId: user._id }, { isAvailable: false, verificationStatus: "REJECTED" });
+    }
 
     try {
       await NotificationService.sendNotification(
@@ -139,6 +259,16 @@ export class UserService {
 
     user.status = "SUSPENDED";
     await user.save();
+
+    // Update related models
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      await Guide.findOneAndUpdate({ userId: user._id }, { isAvailable: false });
+    }
+    if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      await Driver.findOneAndUpdate({ userId: user._id }, { isAvailable: false });
+    }
 
     try {
       await NotificationService.sendNotification(

@@ -36,6 +36,7 @@ export function GuideCard({ guide }: GuideCardProps) {
   const statusBadge = getStatusBadge(guide.isAvailable);
   const canBook = guide.isAvailable;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
+  const guideName = guide.userId?.name || "Unknown Guide";
   const bioText =
     guide.bio?.trim() ||
     (guide.specialities && guide.specialities.length > 0
@@ -58,7 +59,7 @@ export function GuideCard({ guide }: GuideCardProps) {
             <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-primary/20 bg-muted">
               <Image
                 src={profileImage}
-                alt={guide.name}
+                alt={guideName}
                 fill
                 className="object-cover"
                 sizes="96px"
@@ -70,7 +71,7 @@ export function GuideCard({ guide }: GuideCardProps) {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-foreground">
-                  {guide.name}
+                  {guideName}
                 </h3>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
                   {bioText.slice(0, 40)}.....
@@ -184,9 +185,14 @@ export function GuideCard({ guide }: GuideCardProps) {
           {/* <Link href={`/tourist/guides/book/${guide.id}`}> */}
           <Button
             onClick={() => router.push(`/tourist/guides/book/${guide.id}`)}
-            className="w-full rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/10 hover:bg-primary/90"
+            disabled={!canBook}
+            className={`w-full rounded-2xl shadow-sm shadow-primary/10 ${
+              canBook
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-gray-400 text-gray-200 cursor-not-allowed hover:bg-gray-400"
+            }`}
           >
-            Book Now
+            {canBook ? "Book Now" : "Currently Unavailable"}
           </Button>
           {/* </Link> */}
         </div>

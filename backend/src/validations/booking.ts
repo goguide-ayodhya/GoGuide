@@ -4,12 +4,14 @@ export const createBookingSchema = z
   .object({
     guideId: z.string().optional(),
     driverId: z.string().optional(),
-    touristName: z.string().min(2, "Tourisst name required"),
+    packageId: z.string().optional(),
+    
+    touristName: z.string().min(2, "Tourist name required"),
     email: z.string().email("Valid email required"),
     phone: z.string().min(10, "Valid phone required"),
     groupSize: z.number().min(1).max(100),
     bookingDate: z.string().datetime("Valid date required"),
-    bookingType: z.enum(["GUIDE", "DRIVER"]),
+    bookingType: z.enum(["GUIDE", "DRIVER", "TOKEN", "PACKAGE"]),
 
     startTime: z.string().regex(/^\d{2}:\d{2}$/, "Valid start time required"),
     tourType: z.string().min(1),
@@ -35,6 +37,16 @@ export const createBookingSchema = z
           path: ["driverId"],
           code: z.ZodIssueCode.custom,
           message: "driverId is required for DRIVER booking",
+        });
+      }
+    }
+
+    if (data.bookingType === "PACKAGE") {
+      if (!data.packageId) {
+        ctx.addIssue({
+          path: ["packageId"],
+          code: z.ZodIssueCode.custom,
+          message: "packageId is required for PACKAGE booking",
         });
       }
     }

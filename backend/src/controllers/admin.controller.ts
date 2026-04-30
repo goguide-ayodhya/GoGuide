@@ -31,6 +31,17 @@ export class AdminController {
     const result = await userService.softDeleteUser(req.params.id);
     res.json(result);
   }
+
+  async verifyUser(req: AuthRequest, res: Response) {
+    const result = await userService.verifyUser(req.params.id);
+    res.json(result);
+  }
+
+  async unverifyUser(req: AuthRequest, res: Response) {
+    const result = await userService.unverifyUser(req.params.id);
+    res.json(result);
+  }
+
   async suspendUser(req: AuthRequest, res: Response) {
     const user = await userService.suspendUser(req.params.id);
     res.json(user);

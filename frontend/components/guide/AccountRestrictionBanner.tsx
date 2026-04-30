@@ -18,7 +18,8 @@ export function AccountRestrictionBanner({
 }: AccountRestrictionBannerProps) {
   // Determine if there are any restrictions
   const hasRestrictions =
-    !isEmailVerified || !isProfileComplete || accountStatus !== "ACTIVE";
+    !isEmailVerified ||
+    (!isProfileComplete && accountStatus !== "ACTIVE");
 
   if (!hasRestrictions) {
     return null;

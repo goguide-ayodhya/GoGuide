@@ -30,7 +30,9 @@ export default function GuidesPage() {
   // Filter guides
   const filtered = guides.filter((guide) => {
     const nameMatch =
-      guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+      guide.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      guide.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      false;
     const specialityMatch =
       guide.specialities?.some((spec) =>
         spec.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -111,7 +113,7 @@ export default function GuidesPage() {
                     {/* {guide.image ? ( */}
                     <Image
                       src={guide.image || assets.guideImage}
-                      alt={guide.name}
+                      alt={guide.userId?.name || guide.name || "Guide"}
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -125,7 +127,7 @@ export default function GuidesPage() {
                   <div className="p-4 space-y-4">
                     <div>
                       <h3 className="text-lg font-bold text-foreground">
-                        {guide.name}
+                        {guide.userId?.name || guide.name || "Guide"}
                       </h3>
                       <p className="text-sm font-medium">
                         <b className="text-black">Speciality:</b>{" "}

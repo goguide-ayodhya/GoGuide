@@ -77,6 +77,7 @@ export default function BookingsPage() {
     "COMPLETED",
     "FAILED",
     "REFUNDED",
+    "REJECTED",
   ] as const;
   const [selectedStatuses, setSelectedStatuses] = useState<
     (typeof statusOptions)[number][]
@@ -391,7 +392,7 @@ export default function BookingsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-3xl border border-border bg-background p-4">
+                      {/* <div className="rounded-3xl border border-border bg-background p-4">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-sm font-semibold">Review Status</p>
                           <span className="text-xs text-muted-foreground">
@@ -418,7 +419,7 @@ export default function BookingsPage() {
                             </label>
                           ))}
                         </div>
-                      </div>
+                      </div> */}
 
                       <div className="flex items-center justify-between gap-3">
                         <Button

@@ -164,14 +164,18 @@ function PaymentPageContent() {
   }
 
   if (booking.status !== "ACCEPTED") {
+    const pendingMessage =
+      booking.bookingType === "PACKAGE"
+        ? "Payment will be available once admin approves your package booking."
+        : "Payment opens after your guide or driver accepts this booking.";
+
     return (
       <main className="min-h-screen flex flex-col bg-background">
         <Header showBack={true} />
         <div className="flex-1 px-4 py-8 max-w-lg mx-auto">
           <Card className="p-6">
             <p className="text-foreground">
-              Payment opens after your guide or driver accepts this booking.
-              Current status:{" "}
+              {pendingMessage} Current status:{" "}
               <span className="font-semibold">{booking.status}</span>
             </p>
             <Button

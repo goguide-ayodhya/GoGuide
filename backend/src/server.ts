@@ -96,6 +96,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
+
 // Error handler (must be last)
 app.use(errorHandler);
 

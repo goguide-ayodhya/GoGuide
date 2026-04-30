@@ -155,6 +155,18 @@ export function BookingCard({
           </div>
         )}
 
+        {booking.status === "CANCELLED" && booking.cancellationReason && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <p className="font-semibold">Cancellation reason</p>
+            <p className="mt-1 text-foreground">{booking.cancellationReason}</p>
+            {booking.cancelledBy && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cancelled by {booking.cancelledBy.toLowerCase()}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* FOOTER */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-4">
           <div>

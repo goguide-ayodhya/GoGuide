@@ -6,12 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspense } from "react";
 
-import {
-  forgotPassword,
-  sendOtp,
-  resetPassword,
-  ApiError,
-} from "@/lib/api/auth";
+import { forgotPassword, resetPassword } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,15 +16,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
-import {
-  validateRequiredFields,
-  validateEmail,
-  validatePassword,
-  FieldErrors,
-} from "@/lib/errorHandler";
+import { FieldErrors } from "@/lib/errorHandler";
 
 function LoginPageContent(): JSX.Element {
   const router = useRouter();
@@ -78,7 +67,26 @@ function LoginPageContent(): JSX.Element {
           router.push("/");
         }
       } catch (err: any) {
-        setError(err.message || "Login failed. Please try again.");
+        const msg = err.message;
+
+        if (msg === "EMAIL_NOT_VERIFIED") {
+          router.push(`/verify-email?email=${identifier}`);
+          return;
+        }
+
+        if (msg === "PROFILE_INCOMPLETE") {
+          router.push(`/guide/complete-profile`);
+          return;
+        }
+
+        if (msg === "ACCOUNT_INACTIVE") {
+          setError("Account is inactive");
+          setLoading(false);
+          return;
+        }
+
+        setError(msg || "Login failed");
+        setLoading(false);
       }
     } else if (mode === "forgot") {
       // Send OTP for password reset
@@ -153,7 +161,7 @@ function LoginPageContent(): JSX.Element {
               {mode === "login"
                 ? "Sign in to your account"
                 : mode === "forgot"
-                  ? "Enter your email/phone to reset password"
+                  ? "Enter your email to reset password"
                   : "Enter the OTP sent to your email and set new password"}
             </CardDescription>
           </CardHeader>
@@ -214,7 +222,7 @@ function LoginPageContent(): JSX.Element {
               ) : mode === "forgot" ? (
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    Email or Phone
+                    Email
                   </label>
                   <Input
                     type="text"

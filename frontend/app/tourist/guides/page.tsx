@@ -26,7 +26,8 @@ export default function GuidesPage() {
 
   const filteredGuides = guides.filter((guide: any) => {
     const term = searchTerm.toLowerCase();
-    const name = guide.name?.toLowerCase() || "";
+    const name = guide.userId?.name?.toLowerCase() || "";
+
     const specialityMatch =
       guide.specialities?.some((s: string) => s.toLowerCase().includes(term)) ||
       false;
@@ -40,7 +41,12 @@ export default function GuidesPage() {
     const matchesLanguage =
       !languageFilter || languages.includes(languageFilter);
 
-    return (name.includes(term) || specialityMatch) && matchesLanguage;
+    // Backend already ensures VERIFIED status and ACTIVE user status
+    // Only filter by search term and language
+    return (
+      (name.includes(term) || specialityMatch) &&
+      matchesLanguage
+    );
   });
 
   const sortedGuides = [...filteredGuides].sort((a, b) => {

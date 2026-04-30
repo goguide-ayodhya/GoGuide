@@ -1620,11 +1620,11 @@ export class PaymentService {
 
     const totalEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + effectiveLineAmount(p), 0);
+      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
 
     const pendingAmount = validPayments
       .filter((p) => p.status === "PENDING")
-      .reduce((sum, p) => sum + effectiveLineAmount(p), 0);
+      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
 
     const bookings = await Booking.find({ guideId });
 
@@ -1645,7 +1645,7 @@ export class PaymentService {
         if (!tourTypeEarnings[tourType]) {
           tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
         }
-        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment);
+        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment) * 0.7;
         tourTypeEarnings[tourType].bookings += 1;
       });
 
@@ -1657,7 +1657,12 @@ export class PaymentService {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const recentTransactions = validPayments.slice(0, 5);
+    const recentTransactions = validPayments.slice(0, 5).map((payment) => ({
+      id: payment._id.toString(),
+      amount: Math.round(effectiveLineAmount(payment) * 0.7),
+      transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
+      status: payment.status?.toLowerCase() || "pending",
+    }));
 
     return {
       totalEarnings,
@@ -1682,7 +1687,7 @@ export class PaymentService {
 
     validPayments.forEach((p) => {
       const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p);
+      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p) * 0.7;
     });
 
     const months = [];
@@ -1716,7 +1721,7 @@ export class PaymentService {
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p);
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p) * 0.7;
     });
 
     const weeks = [];
@@ -1769,11 +1774,11 @@ export class PaymentService {
 
     const totalEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + effectiveLineAmount(p), 0);
+      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
 
     const pendingAmount = validPayments
       .filter((p) => p.status === "PENDING")
-      .reduce((sum, p) => sum + effectiveLineAmount(p), 0);
+      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
 
     const bookings = await Booking.find({ driverId });
 
@@ -1794,7 +1799,7 @@ export class PaymentService {
         if (!tourTypeEarnings[tourType]) {
           tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
         }
-        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment);
+        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment) * 0.7;
         tourTypeEarnings[tourType].bookings += 1;
       });
 
@@ -1806,7 +1811,12 @@ export class PaymentService {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const recentTransactions = validPayments.slice(0, 5);
+    const recentTransactions = validPayments.slice(0, 5).map((payment) => ({
+      id: payment._id.toString(),
+      amount: Math.round(effectiveLineAmount(payment) * 0.7),
+      transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
+      status: payment.status?.toLowerCase() || "pending",
+    }));
 
     return {
       totalEarnings,
@@ -1831,7 +1841,7 @@ export class PaymentService {
 
     validPayments.forEach((p) => {
       const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p);
+      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p) * 0.7;
     });
 
     const months = [];
@@ -1865,7 +1875,7 @@ export class PaymentService {
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p);
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p) * 0.7;
     });
 
     const weeks = [];

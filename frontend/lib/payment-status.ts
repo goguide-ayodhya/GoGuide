@@ -11,6 +11,9 @@ export function getPaymentStatusLabel(b: PaymentStatusFields): string {
   if (b.paymentStatus === "FAILED") {
     return "FAILED";
   }
+  if (b.paymentStatus === "REJECTED") {
+    return "REJECTED";
+  }
   if (b.paymentStatus === "COMPLETED") {
     return "COMPLETED";
   }

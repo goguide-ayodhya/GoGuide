@@ -83,7 +83,9 @@ const convertApiBookingToUi = (apiBooking: any): AdminBooking => {
       : apiBooking.bookingType === "DRIVER"
         ? "Driver"
         : apiBooking.bookingType === "TOKEN"
-          ? "Token"
+        ? "Token"
+        : apiBooking.tokenType === "PACKAGE"
+          ? "Package Token"
           : "Normal";
 
   const rawDate =

@@ -72,6 +72,15 @@ router.patch("/:bookingId/complete", authenticate, (req, res, next) => {
 
 // admin
 router.patch(
+  "/:bookingId/admin-accept",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    bookingController.adminAcceptBooking(req, res).catch(next);
+  },
+);
+
+router.patch(
   "/:bookingId/seen",
   authenticate,
   authorize(["ADMIN"]),

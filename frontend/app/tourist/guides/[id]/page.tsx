@@ -43,22 +43,37 @@ export default function GuideDetailsPage() {
           return;
         }
 
+        const normalizedUserId = data.userId
+          ? {
+              id: data.userId._id || data.userId.id || "",
+              name: data.userId.name || "Unknown Guide",
+              email: data.userId.email || "",
+              avatar: data.userId.avatar || "",
+              phone: data.userId.phone || "",
+              status: data.userId.status || "ACTIVE",
+            }
+          : null;
+
         const formattedGuide: Guide = {
           id: data._id,
-          name: data.userId?.name,
-          email: data.userId?.email || "",
+          userId: normalizedUserId,
+          name: normalizedUserId?.name || data.name || "Unknown Guide",
+          email: normalizedUserId?.email || data.email || "",
           bio: data.bio || data.userId?.bio || "",
-          avatar: data.userId?.avatar,
-          image: data.userId?.avatar || data.userId?.profileImage,
+          avatar: normalizedUserId?.avatar || "",
+          image: normalizedUserId?.avatar || data.userId?.profileImage || "",
           experience: data.yearsOfExperience || data.experience || 0,
           rating: data.averageRating || data.rating || 0,
           languages: Array.isArray(data.languages) ? data.languages : [],
-          specialities: Array.isArray(data.specialities) ? data.specialities : (data.speciality ? [data.speciality] : []),
+          specialities: Array.isArray(data.specialities)
+            ? data.specialities
+            : data.speciality
+            ? [data.speciality]
+            : [],
           locations: Array.isArray(data.locations) ? data.locations : [],
           price: data.price || 0,
           duration: data.duration || "hour",
           isAvailable: data.isAvailable ?? false,
-          // isOnline: data.isOnline ?? false,
           certificates: Array.isArray(data.certificates) ? data.certificates : [],
           yearsOfExperience: data.yearsOfExperience || data.experience || 0,
           totalReviews: data.totalReviews || 0,
@@ -133,7 +148,7 @@ export default function GuideDetailsPage() {
                     </div>
                     <div className="p-6">
                       <h1 className="text-2xl font-bold text-foreground mb-1">
-                        {guide.name}
+                        {guide.userId?.name || guide.name}
                       </h1>
                       <p className="text-muted-foreground mb-4">
                         {guide.experience}+ years experience

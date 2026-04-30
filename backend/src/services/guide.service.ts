@@ -7,7 +7,6 @@ export class GuideService {
   async getAllGuides(filters?: { speciality?: string; minRating?: number }) {
     const query: any = {
       verificationStatus: "VERIFIED",
-      isAvailable: true,
     };
 
     if (filters?.speciality) {
@@ -20,12 +19,14 @@ export class GuideService {
 
     const guides = await Guide.find(query)
       .populate("userId", "id name email avatar phone status")
-      .sort({ averageRating: -1 });
+      .sort({ isAvailable: -1, averageRating: -1 }); // Available guides first, then by rating
 
+    // Only return guides where:
+    // 1. userId exists (not null/undefined)
+    // 2. userId.status is ACTIVE
+    // 3. verificationStatus is VERIFIED (already in query)
     return guides.filter((g: any) => {
-      if (!g.userId) return true;
-      // Exclude only blocked/deleted users, but allow INACTIVE for immediate tourist visibility in seed/dev mode
-      return g.userId.status !== "BLOCKED" && g.userId.status !== "DELETED";
+      return g.userId && g.userId.status === "ACTIVE";
     });
   }
 

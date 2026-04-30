@@ -48,11 +48,17 @@ export interface Booking {
   totalPrice: number;
   totalAmount?: number;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
-  paymentStatus: "PENDING" | "COMPLETED" | "FAILED" | "PARTIAL" | "REFUNDED";
+  paymentStatus: "PENDING" | "COMPLETED" | "FAILED" | "PARTIAL" | "REFUNDED" | "REJECTED";
   paymentType?: "FULL" | "PARTIAL" | "COD";
   paidAmount?: number;
   remainingAmount?: number;
   discount?: number;
+  finalPrice?: number;
+  originalPrice?: number;
+  guideEarning?: number;
+  adminCommission?: number;
+  cancellationReason?: string;
+  cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER";
   finalPrice?: number;
   originalPrice?: number;
   guideEarning?: number;
@@ -105,8 +111,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     console.log("User role:", user?.role);
     console.log("Auth loading:", authLoading);
 
-    if (!user || authLoading) return;
-
+    // Prevent API calls if auth is still loading or user is null
     if (authLoading) {
       console.log("Auth still loading, skipping fetch");
       return;
@@ -154,6 +159,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         originalPrice: b.originalPrice,
         guideEarning: b.guideEarning,
         adminCommission: b.adminCommission,
+        cancellationReason: b.cancellationReason,
+        cancelledBy: b.cancelledBy,
         createdAt: b.createdAt,
         notes: b.notes,
         paymentMethod: b.paymentMethod,
@@ -174,9 +181,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (!user || authLoading) return;
-
-    refreshBookings();
+    // Only fetch bookings when auth is fully loaded and we have a user
+    if (!authLoading && user) {
+      refreshBookings();
+    } else if (!authLoading && !user) {
+      // Clear bookings if no user and auth is loaded
+      setBookings([]);
+      setLoading(false);
+    }
   }, [user, authLoading]);
 
   const updateBookingStatus = async (
