@@ -150,8 +150,9 @@ export default function UserForm() {
       } else {
         setError(err.message || "Signup failed");
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

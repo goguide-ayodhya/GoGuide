@@ -7,6 +7,8 @@ import { connectDB } from "./db/connection";
 import helmet from "helmet";
 import dotenv from "dotenv";
 import cors from "cors";
+import http from "http";
+import { initializeSocket } from "./socket";
 import "./firebase/admin";
 
 // Import routes
@@ -107,7 +109,10 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
-    app.listen(PORT, () => {
+    const server = http.createServer(app);
+    initializeSocket(server);
+
+    server.listen(PORT, () => {
       logger.info(
         `Server running on port ${PORT} in ${env.NODE_ENV} environment`,
       );

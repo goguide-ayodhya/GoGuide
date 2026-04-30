@@ -3,11 +3,23 @@ import { io } from "socket.io-client";
 
 export const SocketContext = createContext();
 
-const socket = io(process.env.NEXT_PUBLIC_BASE_URL);
+const getSocketUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_BASE_URL || "";
+  return baseUrl.replace(/\/api\/?$/, "");
+};
+
+const socket =
+  typeof window !== "undefined"
+    ? io(getSocketUrl() || undefined, {
+        path: "/socket.io",
+        transports: ["websocket", "polling"],
+      })
+    : null;
 
 const SocketProvider = ({ children }) => {
   useEffect(() => {
-    // Basic connection logic
+    if (!socket) return;
+
     socket.on("connect", () => {
       console.log("Connected to server");
     });

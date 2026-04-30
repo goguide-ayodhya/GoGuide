@@ -12,6 +12,7 @@ import {
 import { LoginInput, SignupInput } from "../validations/auth";
 import { Driver } from "../models/Driver";
 import { sendEmail } from "../config/email.config";
+import { logger } from "../utils/logger";
 
 export class AuthService {
   // --------------------- Authentication ---------------------
@@ -127,9 +128,16 @@ export class AuthService {
     }
     const token = this.generateToken(user._id.toString(), user.email || "");
 
-    // Send email verification if email is provided
+    // Send email verification if email is provided. Do not fail signup when email delivery fails.
     if (user.email) {
-      await this.sendOtp(user.email);
+      try {
+        await this.sendOtp(user.email);
+      } catch (error) {
+        logger.warn(
+          `[AUTH] Signup succeeded but email OTP send failed for ${user.email}`,
+          error,
+        );
+      }
     }
 
     return {

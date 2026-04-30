@@ -82,6 +82,19 @@ export const resetPassword = async (
   return json.data;
 };
 
+const parseResponse = async (res: Response) => {
+  const text = await res.text();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
 // Signup
 export const signupUser = async (data: SignupData) => {
   const hasFiles = data.avatar || data.profileImage || data.certificates || data.driverPhoto || data.vehiclePhoto;
@@ -96,10 +109,10 @@ export const signupUser = async (data: SignupData) => {
       body: JSON.stringify(data),
     });
 
-    const json = await res.json();
+    const json = await parseResponse(res);
     if (!res.ok) {
       throw new ApiError(
-        json.message || "Signup failed",
+        json.message || `Signup failed with status ${res.status}`,
         json.errors,
         res.status,
       );
@@ -159,10 +172,10 @@ export const signupUser = async (data: SignupData) => {
     body: form,
   });
 
-  const json = await res.json();
+  const json = await parseResponse(res);
   if (!res.ok) {
     throw new ApiError(
-      json.message || "Signup failed",
+      json.message || `Signup failed with status ${res.status}`,
       json.errors,
       res.status,
     );
