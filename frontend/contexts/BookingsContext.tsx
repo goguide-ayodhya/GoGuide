@@ -48,12 +48,7 @@ export interface Booking {
   totalPrice: number;
   totalAmount?: number;
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
-  paymentStatus:
-    | "PENDING"
-    | "COMPLETED"
-    | "FAILED"
-    | "PARTIAL"
-    | "REFUNDED";
+  paymentStatus: "PENDING" | "COMPLETED" | "FAILED" | "PARTIAL" | "REFUNDED";
   paymentType?: "FULL" | "PARTIAL" | "COD";
   paidAmount?: number;
   remainingAmount?: number;
@@ -106,81 +101,82 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
 
   const refreshBookings = async () => {
-      console.log("Fetching bookings for user:", user);
-      console.log("User role:", user?.role);
-      console.log("Auth loading:", authLoading);
+    console.log("Fetching bookings for user:", user);
+    console.log("User role:", user?.role);
+    console.log("Auth loading:", authLoading);
 
-      if (authLoading) {
-        console.log("Auth still loading, skipping fetch");
-        return;
-      }
+    if (!user || authLoading) return;
 
-      if (!user) {
-        console.log("No user, setting empty bookings");
-        setBookings([]);
-        setError(null);
-        setLoading(false);
-        return;
-      }
+    if (authLoading) {
+      console.log("Auth still loading, skipping fetch");
+      return;
+    }
 
-      try {
-        setError(null);
-        const data =
-          user?.role === "GUIDE"
-            ? await getGuideBookings()
-            : user?.role === "DRIVER"
-              ? await getDriverBookings()
-              : await getMyBookings();
+    if (!user) {
+      console.log("No user, setting empty bookings");
+      setBookings([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
 
-        console.log("API response data:", data);
-        const formattedData = data.map((b: any) => ({
-          id: b._id,
-          guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
-          driverId:
-            typeof b.driverId === "object" ? b.driverId._id : b.driverId,
-          touristName: b.touristName,
-          email: b.email,
-          phone: b.phone,
-          groupSize: b.groupSize,
-          bookingDate: b.bookingDate,
-          startTime: b.startTime,
-          tourType: b.tourType,
-          meetingPoint: b.meetingPoint,
-          dropoffLocation: b.dropoffLocation,
-          totalPrice: b.totalPrice,
-          status: b.status,
-          paymentStatus: b.paymentStatus,
-          paymentType: b.paymentType,
-          paidAmount: b.paidAmount,
-          remainingAmount: b.remainingAmount,
-          discount: b.discount,
-          finalPrice: b.finalPrice,
-          originalPrice: b.originalPrice,
-          guideEarning: b.guideEarning,
-          adminCommission: b.adminCommission,
-          createdAt: b.createdAt,
-          notes: b.notes,
-          paymentMethod: b.paymentMethod,
-          avatar: b.userId?.avatar || b.userId?.profileImage || "",
-          reviewed: b.reviewed || false,
-        }));
+    try {
+      setError(null);
+      const data =
+        user?.role === "GUIDE"
+          ? await getGuideBookings()
+          : user?.role === "DRIVER"
+            ? await getDriverBookings()
+            : await getMyBookings();
 
-        console.log("Formatted bookings:", formattedData);
-        setBookings(formattedData);
-      } catch (error) {
-        console.log("Error fetching bookings", error);
-        setError(error instanceof Error ? error.message : "Failed to fetch bookings");
-      } finally {
-        setLoading(false);
-      }
-    };
+      console.log("API response data:", data);
+      const formattedData = data.map((b: any) => ({
+        id: b._id,
+        guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
+        driverId: typeof b.driverId === "object" ? b.driverId._id : b.driverId,
+        touristName: b.touristName,
+        email: b.email,
+        phone: b.phone,
+        groupSize: b.groupSize,
+        bookingDate: b.bookingDate,
+        startTime: b.startTime,
+        tourType: b.tourType,
+        meetingPoint: b.meetingPoint,
+        dropoffLocation: b.dropoffLocation,
+        totalPrice: b.totalPrice,
+        status: b.status,
+        paymentStatus: b.paymentStatus,
+        paymentType: b.paymentType,
+        paidAmount: b.paidAmount,
+        remainingAmount: b.remainingAmount,
+        discount: b.discount,
+        finalPrice: b.finalPrice,
+        originalPrice: b.originalPrice,
+        guideEarning: b.guideEarning,
+        adminCommission: b.adminCommission,
+        createdAt: b.createdAt,
+        notes: b.notes,
+        paymentMethod: b.paymentMethod,
+        avatar: b.userId?.avatar || b.userId?.profileImage || "",
+        reviewed: b.reviewed || false,
+      }));
+
+      console.log("Formatted bookings:", formattedData);
+      setBookings(formattedData);
+    } catch (error) {
+      console.log("Error fetching bookings", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch bookings",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      await refreshBookings();
-    };
+    if (!user || authLoading) return;
 
-    fetchBookings();
+    refreshBookings();
   }, [user, authLoading]);
 
   const updateBookingStatus = async (
