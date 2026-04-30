@@ -27,6 +27,7 @@ import {
   validatePhone,
   FieldErrors,
 } from "@/lib/errorHandler";
+import { Eye, EyeOff } from "lucide-react";
 
 type UserFormData = {
   name: string;
@@ -37,6 +38,9 @@ type UserFormData = {
 };
 
 export default function UserForm() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const router = useRouter();
   const { signup } = useAuth();
   const [formData, setFormData] = useState<UserFormData>({
@@ -129,7 +133,7 @@ export default function UserForm() {
         phone: formData.phone,
         role: "TOURIST",
       });
-      
+
       // Redirect based on role
       if (user.role === "GUIDE") {
         router.push("/guide/dashboard");
@@ -173,155 +177,125 @@ export default function UserForm() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className={`bg-muted ${fieldErrors.name ? "border-red-500" : ""}`}
-                  required
-                />
-                {fieldErrors.name && (
-                  <p className="text-sm text-red-500">{fieldErrors.name}</p>
-                )}
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`bg-muted ${fieldErrors.name ? "border-red-500" : ""}`}
+                required
+              />
+              {fieldErrors.name && (
+                <p className="text-sm text-red-500">{fieldErrors.name}</p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email (Optional)</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`bg-muted ${fieldErrors.email ? "border-red-500" : ""}`}
-                />
-                {fieldErrors.email && (
-                  <p className="text-sm text-red-500">{fieldErrors.email}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email (Optional)</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`bg-muted ${fieldErrors.email ? "border-red-500" : ""}`}
+              />
+              {fieldErrors.email && (
+                <p className="text-sm text-red-500">{fieldErrors.email}</p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  required
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className={`bg-muted ${fieldErrors.phone ? "border-red-500" : ""}`}
-                />
-                {fieldErrors.phone && (
-                  <p className="text-sm text-red-500">{fieldErrors.phone}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                required
+                type="tel"
+                placeholder="Enter your phone number"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`bg-muted ${fieldErrors.phone ? "border-red-500" : ""}`}
+              />
+              {fieldErrors.phone && (
+                <p className="text-sm text-red-500">{fieldErrors.phone}</p>
+              )}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+
+              <div className="relative">
                 <Input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Create a password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`bg-muted ${fieldErrors.password ? "border-red-500" : ""}`}
+                  className={`bg-muted pr-10 ${fieldErrors.password ? "border-red-500" : ""}`}
                   required
                 />
-                {fieldErrors.password && (
-                  <p className="text-sm text-red-500">{fieldErrors.password}</p>
-                )}
-                {formData.password && !fieldErrors.password && (
-                  <div className="space-y-1">
-                    <div className="flex gap-1 text-xs">
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          passwordStrength.hasLength
-                            ? "text-green-600"
-                            : "text-gray-400",
-                        )}
-                      >
-                        <Check className="h-3 w-3" />
-                        8+ characters
-                      </div>
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          passwordStrength.hasUpperCase
-                            ? "text-green-600"
-                            : "text-gray-400",
-                        )}
-                      >
-                        <Check className="h-3 w-3" />
-                        Uppercase
-                      </div>
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          passwordStrength.hasLowerCase
-                            ? "text-green-600"
-                            : "text-gray-400",
-                        )}
-                      >
-                        <Check className="h-3 w-3" />
-                        Lowercase
-                      </div>
-                      <div
-                        className={cn(
-                          "flex items-center gap-1",
-                          passwordStrength.hasNumber
-                            ? "text-green-600"
-                            : "text-gray-400",
-                        )}
-                      >
-                        <Check className="h-3 w-3" />
-                        Number
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+
+              <div className="relative">
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className={`bg-muted ${fieldErrors.confirmPassword ? "border-red-500" : ""}`}
+                  className={`bg-muted pr-10 ${fieldErrors.confirmPassword ? "border-red-500" : ""}`}
                   required
                 />
-                {fieldErrors.confirmPassword && (
-                  <p className="text-sm text-red-500">{fieldErrors.confirmPassword}</p>
-                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
               </div>
+            </div>
 
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
-                  {error}
-                </div>
-              )}
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                {error}
+              </div>
+            )}
 
-              <Button
-                type="submit"
-                className="w-full cursor-pointer"
-                disabled={loading}
-              >
-                {loading ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
+            <Button
+              type="submit"
+              className="w-full cursor-pointer"
+              disabled={loading}
+            >
+              {loading ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
 
           <div className="mt-6 text-center text-sm">
             Already have an account?{" "}
