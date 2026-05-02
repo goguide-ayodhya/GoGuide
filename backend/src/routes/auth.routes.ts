@@ -28,6 +28,7 @@ router.post(
     { name: "profileImage", maxCount: 1 },
     { name: "driverPhoto", maxCount: 1 },
     { name: "vehiclePhoto", maxCount: 1 },
+    { name: "driverLicense", maxCount: 1 },
   ]),
   validate(signupSchema),
   (req, res, next) => {
@@ -43,9 +44,6 @@ router.post("/logoutall", authenticate, (req, res, next) => {
   authController.logoutAll(req, res).catch(next);
 });
 
-// router.post("/send-otp", validate(sendOtpSchema), (req, res, next) => {
-//   authController.sendOtp(req, res).catch(next);
-// });
 router.post("/send-otp", validate(sendOtpSchema), (req, res) => {
   authController.sendOtp(req, res).catch((err) => {
     console.error("SEND OTP ERROR:", err);

@@ -3,15 +3,18 @@ import { BadRequest, NotFound } from "../utils/httpException";
 
 export class DriverService {
   async createDriverProfile(userId: string, data: any) {
+    console.log("[DRIVER-SERVICE] Creating driver profile for user:", userId, "with data:", data);
     const existingProfile = await Driver.findOne({ userId });
     if (existingProfile) {
-      throw new BadRequest("Driver Profile alreadt exist");
+      console.log("[DRIVER-SERVICE] Driver profile already exists for user:", userId);
+      throw new BadRequest("Driver Profile already exist");
     }
 
     const driver = await Driver.create({
       ...data,
       userId,
     });
+    console.log("[DRIVER-SERVICE] Driver profile created with ID:", driver._id);
 
     return driver;
   }

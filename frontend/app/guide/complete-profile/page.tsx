@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuide } from "@/contexts/GuideContext";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   clearProfileDraft,
 } from "@/lib/profile-utils";
 import { updateGuide, completeProfileApi } from "@/lib/api/guides";
+// import { updateProfileStep } from "@/lib/api/auth";
 import { usePathname } from "next/navigation";
 
 const STEPS = [
@@ -43,6 +44,7 @@ export default function CompleteProfilePage() {
   const { refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { myGuide, loading: guideLoading } = useGuide();
   const [currentStep, setCurrentStep] = useState(1);
@@ -376,7 +378,7 @@ export default function CompleteProfilePage() {
   ]);
 
   if (!user) {
-    return null; // Will be redirected by auth guard
+    return null;
   }
 
   return (
@@ -403,13 +405,12 @@ export default function CompleteProfilePage() {
                     setCurrentStep(step.id);
                   }
                 }}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  currentStep === step.id
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${currentStep === step.id
                     ? "bg-primary text-white"
                     : currentStep > step.id
                       ? "bg-green-100 text-green-800"
                       : "bg-slate-200 text-slate-700"
-                }`}
+                  }`}
               >
                 {currentStep > step.id && (
                   <CheckCircle2 className="h-4 w-4 inline mr-1" />

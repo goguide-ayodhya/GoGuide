@@ -97,9 +97,15 @@ export const DriverProvider = ({ children }: any) => {
     try {
       const data = await getMyDriverProfile();
       if (data) setMyDriver(mapDriver(data));
-    } catch (error) {
-      console.error("Failed to fetch driver profile", error);
-      setMyDriver(null);
+    } catch (error: any) {
+      // Handle 404 (profile not found) gracefully - this is expected for new drivers
+      if (error.message?.includes("Driver Profile not found") || error.status === 404) {
+        console.log("Driver profile not found - user hasn't created profile yet");
+        setMyDriver(null);
+      } else {
+        console.error("Failed to fetch driver profile", error);
+        setMyDriver(null);
+      }
     }
   }, [user]);
 

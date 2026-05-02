@@ -10,6 +10,7 @@ import {
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 export interface User {
+  profileStep: number;
   id: string;
   name: string;
   email?: string;
@@ -45,19 +46,19 @@ export type SignupData = {
   duration?: string;
   certificates?: (File | { name: string; image: File })[];
 
-  // Driver & legacy fields
+  // Driver fields
   speciality?: string;
   experience?: string;
   languages?: string[];
   vehicleType?: string;
   vehicleName?: string;
   vehicleNumber?: string;
-  pricePerKm?: string;
   seats?: string;
   driverPhoto?: File | null;
   vehiclePhoto?: File | null;
+  driverLicenseName?: string;
+  driverLicenseImage?: File | null;
   profileImage?: File | null;
-  driverAadhar?: string;
 };
 
 export type LoginData = {
@@ -92,13 +93,18 @@ const normalizeUser = (data: any): User => ({
     : data.speciality || undefined,
   certification: data.certification || undefined,
   yearsOfExperience: data.yearsOfExperience || data.experience || undefined,
-  languages: Array.isArray(data.languages) ? data.languages : data.languages ? [data.languages] : undefined,
+  languages: Array.isArray(data.languages)
+    ? data.languages
+    : data.languages
+      ? [data.languages]
+      : undefined,
   averageRating: data.averageRating ?? data.rating ?? 0,
   isAvailable: data.isAvailable ?? false,
   isOnline: data.isOnline ?? false,
   isEmailVerified: data.isEmailVerified ?? false,
   isProfileComplete: data.isProfileComplete ?? false,
   status: data.status || undefined,
+  profileStep: 0
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -148,12 +154,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (error.statusCode === 401 || error.statusCode === 403);
 
         if (invalidToken) {
-          console.warn("[AUTH] Token invalid or expired, clearing stored auth state", error);
+          console.warn(
+            "[AUTH] Token invalid or expired, clearing stored auth state",
+            error,
+          );
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setUser(null);
         } else {
-          console.warn("[AUTH] Could not refresh auth state. Keeping stored user if available.", error);
+          console.warn(
+            "[AUTH] Could not refresh auth state. Keeping stored user if available.",
+            error,
+          );
         }
       } finally {
         setLoading(false);
@@ -195,12 +207,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       console.log("[AUTH] Signing up user:", data.email || data.phone);
-
+      console.log("🔥 SENDING SIGNUP PAYLOAD:", data);
       const res = await signupUser(data);
 
       if (!res || !res.user || !res.token) {
         throw new Error("Invalid signup response");
       }
+      console.log("FINAL SIGNUP DATA:", data);
 
       const normalizedUser = normalizeUser(res.user);
       console.log("[AUTH] Signup successful, saving to localStorage");
@@ -209,6 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", res.token);
       console.log("[AUTH] User and token saved to localStorage");
 
+      console.log("FINAL SIGNUP DATA:", data);
       return res.user;
     } catch (error: unknown) {
       console.error(

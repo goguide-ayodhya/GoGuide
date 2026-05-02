@@ -163,7 +163,7 @@ export interface Cab extends BaseEntity {
   type: string; // Sedan, SUV, etc.
   capacity: number;
   baseFare: number;
-  pricePerKm: number;
+  // pricePerKm: number;
   image?: string;
   isActive: boolean;
   features: string[];

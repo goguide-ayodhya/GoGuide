@@ -1,10 +1,7 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  identifier: z
-    .string()
-    .trim()
-    .min(3, "Email or phone is required"),
+  identifier: z.string().trim().min(3, "Email or phone is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -36,15 +33,22 @@ export const signupSchema = z.object({
     return value;
   }, z.number().optional()),
   duration: z.string().optional(),
-  certificates: z.preprocess((value) => {
-    if (typeof value === "string" && value.trim() !== "") {
-      return [value];
-    }
-    return value;
-  }, z.array(z.object({
-    name: z.string(),
-    image: z.string(),
-  })).optional()),
+  certificates: z.preprocess(
+    (value) => {
+      if (typeof value === "string" && value.trim() !== "") {
+        return [value];
+      }
+      return value;
+    },
+    z
+      .array(
+        z.object({
+          name: z.string(),
+          image: z.string(),
+        }),
+      )
+      .optional(),
+  ),
   experience: z.preprocess((value) => {
     if (typeof value === "string" && value.trim() !== "") {
       return Number(value);
@@ -60,70 +64,51 @@ export const signupSchema = z.object({
   vehicleType: z.string().optional(),
   vehicleName: z.string().optional(),
   vehicleNumber: z.string().optional(),
-  pricePerKm: z.preprocess((value) => {
-    if (typeof value === "string" && value.trim() !== "") {
-      return Number(value);
-    }
-    return value;
-  }, z.number().optional()),
   seats: z.preprocess((value) => {
     if (typeof value === "string" && value.trim() !== "") {
       return Number(value);
     }
     return value;
   }, z.number().optional()),
-  driverPhoto: z.string().optional(), 
+  driverPhoto: z.string().optional(),
   vehiclePhoto: z.string().optional(),
-  driverAadhar: z.string().optional(),
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.driverAadhar && data.driverAadhar.trim() !== "";
-  }
-  return true;
-}, {
-  message: "Aadhar number is required for drivers",
-  path: ["driverAadhar"],
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.vehicleType && data.vehicleType.trim() !== "";
-  }
-  return true;
-}, {
-  message: "Vehicle type is required for drivers",
-  path: ["vehicleType"],
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.vehicleName && data.vehicleName.trim() !== "";
-  }
-  return true;
-}, {
-  message: "Vehicle name is required for drivers",
-  path: ["vehicleName"],
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.vehicleNumber && data.vehicleNumber.trim() !== "";
-  }
-  return true;
-}, {
-  message: "Vehicle number is required for drivers",
-  path: ["vehicleNumber"],
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.pricePerKm && data.pricePerKm > 0;
-  }
-  return true;
-}, {
-  message: "Price per km is required for drivers",
-  path: ["pricePerKm"],
-}).refine((data) => {
-  if (data.role === "DRIVER") {
-    return data.seats && data.seats > 0;
-  }
-  return true;
-}, {
-  message: "Number of seats is required for drivers",
-  path: ["seats"],
+  driverLicenseName: z.string().optional(),
+  driverLicenseImage: z.string().optional(),
 });
+
+// .refine((data) => {
+//   if (data.role === "DRIVER") {
+//     return data.vehicleType && data.vehicleType.trim() !== "";
+//   }
+//   return true;
+// }, {
+//   message: "Vehicle type is required for drivers",
+//   path: ["vehicleType"],
+// }).refine((data) => {
+//   if (data.role === "DRIVER") {
+//     return data.vehicleName && data.vehicleName.trim() !== "";
+//   }
+//   return true;
+// }, {
+//   message: "Vehicle name is required for drivers",
+//   path: ["vehicleName"],
+// }).refine((data) => {
+//   if (data.role === "DRIVER") {
+//     return data.vehicleNumber && data.vehicleNumber.trim() !== "";
+//   }
+//   return true;
+// }, {
+//   message: "Vehicle number is required for drivers",
+//   path: ["vehicleNumber"],
+// }).refine((data) => {
+//   if (data.role === "DRIVER") {
+//     return data.seats && data.seats > 0;
+//   }
+//   return true;
+// }, {
+//   message: "Number of seats is required for drivers",
+//   path: ["seats"],
+// });
 
 export const changePasswordSchema = z
   .object({

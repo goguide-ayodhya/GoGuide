@@ -8,6 +8,7 @@ export const validate = (schema: ZodSchema) => {
       const result = schema.safeParse(req.body);
       
       if (!result.success) {
+        console.log("❌ ZOD ERROR:", result.error.issues);
         const errors = result.error.errors.reduce((acc, err) => {
           const path = err.path.join('.');
           acc[path] = err.message;

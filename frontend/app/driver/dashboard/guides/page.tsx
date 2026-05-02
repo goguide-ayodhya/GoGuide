@@ -171,9 +171,9 @@ export default function DriversPage() {
                     </div>
 
                     {/* Pricing */}
-                    <div className="text-lg font-bold text-primary">
+                    {/* <div className="text-lg font-bold text-primary">
                       ₹{driver.pricePerKm}/km
-                    </div>
+                    </div> */}
 
                     {/* Status */}
                     <div className="flex items-center gap-2">

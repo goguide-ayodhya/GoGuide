@@ -52,12 +52,15 @@ export class AuthController {
       const profileImageUrl = await uploadImage(files?.profileImage?.[0]);
       const driverPhotoUrl = await uploadImage(files?.driverPhoto?.[0]);
       const vehiclePhotoUrl = await uploadImage(files?.vehiclePhoto?.[0]);
+      const driverLicenseUrl = await uploadImage(files?.driverLicense?.[0]);
 
       const response = await authService.signup({
         ...req.body,
         avatar: avatarUrl || profileImageUrl || "",
         driverPhoto: driverPhotoUrl,
         vehiclePhoto: vehiclePhotoUrl,
+        driverLicenseImage: driverLicenseUrl,
+        driverLicenseName: req.body.driverLicenseName || "",
       });
 
       res.status(201).json({

@@ -25,8 +25,8 @@ Remaining balance may be paid directly to the service provider.
 We are not responsible for disputes in offline payments.
 
 5. Cancellation & Refund
-6 hours or more before trip: 100% refund
-Less than 6 hours: cancellation charges may apply
+1/2 hours (30 minutes) or more before trip: 100% refund
+Less than 1/2 hours (30 minutes): cancellation charges may apply
 Refunds are processed within 2–3 working days
 
 6. User Conduct

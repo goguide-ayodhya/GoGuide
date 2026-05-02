@@ -5,16 +5,17 @@ export interface IDriver extends Document {
 
   vehicleNumber?: string;
   vehicleType?: "CAR" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
-  vehicleName: string;
+  vehicleName?: string;
+  vehiclePhoto?: string;
 
-  capacity: number;
-
-  pricePerKm?: number;
   seats?: number;
 
-  location: String;
+  location?: String;
 
-  images?: string[];
+  driverPhoto?: string;
+
+  driverLicenseName?: string;
+  driverLicenseImage?: string[];
 
   isAvailable?: boolean;
 
@@ -22,9 +23,7 @@ export interface IDriver extends Document {
   totalRides: number;
 
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
-
   driverName: string;
-  driverAadhar: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -50,18 +49,20 @@ const DriverSchema = new Schema<IDriver>(
       enum: ["CAR", "BIKE", "AUTO", "RIKSHAW", "VAN", "OTHER"],
     },
 
-    capacity: {
-      type: Number,
-    },
-
-    pricePerKm: {
-      type: Number,
-    },
     seats: {
       type: Number,
     },
 
-    images: {
+    driverPhoto: {
+      type: String,
+    },
+    vehiclePhoto: {
+      type: String,
+    },
+    driverLicenseName: {
+      type: String,
+    },
+    driverLicenseImage: {
       type: [String],
     },
     isAvailable: {
@@ -89,10 +90,6 @@ const DriverSchema = new Schema<IDriver>(
     },
 
     driverName: {
-      type: String,
-      required: true,
-    },
-    driverAadhar: {
       type: String,
       required: true,
     },
