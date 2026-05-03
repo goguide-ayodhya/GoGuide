@@ -19,7 +19,6 @@ import { DriverStep1Signup } from "./DriverStep1Signup";
 import { DriverStep2Verify } from "./DriverStep2Verify";
 import { DriverStep4Vehicle } from "./DriverStep4Vehicle";
 import { DriverStep5Documents } from "./DriverStep5Documents";
-
 const STORAGE_KEY = "driver-signup-draft";
 
 const STEPS = [
@@ -372,15 +371,7 @@ export default function DriverSignupFlow() {
     setSuccessMessage("");
 
     try {
-      const form = new FormData();
-      form.append("vehicleType", formData.vehicle.vehicleType);
-      form.append("vehicleName", formData.vehicle.vehicleName);
-      form.append("vehicleNumber", formData.vehicle.vehicleNumber);
-      form.append("seats", formData.vehicle.seats);
-      form.append("profileStep", "4");
-
-      await updateDriverProfile(form);
-
+      // No API call here, just proceed to documents step
       setSuccessMessage("Vehicle details saved. One final step remains.");
       setCurrentStep(4);
     } catch (error: any) {
@@ -483,12 +474,9 @@ export default function DriverSignupFlow() {
       }
       form.append("driverLicense", formData.documents.driverLicense);
 
-      // Add profileStep to mark it as complete
-      form.append("profileStep", "5");
-
       console.log("🚀 FINAL FORM DATA ENTRIES:", [...form.entries()]);
 
-      await updateDriverProfile(form);
+      await createDriverProfile(form);
 
       setSuccessMessage(
         "Driver onboarding is complete. Your profile is submitted for review.",
@@ -592,13 +580,12 @@ export default function DriverSignupFlow() {
                 type="button"
                 onClick={() => handleStepChange(step.id)}
                 disabled={step.id > currentStep}
-                className={`flex-1 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors ${
-                  step.id === currentStep
-                    ? "border-primary bg-primary text-white"
-                    : step.id < currentStep
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-slate-200 bg-white text-slate-600"
-                }`}
+                className={`flex-1 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors ${step.id === currentStep
+                  ? "border-primary bg-primary text-white"
+                  : step.id < currentStep
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-600"
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900 shadow-sm">
