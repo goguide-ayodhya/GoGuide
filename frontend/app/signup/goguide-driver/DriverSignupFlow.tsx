@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendOtpApi, verifyEmailOtp } from "@/lib/api/auth";
-import { updateDriverProfile, createDriverProfile } from "@/lib/api/driver";
+import { updateDriverProfile, createDriverProfile, getMyDriverProfile } from "@/lib/api/driver";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -126,6 +126,7 @@ function DriverSignupFlowContent() {
   const [successMessage, setSuccessMessage] = useState("");
   const [finalSuccess, setFinalSuccess] = useState(false);
   const [initialSyncDone, setInitialSyncDone] = useState(false);
+  const [isProfileExists, setIsProfileExists] = useState(false);
 
   useEffect(() => {
     const draft = loadDraft();
@@ -166,6 +167,17 @@ function DriverSignupFlowContent() {
         setCurrentStep(user.profileStep && user.profileStep > 1 ? user.profileStep : 3);
       }
       setInitialSyncDone(true);
+
+      // Check if profile exists
+      getMyDriverProfile()
+        .then((profile) => {
+          if (profile) {
+            setIsProfileExists(true);
+          }
+        })
+        .catch(() => {
+          setIsProfileExists(false);
+        });
     }
   }, [isLoggedIn, user, initialSyncDone, currentStep]);
 
@@ -512,7 +524,11 @@ function DriverSignupFlowContent() {
 
       console.log("🚀 FINAL FORM DATA ENTRIES:", [...form.entries()]);
 
-      await createDriverProfile(form);
+      if (isProfileExists) {
+        await updateDriverProfile(form);
+      } else {
+        await createDriverProfile(form);
+      }
 
       setSuccessMessage(
         "Driver onboarding is complete. Your profile is submitted for review.",

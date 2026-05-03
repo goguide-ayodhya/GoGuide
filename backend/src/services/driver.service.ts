@@ -6,8 +6,8 @@ export class DriverService {
     console.log("[DRIVER-SERVICE] Creating driver profile for user:", userId, "with data:", data);
     const existingProfile = await Driver.findOne({ userId });
     if (existingProfile) {
-      console.log("[DRIVER-SERVICE] Driver profile already exists for user:", userId);
-      throw new BadRequest("Driver Profile already exist");
+      console.log("[DRIVER-SERVICE] Driver profile already exists for user:", userId, "Updating instead...");
+      return this.updateDriverProfile(userId, data);
     }
 
     const driver = await Driver.create({

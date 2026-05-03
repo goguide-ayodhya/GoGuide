@@ -75,8 +75,22 @@ export const getMyDriverProfile = async () => {
 };
 
 export const updateDriverProfile = async (data: any) => {
-  const hasFile = data.driverPhoto || data.vehiclePhoto || data.driverLicense || (data.driverLicense && Array.isArray(data.driverLicense));
   const headers = authHeaders();
+
+  if (data instanceof FormData) {
+    delete headers["Content-Type"];
+    console.log("[DRIVER-API] Sending driver update-profile FormData entries:", [...data.entries()]);
+
+    const res = await fetch(`${apiBaseUrl}drivers/me/profile`, {
+      method: "PUT",
+      headers,
+      body: data,
+    });
+
+    return handleRes(res);
+  }
+
+  const hasFile = data.driverPhoto || data.vehiclePhoto || data.driverLicense || (data.driverLicense && Array.isArray(data.driverLicense));
 
   if (hasFile) {
     const formData = new FormData();
