@@ -40,7 +40,7 @@ interface Certificate {
   image: File | null;
 }
 
-export default function CompleteProfilePage() {
+function CompleteProfilePageContent() {
   const { refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -390,7 +390,7 @@ export default function CompleteProfilePage() {
   }
 
   return (
-    <Suspense>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
@@ -623,6 +623,14 @@ export default function CompleteProfilePage() {
           </Card>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function CompleteProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>}>
+      <CompleteProfilePageContent />
     </Suspense>
   );
 }

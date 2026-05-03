@@ -116,7 +116,6 @@ export class AuthService {
                 vehicleType: input.vehicleType,
                 vehicleName: input.vehicleName || "",
                 vehicleNumber: input.vehicleNumber || "",
-                pricePerKm: input.pricePerKm || 0,
                 seats: input.seats || 0,
                 images: [input.driverPhoto, input.vehiclePhoto].filter(
                     Boolean,
@@ -126,7 +125,6 @@ export class AuthService {
                 averageRating: 0,
                 totalRides: 0,
                 driverName: input.name,
-                driverAadhar: input.driverAadhar || "",
             });
         }
         const token = this.generateToken(user._id.toString(), user.email || "");
