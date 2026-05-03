@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendOtpApi, verifyEmailOtp } from "@/lib/api/auth";
@@ -111,9 +111,11 @@ function validateEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-export default function DriverSignupFlow() {
+function DriverSignupFlowContent() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const searchParams = useSearchParams();
+  const stepParam = searchParams.get("step");
+  const { signup, user, isLoggedIn } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormDataType>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -123,11 +125,13 @@ export default function DriverSignupFlow() {
   const [globalError, setGlobalError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [finalSuccess, setFinalSuccess] = useState(false);
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   useEffect(() => {
     const draft = loadDraft();
+    let initialStep = 1;
     if (draft) {
-      setCurrentStep(draft.currentStep);
+      initialStep = draft.currentStep;
       setFormData((prev) => ({
         ...prev,
         ...draft,
@@ -137,7 +141,33 @@ export default function DriverSignupFlow() {
         },
       }));
     }
-  }, []);
+    if (stepParam) {
+      const parsedStep = parseInt(stepParam, 10);
+      if (!isNaN(parsedStep) && parsedStep > initialStep) {
+        initialStep = parsedStep;
+      }
+    }
+    setCurrentStep(initialStep);
+  }, [stepParam]);
+
+  useEffect(() => {
+    if (isLoggedIn && user && !initialSyncDone) {
+      setFormData((prev) => ({
+        ...prev,
+        signup: {
+          ...prev.signup,
+          name: user.name || prev.signup.name,
+          email: user.email || prev.signup.email,
+          phone: user.phone || prev.signup.phone,
+        }
+      }));
+      
+      if (user.isEmailVerified && currentStep < 3) {
+        setCurrentStep(user.profileStep && user.profileStep > 1 ? user.profileStep : 3);
+      }
+      setInitialSyncDone(true);
+    }
+  }, [isLoggedIn, user, initialSyncDone, currentStep]);
 
   useEffect(() => {
     saveDraft({
@@ -187,6 +217,9 @@ export default function DriverSignupFlow() {
   };
 
   const handleStepChange = (stepId: number) => {
+    if (isLoggedIn && user?.isEmailVerified && stepId < 3) {
+      return;
+    }
     if (stepId <= currentStep) {
       setGlobalError("");
       setSuccessMessage("");
@@ -195,6 +228,9 @@ export default function DriverSignupFlow() {
   };
 
   const handlePrev = () => {
+    if (isLoggedIn && user?.isEmailVerified && currentStep === 3) {
+      return;
+    }
     if (currentStep > 1) {
       setGlobalError("");
       setSuccessMessage("");
@@ -562,43 +598,42 @@ export default function DriverSignupFlow() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-10 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Driver Onboarding
           </h1>
-          <p className="mt-2 text-slate-600">
-            A guided signup flow to get you road-ready. Complete each step to
-            submit your driver profile.
+          <p className="text-slate-600">
+            {progressValue}% complete • {STEPS.length} easy steps
           </p>
         </div>
 
-        <div className="mb-6">
-          <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="mb-8">
+          <div className="flex gap-2 mb-4">
             {STEPS.map((step) => (
               <button
                 key={step.id}
-                type="button"
                 onClick={() => handleStepChange(step.id)}
                 disabled={step.id > currentStep}
-                className={`flex-1 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-colors ${step.id === currentStep
-                  ? "border-primary bg-primary text-white"
-                  : step.id < currentStep
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-white text-slate-600"
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${currentStep === step.id
+                  ? "bg-primary text-white"
+                  : currentStep > step.id
+                    ? "bg-green-100 text-green-800"
+                    : "bg-slate-200 text-slate-700"
                   }`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-900 shadow-sm">
-                    {step.id}
-                  </span>
-                  <span>{step.label}</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{step.name}</p>
+                {currentStep > step.id && (
+                  <CheckCircle2 className="h-4 w-4 inline mr-1" />
+                )}
+                {step.name}
               </button>
             ))}
           </div>
-          <div className="mt-4">
-            <Progress value={progressValue} />
+
+          <div className="h-2 bg-slate-300 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300"
+              style={{ width: `${progressValue}%` }}
+            />
           </div>
         </div>
 
@@ -637,49 +672,74 @@ export default function DriverSignupFlow() {
                 </button>
               </div>
             ) : (
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-6 flex gap-3">
                 <Button
                   onClick={handlePrev}
-                  disabled={currentStep === 1 || loading || verifyLoading}
+                  disabled={currentStep === 1 || loading || verifyLoading || (isLoggedIn && user?.isEmailVerified && currentStep === 3)}
                   variant="outline"
-                  className="w-full sm:w-1/3"
+                  className="border-slate-300 hover:bg-slate-50"
                 >
                   ← Previous
                 </Button>
 
-                <Button
-                  onClick={() => {
-                    if (currentStep === 1) handleSignupNext();
-                    else if (currentStep === 2) handleVerifyOtp();
-                    else if (currentStep === 3) handleVehicleNext();
-                    else handleComplete();
-                  }}
-                  disabled={
-                    loading ||
-                    verifyLoading ||
-                    otpSending ||
-                    (currentStep === 2 && !formData.signup.otp.trim())
-                  }
-                  className="w-full sm:w-2/3"
-                >
-                  {loading || verifyLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : currentStep === 4 ? (
-                    "Finish"
-                  ) : currentStep === 2 ? (
-                    "Verify OTP"
-                  ) : (
-                    "Next →"
-                  )}
-                </Button>
+                {currentStep === STEPS.length ? (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={loading || verifyLoading}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {loading || verifyLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Complete Profile
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (currentStep === 1) handleSignupNext();
+                      else if (currentStep === 2) handleVerifyOtp();
+                      else if (currentStep === 3) handleVehicleNext();
+                    }}
+                    disabled={
+                      loading ||
+                      verifyLoading ||
+                      otpSending ||
+                      (currentStep === 2 && !formData.signup.otp.trim())
+                    }
+                    className="flex-1"
+                  >
+                    {loading || verifyLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : currentStep === 2 ? (
+                      "Verify OTP"
+                    ) : (
+                      "Next →"
+                    )}
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function DriverSignupFlow() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DriverSignupFlowContent />
+    </Suspense>
   );
 }

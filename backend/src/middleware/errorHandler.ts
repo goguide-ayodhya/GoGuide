@@ -21,11 +21,30 @@ export const errorHandler = (
     });
   }
 
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      statusCode: 400,
+      message: Object.values(error.errors).map((err: any) => err.message).join(', ') || 'Validation Error',
+      ...(isDevelopment && { stack: error.stack }),
+    });
+  }
+
+  if (error.code === 11000) {
+    const field = Object.keys(error.keyValue)[0];
+    return res.status(409).json({
+      success: false,
+      statusCode: 409,
+      message: `An account with that ${field} already exists.`,
+      ...(isDevelopment && { stack: error.stack }),
+    });
+  }
+
   const internalError = new InternalServerError('An unexpected error occurred');
   res.status(internalError.statusCode).json({
     success: false,
     statusCode: internalError.statusCode,
-    message: internalError.message,
+    message: error.message || internalError.message,
     ...(isDevelopment && { stack: error.stack }),
   });
 };

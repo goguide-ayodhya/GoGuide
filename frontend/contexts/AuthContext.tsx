@@ -193,10 +193,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     } catch (error: unknown) {
-      console.error(
-        "[AUTH] Login error:",
-        error instanceof Error ? error.message : String(error),
-      );
+      if (error instanceof ApiError && error.fieldErrors?.code === "PROFILE_INCOMPLETE") {
+        console.warn("[AUTH] Profile incomplete during login, but saving token so user can complete it.");
+        const incompleteUser = error.fieldErrors.user;
+        const incompleteToken = error.fieldErrors.token;
+        if (incompleteUser && incompleteToken) {
+          const normalizedUser = normalizeUser(incompleteUser);
+          setUser(normalizedUser);
+          localStorage.setItem("user", JSON.stringify(normalizedUser));
+          localStorage.setItem("token", incompleteToken);
+        }
+      } else {
+        console.error(
+          "[AUTH] Login error:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
       throw error;
     } finally {
       setLoading(false);

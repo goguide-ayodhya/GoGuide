@@ -39,7 +39,6 @@ const DriverSchema = new Schema<IDriver>(
 
     vehicleName: {
       type: String,
-      required: true,
     },
     vehicleNumber: {
       type: String,

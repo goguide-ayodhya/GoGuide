@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuide } from "@/contexts/GuideContext";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import {
 } from "@/lib/profile-utils";
 import { updateGuide, completeProfileApi } from "@/lib/api/guides";
 // import { updateProfileStep } from "@/lib/api/auth";
-import { usePathname } from "next/navigation";
 
 const STEPS = [
   { id: 1, name: "Profile", label: "Step 1" },
@@ -45,6 +44,8 @@ export default function CompleteProfilePage() {
   const { refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const stepParam = searchParams.get("step");
   const { user } = useAuth();
   const { myGuide, loading: guideLoading } = useGuide();
   const [currentStep, setCurrentStep] = useState(1);
@@ -360,7 +361,14 @@ export default function CompleteProfilePage() {
 
     const draftStep = computeStepFromData(formData);
     const guideStep = computeStepFromGuide(myGuide);
-    const targetStep = Math.max(draftStep, guideStep);
+    let targetStep = Math.max(draftStep, guideStep, user.profileStep || 1);
+
+    if (stepParam) {
+      const parsed = parseInt(stepParam, 10);
+      if (!isNaN(parsed) && parsed > targetStep) {
+        targetStep = parsed;
+      }
+    }
 
     if (targetStep > 1) {
       setCurrentStep(targetStep);

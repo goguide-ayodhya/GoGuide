@@ -1,6 +1,7 @@
 import bgHero from "./main/bgHero.webp";
 import guideImage from "./main/guideImage.jpeg";
-import logo from "./main/logo.svg";
+// import logo from "./main/logo.png";
+import logo from "./main/logopng.png";
 
 import img_01 from "./tourist/img_01.webp";
 import img_02 from "./tourist/img_02.webp";
@@ -63,7 +64,7 @@ export const assets = {
   dashrathMahal,
   valmikiBhawan,
   ramMandir,
-  
+
   adityaSahu,
   rahulSrivastava,
 };

@@ -59,6 +59,12 @@ function LoginPageContent(): JSX.Element {
                     return;
                 }
 
+                if (user.role === "GUIDE" || user.role === "DRIVER") {
+                    if (!user.isEmailVerified) {
+                        router.push(`/verify-email?email=${identifier}`);
+                        return;
+                    }
+                }
                 if (user.role === "GUIDE") {
                     router.push("/guide/dashboard");
                 } else if (user.role === "DRIVER") {
@@ -69,19 +75,14 @@ function LoginPageContent(): JSX.Element {
             } catch (err: any) {
                 const msg = err.message;
 
-                if (msg === "EMAIL_NOT_VERIFIED") {
-                    router.push(`/verify-email?email=${identifier}`);
-                    return;
-                }
-
-                if (msg === "PROFILE_INCOMPLETE") {
-                    router.push(`/guide/complete-profile`);
-                    return;
-                }
-
-                if (msg === "ACCOUNT_INACTIVE") {
-                    setError("Account is inactive");
-                    setLoading(false);
+                if (err.fieldErrors?.code === "PROFILE_INCOMPLETE") {
+                    const role = err.fieldErrors.role;
+                    const step = err.fieldErrors.profileStep || 1;
+                    if (role === "DRIVER") {
+                        router.push(`/driver/complete-profile?step=${step}`);
+                    } else {
+                        router.push(`/guide/complete-profile?step=${step}`);
+                    }
                     return;
                 }
 
