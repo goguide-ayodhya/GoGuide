@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
-import { Calendar, Clock, MapPin, Zap } from "lucide-react";
-import { CURRENCY } from "@/lib/utils";
+import { Calendar as CalendarIcon, Clock, MapPin, Zap } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn, CURRENCY } from "@/lib/utils";
 
 interface GuideBookingFormProps {
   price: number;
@@ -35,7 +37,7 @@ export function GuideBookingForm({
   onSubmit,
   isLoading,
 }: GuideBookingFormProps) {
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState<Date | undefined>();
   const [time, setTime] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("Hotel Lobby");
 
@@ -75,12 +77,22 @@ export function GuideBookingForm({
       newErrors.email = "Please enter a valid email";
     }
 
-    // Check if date is in future
-    const selectedDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (selectedDate < today) {
-      newErrors.date = "Please select a future date";
+    // Check if date/time is at least 1 hour in the future
+    if (date && time) {
+      const selectedDateTime = new Date(date);
+      const [hours, minutes] = time.split(':').map(Number);
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDateTime < today) {
+        newErrors.date = "Please select a future date";
+      } else if (selectedDateTime < oneHourFromNow) {
+        newErrors.time = "Booking must be at least 1 hour from now";
+      }
     }
 
     setErrors(newErrors);
@@ -94,7 +106,7 @@ export function GuideBookingForm({
         email,
         phone,
         groupSize: Number(groupSize),
-        bookingDate: new Date(date).toISOString(),
+        bookingDate: date!.toISOString(),
         startTime: time,
         bookingType: "GUIDE",
         tourType: "Personalized Tour",
@@ -167,13 +179,33 @@ export function GuideBookingForm({
       {/* Date */}
       <FormField label="Tour Date" error={errors.date} required>
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="pl-10 bg-muted border-0"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal h-11 bg-muted border-0 hover:bg-muted/80",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-5 w-5 hover:text-primary" />
+                {date ? date.toLocaleDateString('en-GB') : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                disabled={(d) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return d < today;
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </FormField>
 
@@ -236,7 +268,8 @@ export function GuideBookingForm({
               {filteredOptions.map((option, index) => (
                 <div
                   key={index}
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent onBlur from firing first
                     setMeetingPoint(option);
                     setShowDropdown(false);
                   }}
@@ -313,9 +346,18 @@ export function GuideBookingForm({
 
       {/* Price Summary */}
       <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 space-y-2">
-        <div className="flex justify-between">
-          <span className="font-semibold text-foreground">Total</span>
-          <span className="font-bold text-secondary text-lg">
+        <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">Price Breakdown</h4>
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>Base Price</span>
+          <span>₹{Math.round(totalPrice / 1.05)}</span>
+        </div>
+        <div className="flex justify-between text-sm text-muted-foreground">
+          <span>GST (5%)</span>
+          <span>₹{Math.round(totalPrice - (totalPrice / 1.05))}</span>
+        </div>
+        <div className="flex justify-between pt-2 border-t border-secondary/20 font-semibold text-foreground">
+          <span>Total</span>
+          <span className="text-secondary text-lg">
             ₹{totalPrice}
           </span>
         </div>

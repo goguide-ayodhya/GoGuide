@@ -41,6 +41,7 @@ export interface Booking {
   bookingDate: string;
   date?: string;
   startTime: string;
+  bookingType?: "GUIDE" | "DRIVER" | "PACKAGE" | "TOKEN";
   tourType: string;
   meetingPoint: string;
   location?: string;

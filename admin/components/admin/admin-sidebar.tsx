@@ -1,5 +1,7 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
+import { getAdminDashboard, getPendingGuides, getRecentUsers } from "@/lib/api/adminDashboard";
+import { getAllBookings } from "@/lib/api/bookings";
+import { Badge } from "@/components/ui/badge";
 
 interface AdminSidebarProps {
   open: boolean;
@@ -83,6 +88,38 @@ const menuItems = [
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [stats, setStats] = useState({ bookings: 0, pendingGuides: 0, newUsers: 0, pendingPackages: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const dashboard = await getAdminDashboard();
+        const pending = await getPendingGuides(100);
+        const allBookings = await getAllBookings();
+        const packageBookings = Array.isArray(allBookings) ? allBookings : allBookings?.data || [];
+        const pendingPackagesCount = packageBookings.filter((b: any) => b.bookingType === "PACKAGE" && b.status === "PENDING").length;
+
+        
+        // Count users joined today
+        const users = await getRecentUsers(50);
+        const today = new Date().toDateString();
+        const newUsersCount = users?.filter((u: any) => new Date(u.joinedAt).toDateString() === today)?.length || 0;
+
+        setStats({
+          bookings: dashboard?.bookings?.unseen || 0,
+          pendingGuides: pending?.length || 0,
+          newUsers: newUsersCount,
+          pendingPackages: pendingPackagesCount
+        });
+      } catch (err) {
+        console.error("Error fetching sidebar stats", err);
+      }
+    };
+    fetchStats();
+    // Optional: add interval to refresh stats
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
@@ -97,7 +134,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto",
+          "fixed top-0 left-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:left-0 lg:translate-x-0 lg:z-auto",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -150,7 +187,29 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                           : "text-muted-foreground",
                       )}
                     />
-                    {item.title}
+                    <span className="flex-1">{item.title}</span>
+                    
+                    {/* Badges */}
+                    {item.title === "Bookings" && stats.bookings > 0 && (
+                      <Badge className="ml-auto bg-rose-500 hover:bg-rose-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.bookings}
+                      </Badge>
+                    )}
+                    {item.title === "Cabs" && stats.pendingGuides > 0 && (
+                      <Badge className="ml-auto bg-amber-500 hover:bg-amber-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.pendingGuides}
+                      </Badge>
+                    )}
+                    {item.title === "Users" && stats.newUsers > 0 && (
+                      <Badge className="ml-auto bg-blue-500 hover:bg-blue-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.newUsers}
+                      </Badge>
+                    )}
+                    {item.title === "Packages" && stats.pendingPackages > 0 && (
+                      <Badge className="ml-auto bg-indigo-500 hover:bg-indigo-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.pendingPackages}
+                      </Badge>
+                    )}
                   </Link>
                 );
               })}

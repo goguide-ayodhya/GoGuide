@@ -15,6 +15,7 @@ import {
 import type { Booking } from "@/contexts/BookingsContext";
 import { getPaymentStatusLabel } from "@/lib/payment-status";
 import { useBooking } from "@/contexts/BookingsContext";
+import { formatDate } from "@/lib/utils";
 
 interface BookingCardProps {
   booking: Booking;
@@ -44,7 +45,7 @@ export function BookingCard({
 
   const handlePaymentNavigation = async () => {
     if (isNavigating) return;
-    
+
     setIsNavigating(true);
     try {
       setCurrentBooking(booking);
@@ -54,8 +55,14 @@ export function BookingCard({
     }
   };
 
+  const dateStr = booking.bookingDate.split("T")[0];
+  const timeStr = booking.startTime || "00:00";
+  const bookingDateTime = new Date(`${dateStr}T${timeStr}`);
+  const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+  const isPastCancelWindow = bookingDateTime < oneHourFromNow;
+
   const canCancel =
-    booking.status === "PENDING" || booking.status === "ACCEPTED";
+    (booking.status === "PENDING" || booking.status === "ACCEPTED") && !isPastCancelWindow;
   const canLeaveReview =
     booking.status === "COMPLETED" &&
     booking.paymentStatus === "COMPLETED" &&
@@ -88,28 +95,26 @@ export function BookingCard({
           <div className="flex flex-col items-end gap-2">
             {/* MAIN STATUS (BIG) */}
             <span
-              className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm ${
-                booking.status === "COMPLETED"
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm ${booking.status === "COMPLETED"
                   ? "bg-green-500/10 text-green-600 border border-green-500/30"
                   : booking.status === "PENDING"
                     ? "bg-yellow-500/10 text-yellow-600 border border-yellow-500/30"
                     : booking.status === "REJECTED"
                       ? "bg-red-500/10 text-red-600 border border-red-500/30"
                       : "bg-muted text-muted-foreground"
-              }`}
+                }`}
             >
               {booking.status}
             </span>
 
             {/* PAYMENT STATUS (SMALL + FADED) */}
             <span
-              className={`text-[12px] px-2 py-1 rounded-full font-medium ${
-                booking.paymentStatus === "COMPLETED"
+              className={`text-[12px] px-2 py-1 rounded-full font-medium ${booking.paymentStatus === "COMPLETED"
                   ? "text-green-500/80"
                   : booking.paymentStatus === "FAILED"
                     ? "text-red-500/80"
                     : "text-secondary"
-              }`}
+                }`}
             >
               Payment: {getPaymentStatusLabel(booking)}
             </span>
@@ -121,7 +126,7 @@ export function BookingCard({
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             <span>
-              {new Date(booking.bookingDate).toLocaleDateString()} •{" "}
+              {formatDate(booking.bookingDate)} •{" "}
               {booking.startTime}
             </span>
           </div>
@@ -201,7 +206,7 @@ export function BookingCard({
             )}
 
             <div className="flex flex-wrap gap-2 justify-end w-full sm:w-auto">
-              {canCancel && (
+              {canCancel ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -210,7 +215,11 @@ export function BookingCard({
                 >
                   Cancel Booking
                 </Button>
-              )}
+              ) : isPastCancelWindow && (booking.status === "PENDING" || booking.status === "ACCEPTED") ? (
+                <p className="text-[11px] text-destructive/90 self-center font-medium bg-destructive/10 px-2 py-1 rounded">
+                  Cancellation restricted within 1 hour of tour.
+                </p>
+              ) : null}
 
               {canLeaveReview && onLeaveReview && (
                 <Button

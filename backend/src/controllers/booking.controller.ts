@@ -77,12 +77,13 @@ export class BookingController {
 
   async getAllBookings(req: AuthRequest, res: Response) {
     try {
-      const { status, paymentStatus, dateRange, search } = req.query;
+      const { status, paymentStatus, dateRange, search, bookingType } = req.query;
       const filters = {
         status: status as string,
         paymentStatus: paymentStatus as string,
         dateRange: dateRange as string,
         search: search as string,
+        bookingType: bookingType as string,
       };
       const bookings = await bookingService.getAllBookings(filters);
       res.status(200).json({

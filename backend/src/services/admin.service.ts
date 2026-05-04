@@ -15,8 +15,10 @@ export class UserService {
       }
     }
 
-    if (filters?.role && ["GUIDE", "DRIVER", "TOURIST", "ADMIN"].includes(filters.role)) {
+    if (filters?.role && ["GUIDE", "DRIVER", "TOURIST"].includes(filters.role)) {
       query.role = filters.role;
+    } else {
+      query.role = { $ne: "ADMIN" };
     }
 
     if (filters?.search) {
@@ -64,10 +66,18 @@ export class UserService {
 
     // Get guide verification status if applicable
     let guideVerificationStatus = null;
+    let providerDetails = null;
+
     if (user.role === "GUIDE") {
       const { Guide } = await import("../models/Guide");
-      const guide = await Guide.findOne({ userId: user._id });
+      const guide = await Guide.findOne({ userId: user._id }).lean();
       guideVerificationStatus = guide?.verificationStatus || "NOT_APPLIED";
+      providerDetails = guide;
+    } else if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      const driver = await Driver.findOne({ userId: user._id }).lean();
+      guideVerificationStatus = driver?.verificationStatus || "NOT_APPLIED";
+      providerDetails = driver;
     }
 
     return {
@@ -78,7 +88,8 @@ export class UserService {
         pendingPayments,
         totalPayments: payments.length
       },
-      guideVerificationStatus
+      guideVerificationStatus,
+      providerDetails
     };
   }
 
@@ -153,20 +164,30 @@ export class UserService {
   }
 
   async verifyUser(userId: string) {
-    console.log(`[ADMIN] Verifying guide ${userId}`);
+    console.log(`[ADMIN] Verifying provider ${userId}`);
     const user = await User.findById(userId);
     if (!user) throw new NotFound("User not found");
-    if (user.role !== "GUIDE") {
-      throw new BadRequest("Only guides can be verified");
+    if (user.role !== "GUIDE" && user.role !== "DRIVER") {
+      throw new BadRequest("Only guides and drivers can be verified");
     }
 
-    const { Guide } = await import("../models/Guide");
-    const guide = await Guide.findOneAndUpdate(
-      { userId: user._id },
-      { verificationStatus: "VERIFIED", isAvailable: true },
-      { new: true },
-    );
-    if (!guide) throw new NotFound("Guide profile not found");
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      const guide = await Guide.findOneAndUpdate(
+        { userId: user._id },
+        { verificationStatus: "VERIFIED", isAvailable: true },
+        { new: true },
+      );
+      if (!guide) throw new NotFound("Guide profile not found");
+    } else if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      const driver = await Driver.findOneAndUpdate(
+        { userId: user._id },
+        { verificationStatus: "VERIFIED", isAvailable: true },
+        { new: true },
+      );
+      if (!driver) throw new NotFound("Driver profile not found");
+    }
 
     user.status = "ACTIVE";
     await user.save();
@@ -174,32 +195,42 @@ export class UserService {
     try {
       await NotificationService.sendNotification(
         userId,
-        "Guide Verified",
-        "Your guide profile has been verified and is now active.",
-        { type: "admin_guide_verified" },
+        "Profile Verified",
+        `Your ${user.role.toLowerCase()} profile has been verified and is now active.`,
+        { type: `admin_${user.role.toLowerCase()}_verified` },
       );
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
     }
 
-    return guide;
+    return user;
   }
 
   async unverifyUser(userId: string) {
-    console.log(`[ADMIN] Unverifying guide ${userId}`);
+    console.log(`[ADMIN] Unverifying provider ${userId}`);
     const user = await User.findById(userId);
     if (!user) throw new NotFound("User not found");
-    if (user.role !== "GUIDE") {
-      throw new BadRequest("Only guides can be unverified");
+    if (user.role !== "GUIDE" && user.role !== "DRIVER") {
+      throw new BadRequest("Only guides and drivers can be unverified");
     }
 
-    const { Guide } = await import("../models/Guide");
-    const guide = await Guide.findOneAndUpdate(
-      { userId: user._id },
-      { verificationStatus: "REJECTED", isAvailable: false },
-      { new: true },
-    );
-    if (!guide) throw new NotFound("Guide profile not found");
+    if (user.role === "GUIDE") {
+      const { Guide } = await import("../models/Guide");
+      const guide = await Guide.findOneAndUpdate(
+        { userId: user._id },
+        { verificationStatus: "REJECTED", isAvailable: false },
+        { new: true },
+      );
+      if (!guide) throw new NotFound("Guide profile not found");
+    } else if (user.role === "DRIVER") {
+      const { Driver } = await import("../models/Driver");
+      const driver = await Driver.findOneAndUpdate(
+        { userId: user._id },
+        { verificationStatus: "REJECTED", isAvailable: false },
+        { new: true },
+      );
+      if (!driver) throw new NotFound("Driver profile not found");
+    }
 
     user.status = "INACTIVE";
     await user.save();
@@ -207,15 +238,15 @@ export class UserService {
     try {
       await NotificationService.sendNotification(
         userId,
-        "Guide Unverified",
-        "Your guide profile has been marked as unverified.",
-        { type: "admin_guide_unverified" },
+        "Profile Unverified",
+        `Your ${user.role.toLowerCase()} profile has been marked as unverified.`,
+        { type: `admin_${user.role.toLowerCase()}_unverified` },
       );
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
     }
 
-    return guide;
+    return user;
   }
 
   async softDeleteUser(userId: string) {
@@ -252,12 +283,19 @@ export class UserService {
     return { message: "User deleted" };
   }
 
-  async suspendUser(userId: string) {
-    console.log(`[ADMIN] Suspending user ${userId}`);
+  async suspendUser(userId: string, duration?: string) {
+    console.log(`[ADMIN] Suspending user ${userId} for ${duration || "indefinite"}`);
     const user = await User.findById(userId);
     if (!user) throw new NotFound("User not found");
 
     user.status = "SUSPENDED";
+    if (duration === "2_days") {
+      user.suspendUntil = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    } else if (duration === "1_week") {
+      user.suspendUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    } else {
+      user.suspendUntil = undefined;
+    }
     await user.save();
 
     // Update related models

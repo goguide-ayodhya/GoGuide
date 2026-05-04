@@ -26,7 +26,7 @@ export function getPaymentStatusLabel(b: PaymentStatusFields): string {
     return "PARTIAL";
   }
   if (b.paymentType === "COD") {
-    return "PENDING (COD)";
+    return "PENDING (Cash In Hand)";
   }
   return "PENDING";
 }

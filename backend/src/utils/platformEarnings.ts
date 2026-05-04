@@ -1,22 +1,17 @@
 import { roundMoney } from "./bookingPricing";
-
-const GUIDE_SHARE = 0.7;
-const PLATFORM_SHARE = 0.3;
+import { PRICING_CONFIG } from "../config/pricing";
 
 /**
- * Compute platform split on the taxable base (exclude GST) if `finalPrice` is GST-inclusive.
- * Assumes finalPrice is inclusive of 18% GST. This returns guide and platform shares
- * computed on the base amount (finalPrice / 1.18).
+ * Compute platform split on the base price (excluding GST).
+ * Guide gets GUIDE_PAYOUT_RATE (70%), Admin gets PLATFORM_COMMISSION_RATE (30%).
+ * If there is a discount, it is subtracted from the admin's commission.
  */
-export function computePlatformSplit(finalPrice: number): {
+export function computePlatformSplit(basePrice: number, discount: number = 0): {
   guideEarning: number;
   adminCommission: number;
 } {
-  const fp = roundMoney(finalPrice);
-  // derive taxable base assuming 18% GST included
-  const base = roundMoney(fp / 1.18);
   return {
-    guideEarning: roundMoney(base * GUIDE_SHARE),
-    adminCommission: roundMoney(base * PLATFORM_SHARE),
+    guideEarning: roundMoney(basePrice * PRICING_CONFIG.GUIDE_PAYOUT_RATE),
+    adminCommission: roundMoney((basePrice * PRICING_CONFIG.PLATFORM_COMMISSION_RATE) - discount),
   };
 }

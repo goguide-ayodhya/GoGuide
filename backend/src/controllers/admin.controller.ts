@@ -43,7 +43,8 @@ export class AdminController {
   }
 
   async suspendUser(req: AuthRequest, res: Response) {
-    const user = await userService.suspendUser(req.params.id);
+    const { duration } = req.body;
+    const user = await userService.suspendUser(req.params.id, duration);
     res.json(user);
   }
 }

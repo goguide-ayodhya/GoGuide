@@ -6,6 +6,7 @@ import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Guide } from "@/contexts/GuideContext";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle,
@@ -30,7 +31,8 @@ function BookingConfirmationContent() {
   const [loading, setLoading] = useState(true);
 
   const bookingId = searchParams.get("bookingId");
-  const guideId = currentBooking?.guideId;
+  const guideId = currentBooking?.guideId || currentBooking?.driverId;
+  const isDriver = currentBooking?.bookingType === "DRIVER" || currentBooking?.tourType?.toLowerCase().includes("cab") || currentBooking?.tourType?.toLowerCase().includes("driver");
 
   useEffect(() => {
     if (!currentBooking || !bookingId) {
@@ -38,13 +40,36 @@ function BookingConfirmationContent() {
       return;
     }
 
-    const foundGuide = guides.find((g: any) => g.id === guideId);
-    if (foundGuide) {
-      setGuide(foundGuide);
-    }
+    const fetchGuideData = async () => {
+      if (!isDriver) {
+        const foundGuide = guides.find((g: any) => g.id === guideId);
+        if (foundGuide) {
+          setGuide(foundGuide);
+          setLoading(false);
+          return;
+        }
+      }
 
-    setLoading(false);
-  }, [currentBooking, bookingId, guideId, guides, router]);
+      if (guideId) {
+        try {
+          if (isDriver) {
+            const { getDriverById } = await import("@/lib/api/driver");
+            const fetchedDriver = await getDriverById(guideId);
+            setGuide(fetchedDriver);
+          } else {
+            const { getGuideById } = await import("@/lib/api/guides");
+            const fetchedGuide = await getGuideById(guideId);
+            setGuide(fetchedGuide);
+          }
+        } catch (error) {
+          console.error("Failed to fetch provider details:", error);
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchGuideData();
+  }, [currentBooking, bookingId, guideId, guides, router, isDriver]);
 
   const handleMakePayment = () => {
     router.push(`/tourist/payment?bookingId=${bookingId}`);
@@ -115,26 +140,26 @@ function BookingConfirmationContent() {
             </div>
 
             <div className="grid gap-6">
-              {/* Guide Info */}
+              {/* Guide/Driver Info */}
               <Card className="border border-slate-200 p-6">
                 <p className="mb-4 text-sm uppercase tracking-[0.24em] text-orange-600">
-                  Your Guide
+                  {isDriver ? "Your Driver" : "Your Guide"}
                 </p>
                 <div className="flex gap-4">
                   <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-slate-100 flex-shrink-0">
                     <Image
-                      src={guide?.avatar || assets.guideImage}
-                      alt={guide?.name || "Guide Image"}
+                      src={guide?.userId?.avatar || guide?.avatar || assets.guideImage}
+                      alt={guide?.userId?.name || guide?.name || "Provider Image"}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-slate-950">
-                      {guide?.name}
+                      {guide?.userId?.name || guide?.name}
                     </h3>
                     <p className="text-sm text-slate-600">
-                      {guide?.specialities?.join(", ") || "Tour Guide"}
+                      {isDriver ? (guide?.vehicleType || "Driver") : (guide?.specialities?.join(", ") || "Tour Guide")}
                     </p>
                     <div className="mt-2 flex gap-2">
                       <Badge variant="secondary" className="text-xs">

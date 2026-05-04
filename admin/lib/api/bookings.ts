@@ -136,6 +136,7 @@ export const getAllBookings = async (filters?: {
   paymentStatus?: string;
   dateRange?: string;
   search?: string;
+  bookingType?: string;
 }) => {
   const params = new URLSearchParams();
   if (filters?.status && filters.status !== "all")
@@ -144,6 +145,8 @@ export const getAllBookings = async (filters?: {
     params.append("paymentStatus", filters.paymentStatus);
   if (filters?.dateRange && filters.dateRange !== "all")
     params.append("dateRange", filters.dateRange);
+  if (filters?.bookingType && filters.bookingType !== "all")
+    params.append("bookingType", filters.bookingType);
   if (filters?.search) params.append("search", filters.search);
 
   const url = `${base_url}bookings/admin/all${params.toString() ? "?" + params.toString() : ""}`;

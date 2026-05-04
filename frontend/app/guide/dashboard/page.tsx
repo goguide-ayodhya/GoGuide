@@ -45,6 +45,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Users,
+  Badge,
   Star,
 } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
@@ -169,8 +170,13 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <div className="w-full flex space-between items-center">
-          <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground">
+          <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground flex items-center gap-3">
             {myGuide?.name}
+            {myGuide?.verificationStatus === "VERIFIED" ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200">VERIFIED</Badge>
+            ) : (
+              <Badge>UNVERIFIED</Badge>
+            )}
           </h1>
           {/* Status Cards */}
           <div className="absolute right-2">
@@ -232,7 +238,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-primary">
-                          ${booking.totalPrice}
+                          ₹{booking.totalPrice}
                         </p>
                       </div>
                     </div>
@@ -295,7 +301,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Earnings"
-          value={`$${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
           icon={DollarSign}
           description={`Completed: ${completedCount}, Pending: ${pendingCount}`}
           trend={{ value: 12, label: "vs last month", positive: true }}
@@ -313,7 +319,7 @@ export default function DashboardPage() {
         />
         <StatsCard
           title="Average Rating"
-          value={myGuide?.rating?.toFixed(1) ?? "0.0"}
+          value={myGuide?.rating ? myGuide.rating.toFixed(1) : "0.0"}
           icon={Star}
           description={`${myGuide?.totalReviews ?? 0} reviews`}
           trend={{ value: 2, label: "since last month", positive: true }}
@@ -475,7 +481,7 @@ export default function DashboardPage() {
                   <div className="text-right flex flex-col items-end gap-2">
                     <BookingStatusBadge status={booking.status} />
                     <p className="text-sm font-semibold text-foreground">
-                      ${booking.totalPrice}
+                      ₹{booking.totalPrice}
                     </p>
 
                     {/* Action Buttons based on status */}

@@ -45,6 +45,14 @@ export const getUsersApi = async (role?: string, status?: string, search?: strin
   return handleResOrError(res);
 };
 
+// Get User Detail
+export const getUserDetailApi = async (id: string) => {
+  const res = await fetch(`${base_url}admin/users/${id}`, {
+    headers: authHeaders(),
+  });
+  return handleResOrError(res);
+};
+
 // Block
 export const blockUserApi = async (id: string) => {
   const res = await fetch(`${base_url}admin/users/${id}/block`, {
@@ -64,10 +72,11 @@ export const activateUserApi = async (id: string) => {
 };
 
 // Suspend
-export const suspendUserApi = async (id: string) => {
+export const suspendUserApi = async (id: string, duration?: string) => {
   const res = await fetch(`${base_url}admin/users/${id}/suspend`, {
     method: "PATCH",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ duration }),
   });
   return handleResOrError(res);
 };

@@ -18,8 +18,10 @@ export function applyPlatformSplitToBooking(booking: IBooking): void {
     return;
   }
 
-  const fp = booking.finalPrice ?? booking.totalPrice;
-  const { guideEarning, adminCommission } = computePlatformSplit(fp);
+  const originalPrice = booking.originalPrice ?? booking.totalPrice ?? 0;
+  const discount = booking.discount ?? 0;
+  
+  const { guideEarning, adminCommission } = computePlatformSplit(originalPrice, discount);
   booking.guideEarning = guideEarning;
   booking.adminCommission = adminCommission;
 }

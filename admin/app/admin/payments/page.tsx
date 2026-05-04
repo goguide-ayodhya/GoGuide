@@ -81,7 +81,7 @@ export default function PaymentsPage() {
   }
 
   const lineAmount = (p: Summary["recentPayments"][0]) =>
-    p.amountPaid ?? p.amount ?? 0;
+    p.amount || p.amountPaid || (p as any).paidAmount || p.bookingId?.finalPrice || p.bookingId?.totalPrice || 0;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -143,7 +143,7 @@ export default function PaymentsPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] sm:text-xs text-muted-foreground">
-                  COD Pending
+                  Cash Pending
                 </p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground">
                   {summary.codPendingCount}

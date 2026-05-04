@@ -13,7 +13,7 @@ export const createBookingSchema = z
     bookingDate: z.string().datetime("Valid date required"),
     bookingType: z.enum(["GUIDE", "DRIVER", "TOKEN", "PACKAGE"]),
 
-    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Valid start time required"),
+    startTime: z.string().min(1, "Valid start time required"),
     tourType: z.string().min(1),
     meetingPoint: z.string().min(1),
     dropoffLocation: z.string().min(1),

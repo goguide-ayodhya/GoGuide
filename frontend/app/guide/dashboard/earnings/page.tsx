@@ -64,13 +64,15 @@ export default function EarningsPage() {
     pending: 0,
   };
   const totalEarnings = earnings?.totalEarnings ?? 0;
+  const grossEarnings = earnings?.grossEarnings ?? 0;
+  const totalGst = earnings?.totalGst ?? 0;
   const pendingAmount = earnings?.pendingAmount ?? 0;
   const recentTransactions = earnings?.recentTransactions ?? [];
   const revenueByTourType = earnings?.revenueByTourType ?? [];
   const timeframeLabel = timeframe === "week" ? "Week" : "Month";
   const averageRevenue = chartData.length
     ? Math.round(
-        chartData.reduce((sum, item) => sum + item.revenue, 0) /
+        chartData.reduce((sum: any, item: any) => sum + item.revenue, 0) /
           chartData.length,
       )
     : 0;
@@ -131,12 +133,18 @@ export default function EarningsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Earnings"
+          title="Gross Bookings"
+          value={`₹${grossEarnings.toLocaleString()}`}
+          icon={Banknote}
+          description="Total booking amount paid by tourist"
+        />
+        <StatsCard
+          title="Net Earnings"
           value={`₹${totalEarnings.toLocaleString()}`}
           icon={DollarSign}
-          description="All time earnings"
+          description="Your take-home earnings"
         />
         <StatsCard
           title={`${timeframeLabel} Revenue`}

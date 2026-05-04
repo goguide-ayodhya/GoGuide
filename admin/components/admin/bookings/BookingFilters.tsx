@@ -12,6 +12,8 @@ interface BookingFiltersProps {
   onPaymentChange: (value: string) => void;
   filterDate: string;
   onDateChange: (value: string) => void;
+  filterType: string;
+  onTypeChange: (value: string) => void;
 }
 
 export function BookingFilters({
@@ -23,52 +25,81 @@ export function BookingFilters({
   onPaymentChange,
   filterDate,
   onDateChange,
+  filterType,
+  onTypeChange,
 }: BookingFiltersProps) {
   return (
     <Card className="border-border">
       <CardContent className="p-3 sm:p-4">
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by ID, tourist or guide..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 h-11"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-1 flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="ID, name..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="pl-9 h-10 w-full"
+              />
+            </div>
           </div>
-          <Select value={filterStatus} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-full h-11">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Confirmed">Confirmed</SelectItem>
-              <SelectItem value="On the Way">On the Way</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <div>
-            <Select value={filterPayment} onValueChange={onPaymentChange}>
-              <SelectTrigger className="w-full h-11">
-                <SelectValue placeholder="Filter by payment" />
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Type</label>
+            <Select value={filterType} onValueChange={onTypeChange}>
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Payments</SelectItem>
-                <SelectItem value="PENDING">PENDING</SelectItem>
-                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                <SelectItem value="FAILED">FAILED</SelectItem>
-                <SelectItem value="REFUNDED">REFUNDED</SelectItem>
-                <SelectItem value="PARTIAL">PARTIAL</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="GUIDE">Guide</SelectItem>
+                <SelectItem value="DRIVER">Driver</SelectItem>
+                <SelectItem value="PACKAGE">Package</SelectItem>
+                <SelectItem value="TOKEN">Token</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Status</label>
+            <Select value={filterStatus} onValueChange={onStatusChange}>
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="On the Way">On the Way</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Payment</label>
+            <Select value={filterPayment} onValueChange={onPaymentChange}>
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="All Payments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="FAILED">Failed</SelectItem>
+                <SelectItem value="REFUNDED">Refunded</SelectItem>
+                <SelectItem value="PARTIAL">Partial</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Date</label>
             <Select value={filterDate} onValueChange={onDateChange}>
-              <SelectTrigger className="w-full h-11">
-                <SelectValue placeholder="Filter by date" />
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="All Time" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Time</SelectItem>

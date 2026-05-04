@@ -108,6 +108,12 @@ export function BookingDetailsModal({
   const paymentLabel = getPaymentStatusLabel(booking);
   const amounts = formatPaymentAmounts(booking);
 
+  const dateStr = booking.bookingDate.split("T")[0];
+  const timeStr = booking.startTime || "00:00";
+  const bookingDateTime = new Date(`${dateStr}T${timeStr}`);
+  const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+  const showContactInfo = bookingDateTime <= oneHourFromNow || booking.status === "COMPLETED";
+
   const handleMarkCashCollected = async () => {
     if (!onCashCollected) return;
     setCodLoading(true);
@@ -226,7 +232,9 @@ export function BookingDetailsModal({
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Mail size={16} className="text-muted-foreground" />
-                    <p className="text-foreground text-sm">{booking.email}</p>
+                    <p className="text-foreground text-sm">
+                      {showContactInfo ? booking.email : "Hidden until 1 hr before tour"}
+                    </p>
                   </div>
                 </div>
                 <div>
@@ -235,7 +243,9 @@ export function BookingDetailsModal({
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <Phone size={16} className="text-muted-foreground" />
-                    <p className="text-foreground text-sm">{booking.phone}</p>
+                    <p className="text-foreground text-sm">
+                      {showContactInfo ? booking.phone : "Hidden until 1 hr before tour"}
+                    </p>
                   </div>
                 </div>
               </div>

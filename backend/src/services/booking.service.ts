@@ -234,6 +234,7 @@ export class BookingService {
     paymentStatus?: string;
     dateRange?: string;
     search?: string;
+    bookingType?: string;
   }) {
     const query: any = {};
 
@@ -243,6 +244,10 @@ export class BookingService {
 
     if (filters?.paymentStatus && filters.paymentStatus !== "all") {
       query.paymentStatus = filters.paymentStatus;
+    }
+
+    if (filters?.bookingType && filters.bookingType !== "all") {
+      query.bookingType = filters.bookingType;
     }
 
     if (filters?.dateRange) {

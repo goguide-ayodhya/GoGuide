@@ -1,6 +1,8 @@
+import { PRICING_CONFIG } from "../config/pricing";
+
 export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
 
-const GST_RATE = 0.05; // 5% GST
+const GST_RATE = PRICING_CONFIG.GST_RATE; // 5% GST
 const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments
 
 export function roundMoney(n: number): number {
@@ -103,10 +105,10 @@ export function applyPaymentModePricing(params: {
     };
   }
 
-  // FULL payment: no discount
+  // FULL payment: 10% discount
   const pricing = calculateFinalPrice({
     totalPrice: originalPrice,
-    discountPercent: 0, // No discount for full payment upfront
+    discountPercent: PRICING_CONFIG.FULL_PAYMENT_DISCOUNT_RATE, // Discount for full payment upfront
     paymentMode: mode,
   });
   return {

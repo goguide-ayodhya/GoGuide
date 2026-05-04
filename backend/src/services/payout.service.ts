@@ -67,24 +67,49 @@ export class PayoutService {
     return roundMoney(agg[0]?.total ?? 0);
   }
 
+  async getCashCollectedSum(guideMongoId: string): Promise<number> {
+    const agg = await Booking.aggregate([
+      {
+        $match: {
+          guideId: new Types.ObjectId(guideMongoId),
+          bookingType: "GUIDE",
+          paymentStatus: "COMPLETED",
+          status: { $nin: ["CANCELLED"] },
+          paymentType: "COD",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $ifNull: ["$paidAmount", 0] } },
+        },
+      },
+    ]);
+    return roundMoney(agg[0]?.total ?? 0);
+  }
+
   /** Amount admin can still send (not yet paid out, not stuck in unconfirmed payout). */
   async getAvailableForNextPayout(guideMongoId: string): Promise<number> {
     const accrued = await this.getTotalAccruedGuideShare(guideMongoId);
     const paid = await this.getPaidOutSum(guideMongoId);
     const inFlight = await this.getPendingPayoutRecordsSum(guideMongoId);
-    return Math.max(0, roundMoney(accrued - paid - inFlight));
+    const cashCollected = await this.getCashCollectedSum(guideMongoId);
+    // Allow negative balance if they owe money
+    return roundMoney(accrued - paid - inFlight - cashCollected);
   }
 
   async getGuideWalletSummary(guideMongoId: string) {
     const totalEarnings = await this.getTotalAccruedGuideShare(guideMongoId);
     const paidOut = await this.getPaidOutSum(guideMongoId);
     const pendingConfirmation = await this.getPendingPayoutRecordsSum(guideMongoId);
+    const cashCollected = await this.getCashCollectedSum(guideMongoId);
     const availableForPayout = await this.getAvailableForNextPayout(guideMongoId);
 
     return {
       totalEarnings,
       paidOut,
       pendingConfirmation,
+      cashCollected,
       /** Same as availableForPayout — amount admin may send next */
       pendingPayout: availableForPayout,
       availableForPayout,

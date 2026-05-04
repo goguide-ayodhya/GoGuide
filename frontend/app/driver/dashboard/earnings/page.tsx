@@ -27,6 +27,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Banknote,
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
 
@@ -119,22 +120,28 @@ export default function EarningsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Earnings"
-          value={`$${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          title="Gross Bookings"
+          value={`₹${earnings?.grossEarnings?.toLocaleString() ?? 0}`}
+          icon={Banknote}
+          description="Total booking amount paid by tourist"
+        />
+        <StatsCard
+          title="Net Earnings"
+          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
           icon={DollarSign}
-          description="All time"
+          description="Your take-home earnings"
         />
         <StatsCard
           title={`This Month Revenue`}
-          value={`$${earnings?.bookingStats?.total?.toLocaleString() || 0}`}
+          value={`₹${earnings?.bookingStats?.total?.toLocaleString() || 0}`}
           icon={TrendingUp}
           description={`Completed: ${earnings?.bookingStats?.completed || 0}`}
         />
         <StatsCard
           title="Pending Payments"
-          value={`$${earnings?.pendingAmount?.toLocaleString() || 0}`}
+          value={`₹${earnings?.pendingAmount?.toLocaleString() || 0}`}
           icon={Calendar}
           description="Awaiting processing"
         />
@@ -251,7 +258,7 @@ export default function EarningsPage() {
                     border: "1px solid oklch(0.25 0.03 240)",
                     borderRadius: "8px",
                   }}
-                  formatter={(value) => `$${value}`}
+                  formatter={(value) => `₹${value}`}
                 />
                 <Legend />
                 <Bar
@@ -296,7 +303,7 @@ export default function EarningsPage() {
                         {status}
                       </p>
                       <span className="text-sm font-semibold text-foreground">
-                        ${total}
+                        ₹{total}
                       </span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
@@ -338,7 +345,7 @@ export default function EarningsPage() {
                     </p>
                   </div>
                   <span className="font-semibold text-foreground">
-                    ${item.revenue}
+                    ₹{item.revenue}
                   </span>
                 </div>
               )) || (
@@ -389,7 +396,7 @@ export default function EarningsPage() {
                           TXN-{payment.id}
                         </td>
                         <td className="py-3 px-4 font-semibold text-foreground">
-                          ${payment.amount}
+                          ₹{payment.amount}
                         </td>
                         <td className="py-3 px-4 text-foreground">
                           {new Date(

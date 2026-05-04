@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { IndianRupee, TrendingUp, Users, Building2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { getAdminTotalRevenueApi, getAdminMonthlyRevenueApi } from "@/lib/api/payments"
+import { getAdminPaymentsSummaryApi, getAdminMonthlyRevenueApi } from "@/lib/api/payments"
 import {
   BarChart,
   Bar,
@@ -26,6 +26,8 @@ export default function RevenuePage() {
     totalRevenue: 0,
     adminEarnings: 0,
     guideEarnings: 0,
+    driverEarnings: 0,
+    totalGst: 0,
   })
   const [monthlyRevenueData, setMonthlyRevenueData] = useState<Array<any>>([])
 
@@ -36,14 +38,16 @@ export default function RevenuePage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const totalRes = await getAdminTotalRevenueApi()
+        const summaryRes = await getAdminPaymentsSummaryApi()
         const monthlyRes = await getAdminMonthlyRevenueApi()
 
-        const total = totalRes?.totalRevenue ?? totalRes?.total ?? 0
-        const adminEarnings = Math.round((total * PLATFORM_COMMISSION) / 100)
-        const guideEarnings = total - adminEarnings
+        const total = summaryRes?.totalRevenue ?? 0
+        const adminEarnings = summaryRes?.adminNetRevenue ?? 0
+        const guideEarnings = summaryRes?.guidePayouts ?? 0
+        const driverEarnings = summaryRes?.driverPayouts ?? 0
+        const totalGst = summaryRes?.totalGst ?? 0
 
-        setDashboardStats({ totalRevenue: total, adminEarnings, guideEarnings })
+        setDashboardStats({ totalRevenue: total, adminEarnings, guideEarnings, driverEarnings, totalGst })
 
         // monthlyRes is expected to be a map { '2024-03': 85000, ... }
         const months = 6
@@ -69,9 +73,11 @@ export default function RevenuePage() {
   }, [])
 
   const pieData = [
-    { name: `Admin (${PLATFORM_COMMISSION}%)`, value: dashboardStats.adminEarnings },
-    { name: `Guides (${100 - PLATFORM_COMMISSION}%)`, value: dashboardStats.guideEarnings }
-  ]
+    { name: `Admin Net`, value: dashboardStats.adminEarnings },
+    { name: `Guide Payouts`, value: dashboardStats.guideEarnings },
+    { name: `Driver Payouts`, value: dashboardStats.driverEarnings },
+    { name: `GST Collected`, value: dashboardStats.totalGst },
+  ].filter(d => d.value > 0)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -106,7 +112,7 @@ export default function RevenuePage() {
                 <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-chart-1" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Earnings (20%)</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Admin Net Revenue</p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
                   <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   {loading ? "..." : dashboardStats.adminEarnings.toLocaleString()}
@@ -122,10 +128,10 @@ export default function RevenuePage() {
                 <Users className="w-4 h-4 sm:w-5 sm:h-5 text-chart-2" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Guide Earnings (80%)</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Provider Payouts (Guide+Driver)</p>
                 <p className="text-lg sm:text-xl font-semibold text-foreground flex items-center gap-0.5">
                   <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  {loading ? "..." : dashboardStats.guideEarnings.toLocaleString()}
+                  {loading ? "..." : (dashboardStats.guideEarnings + dashboardStats.driverEarnings).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -226,21 +232,23 @@ export default function RevenuePage() {
       {/* Commission Info */}
       <Card className="border-border">
         <CardHeader className="pb-2 sm:pb-4">
-          <CardTitle className="text-sm sm:text-base">Platform Commission Structure</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">How revenue is distributed between platform and guides</CardDescription>
+          <CardTitle className="text-sm sm:text-base">Platform Revenue Breakdown</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">How revenue is distributed between platform, guides, drivers, and taxes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <div className="p-3 sm:p-4 bg-muted rounded-lg">
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-primary/10 shrink-0">
                   <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
-                <h3 className="font-medium text-sm sm:text-base">Platform Commission</h3>
+                <h3 className="font-medium text-sm sm:text-base">Admin Net</h3>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-primary">20%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-primary">
+                ₹{loading ? "..." : dashboardStats.adminEarnings.toLocaleString()}
+              </p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-                The platform retains 20% of each booking as commission for providing the service.
+                Platform commission after deducting GST and payouts.
               </p>
             </div>
             <div className="p-3 sm:p-4 bg-muted rounded-lg">
@@ -248,11 +256,41 @@ export default function RevenuePage() {
                 <div className="p-2 rounded-lg bg-chart-2/10 shrink-0">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-chart-2" />
                 </div>
-                <h3 className="font-medium text-sm sm:text-base">Guide Earnings</h3>
+                <h3 className="font-medium text-sm sm:text-base">Guide Payouts</h3>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-chart-2">80%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-chart-2">
+                ₹{loading ? "..." : dashboardStats.guideEarnings.toLocaleString()}
+              </p>
               <p className="text-xs sm:text-sm text-muted-foreground mt-2">
-                Guides receive 80% of the booking amount directly after the tour is completed.
+                Amount paid to tour guides for their services.
+              </p>
+            </div>
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-chart-3/10 shrink-0">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-chart-3" />
+                </div>
+                <h3 className="font-medium text-sm sm:text-base">Driver Payouts</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-chart-3">
+                ₹{loading ? "..." : dashboardStats.driverEarnings.toLocaleString()}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+                Amount paid to cab drivers for their services.
+              </p>
+            </div>
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+                </div>
+                <h3 className="font-medium text-sm sm:text-base">GST Collected</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-destructive">
+                ₹{loading ? "..." : dashboardStats.totalGst.toLocaleString()}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+                Total GST collected on admin commissions.
               </p>
             </div>
           </div>

@@ -24,9 +24,34 @@ import { FinancialAuditLog } from "../models/FinancialAuditLog";
 import mongoose from "mongoose";
 import { Session } from "inspector/promises";
 
+import { PRICING_CONFIG } from "../config/pricing";
+
 function effectiveLineAmount(p: IPayment): number {
   if (p.amountPaid != null && p.amountPaid > 0) return p.amountPaid;
   return p.amount ?? 0;
+}
+
+function getProviderShareForPayment(p: any): number {
+  const lineAmt = effectiveLineAmount(p);
+  if (!p.bookingId || typeof p.bookingId === "string") {
+    // If booking is not populated, fallback to estimated proportion based on PRICING_CONFIG
+    // We assume the payment amount includes GST (roughly +5%). So base = lineAmt / (1 + PRICING_CONFIG.GST_RATE).
+    const base = lineAmt / (1 + PRICING_CONFIG.GST_RATE);
+    return base * PRICING_CONFIG.GUIDE_PAYOUT_RATE;
+  }
+  
+  const booking = p.bookingId;
+  const finalPrice = booking.finalPrice || booking.totalPrice;
+  if (!finalPrice) return 0;
+  
+  if (booking.guideEarning && booking.guideEarning > 0) {
+    return (lineAmt / finalPrice) * booking.guideEarning;
+  }
+  
+  const gst = booking.gstAmount || 0;
+  const basePrice = finalPrice - gst;
+  const ratio = basePrice / finalPrice;
+  return lineAmt * ratio * PRICING_CONFIG.GUIDE_PAYOUT_RATE;
 }
 
 type RazorpayPaymentEntity = {
@@ -1620,11 +1645,26 @@ export class PaymentService {
 
     const totalEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
+      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
+
+    const grossEarnings = validPayments
+      .filter((p) => p.status === "COMPLETED")
+      .reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+
+    const totalGst = validPayments
+      .filter((p) => p.status === "COMPLETED")
+      .reduce((sum, p) => {
+        const b = p.bookingId as any;
+        if (!b) return sum;
+        const totalPaid = b.paidAmount || b.totalPrice || 1;
+        const lineAmt = p.amountPaid || p.amount || 0;
+        const portion = lineAmt / totalPaid;
+        return sum + ((b.gstAmount || 0) * portion);
+      }, 0);
 
     const pendingAmount = validPayments
       .filter((p) => p.status === "PENDING")
-      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
+      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
 
     const bookings = await Booking.find({ guideId });
 
@@ -1645,7 +1685,7 @@ export class PaymentService {
         if (!tourTypeEarnings[tourType]) {
           tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
         }
-        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment) * 0.7;
+        tourTypeEarnings[tourType].revenue += getProviderShareForPayment(payment);
         tourTypeEarnings[tourType].bookings += 1;
       });
 
@@ -1657,15 +1697,20 @@ export class PaymentService {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const recentTransactions = validPayments.slice(0, 5).map((payment) => ({
-      id: payment._id.toString(),
-      amount: Math.round(effectiveLineAmount(payment) * 0.7),
-      transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
-      status: payment.status?.toLowerCase() || "pending",
-    }));
+    const recentTransactions = validPayments
+      .map((payment) => ({
+        id: payment._id.toString(),
+        amount: Math.round(getProviderShareForPayment(payment)),
+        transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
+        status: payment.status?.toLowerCase() || "pending",
+      }))
+      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
+      .slice(0, 5);
 
     return {
       totalEarnings,
+      grossEarnings,
+      totalGst,
       pendingAmount,
       bookingStats,
       revenueByTourType,
@@ -1687,7 +1732,7 @@ export class PaymentService {
 
     validPayments.forEach((p) => {
       const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p) * 0.7;
+      monthlyData[month] = (monthlyData[month] || 0) + getProviderShareForPayment(p);
     });
 
     const months = [];
@@ -1721,7 +1766,7 @@ export class PaymentService {
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p) * 0.7;
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + getProviderShareForPayment(p);
     });
 
     const weeks = [];
@@ -1774,11 +1819,26 @@ export class PaymentService {
 
     const totalEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
+      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
+
+    const grossEarnings = validPayments
+      .filter((p) => p.status === "COMPLETED")
+      .reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+
+    const totalGst = validPayments
+      .filter((p) => p.status === "COMPLETED")
+      .reduce((sum, p) => {
+        const b = p.bookingId as any;
+        if (!b) return sum;
+        const totalPaid = b.paidAmount || b.totalPrice || 1;
+        const lineAmt = p.amountPaid || p.amount || 0;
+        const portion = lineAmt / totalPaid;
+        return sum + ((b.gstAmount || 0) * portion);
+      }, 0);
 
     const pendingAmount = validPayments
       .filter((p) => p.status === "PENDING")
-      .reduce((sum, p) => sum + effectiveLineAmount(p) * 0.7, 0);
+      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
 
     const bookings = await Booking.find({ driverId });
 
@@ -1799,7 +1859,7 @@ export class PaymentService {
         if (!tourTypeEarnings[tourType]) {
           tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
         }
-        tourTypeEarnings[tourType].revenue += effectiveLineAmount(payment) * 0.7;
+        tourTypeEarnings[tourType].revenue += getProviderShareForPayment(payment);
         tourTypeEarnings[tourType].bookings += 1;
       });
 
@@ -1811,15 +1871,20 @@ export class PaymentService {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const recentTransactions = validPayments.slice(0, 5).map((payment) => ({
-      id: payment._id.toString(),
-      amount: Math.round(effectiveLineAmount(payment) * 0.7),
-      transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
-      status: payment.status?.toLowerCase() || "pending",
-    }));
+    const recentTransactions = validPayments
+      .map((payment) => ({
+        id: payment._id.toString(),
+        amount: Math.round(getProviderShareForPayment(payment)),
+        transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
+        status: payment.status?.toLowerCase() || "pending",
+      }))
+      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
+      .slice(0, 5);
 
     return {
       totalEarnings,
+      grossEarnings,
+      totalGst,
       pendingAmount,
       bookingStats,
       revenueByTourType,
@@ -1841,7 +1906,7 @@ export class PaymentService {
 
     validPayments.forEach((p) => {
       const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + effectiveLineAmount(p) * 0.7;
+      monthlyData[month] = (monthlyData[month] || 0) + getProviderShareForPayment(p);
     });
 
     const months = [];
@@ -1875,7 +1940,7 @@ export class PaymentService {
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + effectiveLineAmount(p) * 0.7;
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + getProviderShareForPayment(p);
     });
 
     const weeks = [];
@@ -2052,6 +2117,24 @@ export class PaymentService {
 
     const totalRevenue = revenueAgg[0]?.totalRevenue ?? 0;
 
+    const bookingAgg = await Booking.aggregate([
+      { $match: { paymentStatus: "COMPLETED" } },
+      {
+        $group: {
+          _id: null,
+          totalAdminCommission: { $sum: "$adminCommission" },
+          totalGuideEarning: { $sum: "$guideEarning" },
+          totalDriverEarning: { $sum: "$driverEarning" },
+          totalGstAmount: { $sum: "$gstAmount" },
+        }
+      }
+    ]);
+    
+    const adminNetRevenue = bookingAgg[0]?.totalAdminCommission ?? 0;
+    const guidePayouts = bookingAgg[0]?.totalGuideEarning ?? 0;
+    const driverPayouts = bookingAgg[0]?.totalDriverEarning ?? 0;
+    const totalGst = bookingAgg[0]?.totalGstAmount ?? 0;
+
     const pendingBookingsCount = await Booking.countDocuments({
       paymentStatus: "PENDING",
     });
@@ -2092,6 +2175,10 @@ export class PaymentService {
 
     return {
       totalRevenue,
+      adminNetRevenue,
+      guidePayouts,
+      driverPayouts,
+      totalGst,
       totalPendingAmount,
       pendingBookingsCount,
       codPendingCount,

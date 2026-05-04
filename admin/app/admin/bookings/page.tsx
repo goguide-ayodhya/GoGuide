@@ -11,6 +11,7 @@ import {
   adminAcceptBookingApi,
 } from "@/lib/api/bookings";
 import type { Booking as ApiBooking } from "@/contexts/BookingsContext";
+import { formatDate } from "@/lib/utils";
 import { BookingFilters } from "@/components/admin/bookings/BookingFilters";
 import { BookingTable } from "@/components/admin/bookings/BookingTable";
 import { BookingDetailsModal } from "@/components/admin/bookings/BookingDetailsModal";
@@ -91,7 +92,7 @@ const convertApiBookingToUi = (apiBooking: any): AdminBooking => {
 
   const rawDate =
     apiBooking.bookingDate ?? apiBooking.date ?? apiBooking.createdAt;
-  const dateStr = rawDate ? new Date(rawDate).toLocaleDateString() : "";
+  const dateStr = rawDate ? formatDate(rawDate) : "";
   const priceVal =
     typeof apiBooking.totalPrice === "number"
       ? apiBooking.totalPrice
@@ -138,6 +139,7 @@ export default function BookingsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPayment, setFilterPayment] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
   const [selectedBooking, setSelectedBooking] = useState<AdminBooking | null>(
     null,
   );
@@ -153,6 +155,7 @@ export default function BookingsPage() {
           status: filterStatus,
           paymentStatus: filterPayment,
           dateRange: filterDate,
+          bookingType: filterType,
           search: searchQuery.trim() || undefined,
         };
         const raw = await getAllBookings(filters);
@@ -175,7 +178,7 @@ export default function BookingsPage() {
     };
 
     fetchBookings();
-  }, [filterStatus, filterPayment, filterDate, searchQuery]);
+  }, [filterStatus, filterPayment, filterDate, filterType, searchQuery]);
 
   const handleApprove = async (booking: AdminBooking) => {
     try {
@@ -300,6 +303,8 @@ export default function BookingsPage() {
             onPaymentChange={setFilterPayment}
             filterDate={filterDate}
             onDateChange={setFilterDate}
+            filterType={filterType}
+            onTypeChange={setFilterType}
           />
 
           {/* Bookings Table */}
