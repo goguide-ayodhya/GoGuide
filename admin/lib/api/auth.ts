@@ -57,7 +57,6 @@ export const signupUser = async (data: SignupData) => {
   if (data.pricePerKm) form.append("pricePerKm", data.pricePerKm);
   if (data.seats) form.append("seats", data.seats);
   if (data.driverPhoto) form.append("driverPhoto", data.driverPhoto);
-  if (data.vehiclePhoto) form.append("vehiclePhoto", data.vehiclePhoto);
   if (data.profileImage) form.append("profileImage", data.profileImage);
   form.append("driverAadhar", data.driverAadhar || "");
 

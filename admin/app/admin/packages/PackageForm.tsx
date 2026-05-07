@@ -181,8 +181,9 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       locations: form.locations || [],
 
       type: form.type,
-      discount:
-        showDiscount && form.discount ? Number(form.discount) : undefined,
+      discount: showDiscount
+        ? Number(form.discount || 0)
+        : null,
     };
 
     const newFiles = (imageFiles || []).filter(

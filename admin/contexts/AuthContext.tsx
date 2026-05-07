@@ -44,7 +44,6 @@ export type SignupData = {
   pricePerKm?: string;
   seats?: string;
   driverPhoto?: File | null;
-  vehiclePhoto?: File | null;
   profileImage?: File | null;
   driverAadhar?: string;
 };

@@ -99,7 +99,7 @@ const getStatusBadge = (status: string) => {
 const getVerificationBadge = (status: string) => {
   if (status === "VERIFIED") return <Badge className="bg-secondary text-primary-foreground border-success/20 text-[10px] sm:text-xs" variant="outline">VERIFIED</Badge>;
   if (status === "PENDING") return <Badge className="bg-warning text-warning-foreground border-warning/20 text-[10px] sm:text-xs" variant="outline">PENDING</Badge>;
-  if (status === "REJECTED") return <Badge className="bg-destructive text-destructive border-destructive/20 text-[10px] sm:text-xs" variant="outline">REJECTED</Badge>;
+  if (status === "REJECTED") return <Badge className="bg-destructive text-white border-destructive/20 text-[10px] sm:text-xs" variant="outline">REJECTED</Badge>;
   return <Badge className="bg-muted text-muted-foreground border-border text-[10px] sm:text-xs" variant="outline">UNVERIFIED</Badge>;
 }
 

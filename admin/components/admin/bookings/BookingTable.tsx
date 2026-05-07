@@ -252,9 +252,7 @@ export function BookingTable({
                 <th className="text-left text-xs font-medium text-muted-foreground py-3 px-2">
                   Date
                 </th>
-                {/* <th className="text-left text-xs font-medium text-muted-foreground py-3">
-                  Type
-                </th> */}
+
                 <th className="text-left text-xs font-medium text-muted-foreground py-3 px-2">
                   Price
                 </th>
