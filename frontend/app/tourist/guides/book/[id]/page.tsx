@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useRouter, useParams, usePathname, notFound } from "next/navigation";
@@ -286,7 +286,7 @@ export default function GuideBookingPage() {
                       >
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-slate-900">
-                            {cert.name}
+                            {cert.name && !cert.name.match(/\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i) && !cert.name.startsWith("http") ? cert.name : `Certificate ${index + 1}`}
                           </h4>
                           <Button
                             variant="outline"

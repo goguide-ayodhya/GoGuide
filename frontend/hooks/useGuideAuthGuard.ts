@@ -13,26 +13,27 @@ export function useGuideAuthGuard() {
       return; // Wait for auth to load
     }
 
+    // Allow browsing if not authenticated - don't force redirect
     if (!isLoggedIn || !user) {
-      router.push("/login");
       return;
     }
 
-    if (user.role !== "GUIDE") {
-      router.push("/");
-      return;
-    }
+    // Only redirect if authenticated user is a guide with incomplete profile
+    if (user.role === "GUIDE") {
+      // Check email verification
+      if (!user.isEmailVerified) {
+        router.push(`/verify-email?email=${encodeURIComponent(user.email || "")}`);
+        return;
+      }
 
-    // Check email verification
-    if (!user.isEmailVerified) {
-      router.push(`/verify-email?email=${encodeURIComponent(user.email || "")}`);
-      return;
-    }
-
-    // Check profile completion
-    if (!user.isProfileComplete) {
-      router.push("/guide/complete-profile");
-      return;
+      // Check profile completion - only redirect if explicitly trying to access guide areas
+      if (!user.isProfileComplete) {
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith("/guide")) {
+          router.push("/signup/goguide-guide");
+          return;
+        }
+      }
     }
   }, [user, loading, isLoggedIn, router]);
 

@@ -3,9 +3,14 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendOtpApi, verifyEmailOtp } from "@/lib/api/auth";
-import { updateDriverProfile, createDriverProfile, getMyDriverProfile } from "@/lib/api/driver";
+import {
+  updateDriverProfile,
+  createDriverProfile,
+  getMyDriverProfile,
+} from "@/lib/api/driver";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,7 +50,6 @@ const initialFormData = {
   },
   documents: {
     driverPhoto: null as File | null,
-    vehiclePhoto: null as File | null,
     driverLicenseName: "",
     driverLicense: null as File | null,
   },
@@ -115,7 +119,7 @@ function DriverSignupFlowContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stepParam = searchParams.get("step");
-  const { signup, user, isLoggedIn } = useAuth();
+  const { signup, signupWithGoogle, user, isLoggedIn } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormDataType>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -160,11 +164,13 @@ function DriverSignupFlowContent() {
           name: user.name || prev.signup.name,
           email: user.email || prev.signup.email,
           phone: user.phone || prev.signup.phone,
-        }
+        },
       }));
-      
+
       if (user.isEmailVerified && currentStep < 3) {
-        setCurrentStep(user.profileStep && user.profileStep > 1 ? user.profileStep : 3);
+        setCurrentStep(
+          user.profileStep && user.profileStep > 1 ? user.profileStep : 3,
+        );
       }
       setInitialSyncDone(true);
 
@@ -340,6 +346,24 @@ function DriverSignupFlowContent() {
     }
   };
 
+  const handleGoogleSignup = async (credentialResponse: CredentialResponse) => {
+    setGlobalError("");
+    if (!credentialResponse?.credential) {
+      setGlobalError("Google signup failed. Please try again.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await signupWithGoogle(credentialResponse.credential, "DRIVER");
+      router.push("/driver/complete-profile?step=1");
+    } catch (error: any) {
+      setGlobalError(error?.message || "Google signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyOtp = async () => {
     if (
       !formData.signup.otp.trim() ||
@@ -434,9 +458,6 @@ function DriverSignupFlowContent() {
     if (!formData.documents.driverPhoto) {
       currentErrors.driverPhoto = "Driver photo is required";
     }
-    if (!formData.documents.vehiclePhoto) {
-      currentErrors.vehiclePhoto = "Vehicle photo is required";
-    }
     if (!formData.documents.driverLicenseName.trim()) {
       currentErrors.driverLicenseName = "License holder name is required";
     }
@@ -511,11 +532,6 @@ function DriverSignupFlowContent() {
         throw new Error("Driver photo missing");
       }
       form.append("driverPhoto", formData.documents.driverPhoto);
-
-      if (!formData.documents.vehiclePhoto) {
-        throw new Error("Vehicle photo missing");
-      }
-      form.append("vehiclePhoto", formData.documents.vehiclePhoto);
 
       if (!formData.documents.driverLicense) {
         throw new Error("Driving license image missing");
@@ -630,12 +646,13 @@ function DriverSignupFlowContent() {
                 key={step.id}
                 onClick={() => handleStepChange(step.id)}
                 disabled={step.id > currentStep}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${currentStep === step.id
-                  ? "bg-primary text-white"
-                  : currentStep > step.id
-                    ? "bg-green-100 text-green-800"
-                    : "bg-slate-200 text-slate-700"
-                  }`}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  currentStep === step.id
+                    ? "bg-primary text-white"
+                    : currentStep > step.id
+                      ? "bg-green-100 text-green-800"
+                      : "bg-slate-200 text-slate-700"
+                }`}
               >
                 {currentStep > step.id && (
                   <CheckCircle2 className="h-4 w-4 inline mr-1" />
@@ -679,6 +696,24 @@ function DriverSignupFlowContent() {
               </div>
             )}
 
+            {currentStep === 1 && !isLoggedIn && (
+              <div className="mb-6">
+                <GoogleLogin
+                  theme="filled_blue"
+                  size="large"
+                  shape="circle"
+                  text="signin_with"
+                  onSuccess={handleGoogleSignup}
+                  onError={() =>
+                    setGlobalError("Google signup failed. Please try again.")
+                  }
+                />
+                <p className="text-center text-sm text-muted-foreground mt-2">
+                  Or continue with email and password.
+                </p>
+              </div>
+            )}
+
             {stepContent()}
 
             {finalSuccess ? (
@@ -691,7 +726,12 @@ function DriverSignupFlowContent() {
               <div className="mt-6 flex gap-3">
                 <Button
                   onClick={handlePrev}
-                  disabled={currentStep === 1 || loading || verifyLoading || (isLoggedIn && user?.isEmailVerified && currentStep === 3)}
+                  disabled={
+                    currentStep === 1 ||
+                    loading ||
+                    verifyLoading ||
+                    (isLoggedIn && user?.isEmailVerified && currentStep === 3)
+                  }
                   variant="outline"
                   className="border-slate-300 hover:bg-slate-50"
                 >

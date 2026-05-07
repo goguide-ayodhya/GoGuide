@@ -25,7 +25,6 @@ export class DriverController {
     const userId = req.userId!;
     
     let driverPhoto = "";
-    let vehiclePhoto = "";
     let driverLicenseUrl = "";
 
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
@@ -42,25 +41,43 @@ export class DriverController {
       return result.secure_url;
     };
 
-    if (files) {
-      driverPhoto = await uploadImage(files.driverPhoto?.[0]);
-      vehiclePhoto = await uploadImage(files.vehiclePhoto?.[0]);
-      driverLicenseUrl = await uploadImage(files.driverLicense?.[0]);
+    let driverLicenseImage: string[] = [];
+    if (files?.driverLicense) {
+      for (const file of files.driverLicense) {
+        const url = await uploadImage(file);
+        if (url) driverLicenseImage.push(url);
+      }
+    }
+
+    if (files?.driverPhoto?.[0]) {
+      driverPhoto = await uploadImage(files.driverPhoto[0]);
     }
 
     const data = {
       ...req.body,
-      images: [driverPhoto, vehiclePhoto].filter(Boolean),
+      driverPhoto: driverPhoto || undefined,
+      driverLicenseImage,
     };
+
+    if (req.body.languages) {
+      data.languages = Array.isArray(req.body.languages) ? req.body.languages : [req.body.languages];
+    } else {
+      data.languages = [];
+    }
 
     const driver = await driverService.createDriverProfile(userId, data);
     
-    // Update User profile status
-    await User.findByIdAndUpdate(userId, {
+    // Update User profile status and details
+    const userUpdate: any = {
       isProfileComplete: true,
       profileStep: 4,
       status: "ACTIVE"
-    });
+    };
+
+    if (req.body.driverName) userUpdate.name = req.body.driverName;
+    if (req.body.phone) userUpdate.phone = req.body.phone;
+
+    await User.findByIdAndUpdate(userId, userUpdate);
 
     res.status(201).json({ success: true, message: "Profile created", data: driver });
   }
@@ -88,25 +105,48 @@ export class DriverController {
 
     const data = { ...req.body };
 
-    if (files) {
-      if (files.driverPhoto?.[0]) data.driverPhoto = await uploadImage(files.driverPhoto[0]);
-      if (files.vehiclePhoto?.[0]) data.vehiclePhoto = await uploadImage(files.vehiclePhoto[0]);
-      if (files.driverLicense) {
-        data.images = data.images || [];
-        for (const file of files.driverLicense) {
-          const url = await uploadImage(file);
-          if (url) data.images.push(url);
-        }
+    let updatedLicenseImages: string[] = [];
+    if (req.body.existingLicenseImages) {
+        updatedLicenseImages = Array.isArray(req.body.existingLicenseImages) 
+           ? req.body.existingLicenseImages 
+           : [req.body.existingLicenseImages];
+    }
+
+    if (files?.driverLicense) {
+      for (const file of files.driverLicense) {
+        const url = await uploadImage(file);
+        if (url) updatedLicenseImages.push(url);
       }
     }
+    data.driverLicenseImage = updatedLicenseImages;
+
+    if (req.body.languages) {
+      data.languages = Array.isArray(req.body.languages) ? req.body.languages : [req.body.languages];
+    } else {
+      data.languages = [];
+    }
+
+    if (files?.driverPhoto?.[0]) {
+      data.driverPhoto = await uploadImage(files.driverPhoto[0]);
+    }
+
+    const userUpdate: any = {
+      isProfileComplete: true,
+      profileStep: 4,
+    };
+
+    if (files?.avatar?.[0]) {
+      const url = await uploadImage(files.avatar[0]);
+      if (url) userUpdate.avatar = url;
+    }
+
+    if (req.body.driverName) userUpdate.name = req.body.driverName;
+    if (req.body.phone) userUpdate.phone = req.body.phone;
 
     const driver = await driverService.updateDriverProfile(userId, data);
     
-    // Mark as complete and step 4 when updating profile
-    await User.findByIdAndUpdate(userId, {
-      isProfileComplete: true,
-      profileStep: 4,
-    });
+    // Mark as complete, update user details
+    await User.findByIdAndUpdate(userId, userUpdate);
 
     res.status(200).json({ success: true, message: "Profile updated", data: driver });
   }

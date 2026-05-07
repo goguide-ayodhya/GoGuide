@@ -15,17 +15,32 @@ export type Driver = {
   email: string;
   avatar?: string;
   phone?: string;
-  vehicleType: string;
-  vehicleName: string;
-  vehicleNumber: string;
-  pricePerKm: number;
-  seats: number;
-  images?: string[];
-  isAvailable: boolean;
+  bio?: string;
+  vehicleType?: "CAR" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
+  vehicleName?: string;
+  vehicleNumber?: string;
+  seats?: number;
+  location?: string;
+  driverPhoto?: string;
+  driverLicenseName?: string;
+  driverLicenseImage?: string[];
+  isAvailable?: boolean;
   averageRating: number;
   totalRides: number;
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
-  driverAadhar: string;
+  driverName: string;
+  createdAt: string;
+  updatedAt: string;
+  // Additional fields from User model
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETED";
+  isEmailVerified: boolean;
+  isProfileComplete?: boolean;
+  profileStep?: number;
+  languages?: string[];
+  // Legacy fields for compatibility
+  driverAadhar?: string;
+  images?: string[];
+  pricePerKm?: number;
 };
 
 type DriverContextType = {
@@ -49,21 +64,36 @@ export const DriverProvider = ({ children }: any) => {
 
   const mapDriver = (driver: any): Driver => ({
     id: driver._id || driver.id || "",
-    name: driver.userId?.name || driver.name || "Unknown",
+    name: driver.userId?.name || driver.driverName || driver.name || "Unknown",
     email: driver.userId?.email || driver.email || "",
-    avatar: driver.userId?.avatar || driver.avatar || "",
+    avatar: driver.userId?.avatar || driver.driverPhoto || driver.avatar || "",
     phone: driver.userId?.phone || driver.phone || "",
+    bio: driver.userId?.bio || driver.bio || "",
     vehicleType: driver.vehicleType || "CAR",
     vehicleName: driver.vehicleName || "",
     vehicleNumber: driver.vehicleNumber || "",
-    pricePerKm: driver.pricePerKm || 0,
     seats: driver.seats || 4,
-    images: driver.images || [],
+    location: driver.location || "",
+    driverPhoto: driver.driverPhoto || "",
+    driverLicenseName: driver.driverLicenseName || "",
+    driverLicenseImage: driver.driverLicenseImage || [],
     isAvailable: driver.isAvailable ?? false,
     averageRating: driver.averageRating || 0,
     totalRides: driver.totalRides || 0,
     verificationStatus: driver.verificationStatus || "PENDING",
+    driverName: driver.driverName || driver.userId?.name || "",
+    createdAt: driver.createdAt || "",
+    updatedAt: driver.updatedAt || "",
+    // User model fields
+    status: driver.userId?.status || driver.status || "INACTIVE",
+    isEmailVerified: driver.userId?.isEmailVerified || driver.isEmailVerified || false,
+    isProfileComplete: driver.userId?.isProfileComplete || driver.isProfileComplete || false,
+    profileStep: driver.userId?.profileStep || driver.profileStep || 1,
+    languages: driver.languages || [],
+    // Legacy fields for compatibility
     driverAadhar: driver.driverAadhar || "",
+    images: driver.images || driver.driverLicenseImage || [],
+    pricePerKm: driver.pricePerKm || 0,
   });
 
   const fetchDrivers = useCallback(async () => {

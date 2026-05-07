@@ -37,8 +37,12 @@ const handleRes = async (res: Response) => {
 
 export const getFare = async (pickup: string, destination: string) => {
   try {
-    const response = await fetch(`${base_url}/rides/get-fare`, {
-      headers: { ...authHeaders(), pickup, destination },
+    const url = new URL(`${base_url}/rides/get-fare`);
+    url.searchParams.append('pickup', pickup);
+    url.searchParams.append('destination', destination);
+    
+    const response = await fetch(url.toString(), {
+      headers: { ...authHeaders() },
     });
     return handleRes(response);
   } catch (error) {

@@ -384,6 +384,47 @@ export class ApiError extends Error {
   }
 }
 
+export const loginWithGoogle = async (payload: { idToken: string }) => {
+  const res = await fetch(`${base_url}auth/google/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await parseResponse(res);
+  if (!res.ok) {
+    throw new ApiError(json.message || "Google login failed", json.errors, res.status);
+  }
+  if (!json?.data) {
+    throw new Error("Invalid Google login response");
+  }
+  return json.data;
+};
+
+export const signupWithGoogle = async (payload: {
+  idToken: string;
+  role: string;
+}) => {
+  const res = await fetch(`${base_url}auth/google/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await parseResponse(res);
+  if (!res.ok) {
+    throw new ApiError(json.message || "Google signup failed", json.errors, res.status);
+  }
+  if (!json?.data) {
+    throw new Error("Invalid Google signup response");
+  }
+  return json.data;
+};
+
 export const loginUser = async (payload: {
   identifier: string;
   password: string;

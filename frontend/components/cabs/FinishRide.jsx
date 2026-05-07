@@ -1,15 +1,15 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 
 
 const FinishRide = (props) => {
 
-    const navigate = useNavigate()
+    const router = useRouter()
 
     async function endRide() {
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/end-ride`, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/rides/end-ride`, {
 
             rideId: props.ride._id
 
@@ -21,7 +21,7 @@ const FinishRide = (props) => {
         })
 
         if (response.status === 200) {
-            navigate('/captain-home')
+            router.push('/driver/dashboard')
         }
 
     }

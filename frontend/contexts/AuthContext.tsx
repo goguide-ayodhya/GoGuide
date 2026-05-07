@@ -3,6 +3,8 @@
 import {
   signupUser,
   loginUser,
+  loginWithGoogle as loginWithGoogleApi,
+  signupWithGoogle as signupWithGoogleApi,
   logoutUser,
   getMe,
   ApiError,
@@ -55,7 +57,6 @@ export type SignupData = {
   vehicleNumber?: string;
   seats?: string;
   driverPhoto?: File | null;
-  vehiclePhoto?: File | null;
   driverLicenseName?: string;
   driverLicenseImage?: File | null;
   profileImage?: File | null;
@@ -72,6 +73,8 @@ interface AuthContextType {
   isLoggedIn: boolean;
   login: (data: LoginData) => Promise<User>;
   signup: (data: SignupData) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<User>;
+  signupWithGoogle: (idToken: string, role: "GUIDE" | "TOURIST" | "DRIVER") => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   refreshUser: () => Promise<User | null>;
@@ -115,7 +118,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
+      const storedSignupRole = localStorage.getItem("signupRole");
 
+      // Clear invalid tokens and users
       if (token === "null" || token === "undefined") {
         console.log("[AUTH] Clearing invalid token");
         localStorage.removeItem("token");
@@ -126,26 +131,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!token) {
+        // Clear all auth-related data if no token
+        localStorage.removeItem("user");
+        localStorage.removeItem("signupRole");
+        localStorage.removeItem("signupProgress");
+        localStorage.removeItem("driver-signup-draft");
+        localStorage.removeItem("guide-signup-draft");
         setUser(null);
         setLoading(false);
         return;
       }
 
+      // Validate stored user data first
+      let storedUserData: User | null = null;
       if (storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser) {
-            setUser(normalizeUser(parsedUser));
+            storedUserData = normalizeUser(parsedUser);
+            setUser(storedUserData);
           }
         } catch (parseError) {
+          console.warn("[AUTH] Failed to parse stored user data:", parseError);
           localStorage.removeItem("user");
+          localStorage.removeItem("signupRole");
+          localStorage.removeItem("signupProgress");
+          localStorage.removeItem("driver-signup-draft");
+          localStorage.removeItem("guide-signup-draft");
           setUser(null);
         }
       }
 
+      // Always validate with backend
       try {
         const freshUser = await getMe();
         const normalizedUser = normalizeUser(freshUser);
+        
+        // Check if stored role matches backend role
+        if (storedSignupRole && storedSignupRole !== normalizedUser.role) {
+          console.warn("[AUTH] Role mismatch detected, clearing signup state");
+          localStorage.removeItem("signupRole");
+          localStorage.removeItem("signupProgress");
+          localStorage.removeItem("driver-signup-draft");
+          localStorage.removeItem("guide-signup-draft");
+          
+          // Show toast notification for role mismatch
+          if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('showToast', {
+              detail: {
+                title: "Session Expired",
+                description: "Previous signup session belongs to another account. Please continue with current account.",
+                variant: "warning"
+              }
+            }));
+          }
+        }
+        
         setUser(normalizedUser);
         localStorage.setItem("user", JSON.stringify(normalizedUser));
       } catch (error: unknown) {
@@ -155,17 +196,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (invalidToken) {
           console.warn(
-            "[AUTH] Token invalid or expired, clearing stored auth state",
+            "[AUTH] Token invalid or expired, clearing all auth state",
             error,
           );
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("signupRole");
+          localStorage.removeItem("signupProgress");
+          localStorage.removeItem("driver-signup-draft");
+          localStorage.removeItem("guide-signup-draft");
           setUser(null);
+          
+          // Show toast for expired session
+          if (typeof window !== 'undefined' && window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('showToast', {
+              detail: {
+                title: "Session Expired",
+                description: "Your session has expired. Please log in again.",
+                variant: "destructive"
+              }
+            }));
+          }
         } else {
           console.warn(
-            "[AUTH] Could not refresh auth state. Keeping stored user if available.",
+            "[AUTH] Could not refresh auth state. Network error or server unavailable.",
             error,
           );
+          // Keep stored user if available for offline mode, but clear signup state
+          localStorage.removeItem("signupRole");
+          localStorage.removeItem("signupProgress");
+          localStorage.removeItem("driver-signup-draft");
+          localStorage.removeItem("guide-signup-draft");
         }
       } finally {
         setLoading(false);
@@ -210,6 +271,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
       }
       throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      setLoading(true);
+      const res = await loginWithGoogleApi({ idToken });
+      if (!res || !res.user || !res.token) {
+        throw new Error("Invalid Google login response");
+      }
+
+      const normalizedUser = normalizeUser(res.user);
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      localStorage.setItem("token", res.token);
+      return res.user;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signupWithGoogle = async (idToken: string, role: "GUIDE" | "TOURIST" | "DRIVER") => {
+    try {
+      setLoading(true);
+      const res = await signupWithGoogleApi({ idToken, role });
+      if (!res || !res.user || !res.token) {
+        throw new Error("Invalid Google signup response");
+      }
+
+      const normalizedUser = normalizeUser(res.user);
+      setUser(normalizedUser);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+      localStorage.setItem("token", res.token);
+      return res.user;
     } finally {
       setLoading(false);
     }
@@ -284,6 +381,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoggedIn: !!user && !loading,
         login,
         signup,
+        loginWithGoogle,
+        signupWithGoogle,
         logout,
         updateUser,
         refreshUser,

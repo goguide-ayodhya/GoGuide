@@ -5,9 +5,10 @@ export interface IUser extends Document {
     password: string;
     name: string;
     phone: string;
+    googleId?: string;
+    authProvider?: "LOCAL" | "GOOGLE";
     bio?: string;
     avatar: string;
-    vehiclePhoto?: string;
     driverPhoto?: string;
 
     role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
@@ -57,10 +58,17 @@ const UserSchema = new Schema<IUser>(
             required: true,
             unique: true,
         },
-        avatar: String, // avatar as profileImage
-        vehiclePhoto: {
+        googleId: {
             type: String,
+            unique: true,
+            sparse: true,
         },
+        authProvider: {
+            type: String,
+            enum: ["LOCAL", "GOOGLE"],
+            default: "LOCAL",
+        },
+        avatar: String, // avatar as profileImage
         driverPhoto: {
             type: String,
         },

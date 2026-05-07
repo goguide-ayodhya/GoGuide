@@ -42,10 +42,17 @@ export class GuideController {
     // Certificates array
     if (files?.certificates) {
       data.certificates = [];
-      for (const file of files.certificates) {
+      let certNames = req.body.certificateNames || [];
+      if (!Array.isArray(certNames)) {
+        certNames = [certNames];
+      }
+      
+      for (let i = 0; i < files.certificates.length; i++) {
+        const file = files.certificates[i];
         const url = await uploadImage(file);
         if (url) {
-          data.certificates.push({ name: file.originalname, image: url });
+          const customName = certNames[i] && certNames[i] !== "null" && certNames[i] !== "undefined" ? certNames[i] : null;
+          data.certificates.push({ name: customName || file.originalname, image: url });
         }
       }
     }

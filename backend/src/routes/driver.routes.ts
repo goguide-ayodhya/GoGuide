@@ -26,7 +26,6 @@ router.post(
   authenticate,
   upload.fields([
     { name: "driverPhoto", maxCount: 1 },
-    { name: "vehiclePhoto", maxCount: 1 },
     { name: "driverLicense", maxCount: 1 },
   ]),
   validate(createDriverProfileSchema),
@@ -44,8 +43,8 @@ router.put(
   authenticate,
   upload.fields([
     { name: "driverPhoto", maxCount: 1 },
-    { name: "vehiclePhoto", maxCount: 1 },
     { name: "driverLicense", maxCount: 5 },
+    { name: "avatar", maxCount: 1 },
   ]),
   validate(updateDriverProfileSchema),
   (req, res, next) => {

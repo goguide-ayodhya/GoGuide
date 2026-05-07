@@ -195,17 +195,16 @@ function PaymentPageContent() {
   const paidAmount = booking.paidAmount ?? 0;
 
   let discountDisplay = booking.discount ?? 0;
+  let gstAmount = Math.round(booking.gstAmount || 0);
   let finalDisplay = booking.finalPrice ?? booking.totalPrice ?? 0;
 
-  if (!booking.paymentType && selectedMode === "FULL") {
-    discountDisplay = Math.round(originalPrice * 0.1);
-    finalDisplay = Math.round(originalPrice - discountDisplay);
-  } else if (
-    !booking.paymentType &&
-    (selectedMode === "PARTIAL" || selectedMode === "COD")
-  ) {
-    discountDisplay = 0;
-    finalDisplay = Math.round(originalPrice);
+  if (!booking.paymentType && selectedMode) {
+    const isFull = selectedMode === "FULL";
+    const discountPercent = isFull ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
+    discountDisplay = Math.round(originalPrice * discountPercent);
+    const afterDiscount = originalPrice - discountDisplay;
+    gstAmount = Math.round(afterDiscount * 0.05);
+    finalDisplay = Math.round(afterDiscount + gstAmount);
   }
 
   const remainingAmount =
@@ -213,12 +212,11 @@ function PaymentPageContent() {
       ? Math.round(booking.remainingAmount)
       : Math.max(0, Math.round(finalDisplay - paidAmount));
 
-  // Backend `finalPrice` is GST-inclusive. Use backend-calculated GST amount.
+  // Backend `finalPrice` is GST-inclusive.
   const roundedOriginal = Math.round(originalPrice);
   const roundedPaid = Math.round(paidAmount);
   const roundedDiscount = Math.round(discountDisplay || 0);
   const roundedTotal = Math.round(finalDisplay || 0);
-  const gstAmount = Math.round(booking.gstAmount || 0);
 
   const priceItems: { label: string; amount: number }[] = [
     { label: "Original price", amount: roundedOriginal },

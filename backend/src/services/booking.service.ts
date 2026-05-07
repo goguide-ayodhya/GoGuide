@@ -715,6 +715,11 @@ export class BookingService {
         ? pkg.locations[pkg.locations.length - 1]
         : pkg.title || "Dropoff location not specified";
 
+    const pricing = calculateFinalPrice({
+      totalPrice: pkg.price,
+      discountPercent: 0,
+    });
+
     const booking = await Booking.create({
       userId,
       packageId,
@@ -732,12 +737,14 @@ export class BookingService {
       meetingPoint,
       dropoffLocation,
 
-      totalPrice: pkg.price,
-      originalPrice: pkg.price,
-      finalPrice: pkg.price,
+      totalPrice: pricing.totalPrice,
+      originalPrice: pricing.totalPrice,
+      discount: pricing.discount,
+      gstAmount: pricing.gstAmount,
+      finalPrice: pricing.finalPrice,
 
       paidAmount: 0,
-      remainingAmount: pkg.price,
+      remainingAmount: pricing.finalPrice,
 
       guideEarning: 0,
       adminCommission: 0,

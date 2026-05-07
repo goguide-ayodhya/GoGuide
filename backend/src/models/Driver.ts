@@ -6,11 +6,13 @@ export interface IDriver extends Document {
   vehicleNumber?: string;
   vehicleType?: "CAR" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
   vehicleName?: string;
-  vehiclePhoto?: string;
 
   seats?: number;
 
-  location?: String;
+  currentLocation?: {
+    lat: number;
+    lng: number;
+  };
 
   driverPhoto?: string;
 
@@ -18,6 +20,7 @@ export interface IDriver extends Document {
   driverLicenseImage?: string[];
 
   isAvailable?: boolean;
+  languages?: string[];
 
   averageRating: number;
   totalRides: number;
@@ -55,13 +58,13 @@ const DriverSchema = new Schema<IDriver>(
     driverPhoto: {
       type: String,
     },
-    vehiclePhoto: {
-      type: String,
-    },
     driverLicenseName: {
       type: String,
     },
     driverLicenseImage: {
+      type: [String],
+    },
+    languages: {
       type: [String],
     },
     isAvailable: {
@@ -69,8 +72,13 @@ const DriverSchema = new Schema<IDriver>(
       default: true,
     },
 
-    location: {
-      type: String,
+    currentLocation: {
+      lat: {
+        type: Number,
+      },
+      lng: {
+        type: Number,
+      },
     },
 
     averageRating: {

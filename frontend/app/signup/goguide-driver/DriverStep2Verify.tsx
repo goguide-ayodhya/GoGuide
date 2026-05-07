@@ -54,9 +54,9 @@ export function DriverStep2Verify({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button onClick={onVerify} disabled={loading} className="w-full">
+            {/* <Button onClick={onVerify} disabled={loading} className="w-full">
               {loading ? "Verifying…" : "Verify OTP"}
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               onClick={onResend}

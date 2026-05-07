@@ -1,5 +1,4 @@
-const base_url = process.env.NEXT_PUBLIC_BASE_URL?.trim() || "/api/";
-const apiBaseUrl = base_url.endsWith("/") ? base_url : `${base_url}/`;
+const base_url = process.env.NEXT_PUBLIC_BASE_URL
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -30,12 +29,12 @@ const handleRes = async (res: Response) => {
 
 // Public
 export const getAllDrivers = async () => {
-  const res = await fetch(`${apiBaseUrl}drivers`);
+  const res = await fetch(`${base_url}drivers`);
   return handleRes(res);
 };
 
 export const getDriverById = async (id: string) => {
-  const res = await fetch(`${apiBaseUrl}drivers/${id}`);
+  const res = await fetch(`${base_url}drivers/${id}`);
   return handleRes(res);
 };
 
@@ -48,7 +47,7 @@ export const createDriverProfile = async (data: any) => {
     delete headers["Content-Type"]; // VERY IMPORTANT
     console.log("[DRIVER-API] Sending driver create-profile FormData entries:", [...data.entries()]);
 
-    const res = await fetch(`${apiBaseUrl}drivers/create-profile`, {
+    const res = await fetch(`${base_url}drivers/create-profile`, {
       method: "POST",
       headers,
       body: data,
@@ -58,7 +57,7 @@ export const createDriverProfile = async (data: any) => {
   }
 
   // fallback (JSON)
-  const res = await fetch(`${apiBaseUrl}drivers/create-profile`, {
+  const res = await fetch(`${base_url}drivers/create-profile`, {
     method: "POST",
     headers,
     body: JSON.stringify(data),
@@ -68,7 +67,7 @@ export const createDriverProfile = async (data: any) => {
 };
 
 export const getMyDriverProfile = async () => {
-  const res = await fetch(`${apiBaseUrl}drivers/me/profile`, {
+  const res = await fetch(`${base_url}drivers/me/profile`, {
     headers: authHeaders(),
   });
   return handleRes(res);
@@ -81,7 +80,7 @@ export const updateDriverProfile = async (data: any) => {
     delete headers["Content-Type"];
     console.log("[DRIVER-API] Sending driver update-profile FormData entries:", [...data.entries()]);
 
-    const res = await fetch(`${apiBaseUrl}drivers/me/profile`, {
+    const res = await fetch(`${base_url}drivers/me/profile`, {
       method: "PUT",
       headers,
       body: data,
@@ -90,18 +89,26 @@ export const updateDriverProfile = async (data: any) => {
     return handleRes(res);
   }
 
-  const hasFile = data.driverPhoto || data.vehiclePhoto || data.driverLicense || (data.driverLicense && Array.isArray(data.driverLicense));
+  const hasFile = data.avatar || data.driverPhoto || data.driverLicenseImages || 
+    (data.driverLicenseImages && Array.isArray(data.driverLicenseImages)) ||
+    (data.driverLicense && Array.isArray(data.driverLicense));
 
   if (hasFile) {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
       if (value === undefined || value === null) return;
 
-      if (Array.isArray(value)) {
-        value.forEach(file => {
-          if (file instanceof File) {
-            formData.append(key, file);
+      if (key === "driverLicenseImages" && Array.isArray(value)) {
+        value.forEach((item) => {
+          if (item instanceof File) {
+            formData.append(`driverLicense`, item);
+          } else if (typeof item === "string") {
+            formData.append(`existingLicenseImages`, item);
           }
+        });
+      } else if (Array.isArray(value)) {
+        value.forEach(item => {
+          formData.append(key, String(item));
         });
       } else if (value instanceof File) {
         formData.append(key, value);
@@ -112,7 +119,7 @@ export const updateDriverProfile = async (data: any) => {
 
     delete headers["Content-Type"];
 
-    const res = await fetch(`${apiBaseUrl}drivers/me/profile`, {
+    const res = await fetch(`${base_url}drivers/me/profile`, {
       method: "PUT",
       headers,
       body: formData,
@@ -121,7 +128,7 @@ export const updateDriverProfile = async (data: any) => {
     return handleRes(res);
   }
 
-  const res = await fetch(`${apiBaseUrl}drivers/me/profile`, {
+  const res = await fetch(`${base_url}drivers/me/profile`, {
     method: "PUT",
     headers,
     body: JSON.stringify(data),
@@ -131,7 +138,7 @@ export const updateDriverProfile = async (data: any) => {
 };
 
 export const toggleDriverAvailability = async (isAvailable: boolean) => {
-  const res = await fetch(`${apiBaseUrl}drivers/me/availability`, {
+  const res = await fetch(`${base_url}drivers/me/availability`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ isAvailable }),

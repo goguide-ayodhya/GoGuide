@@ -19,21 +19,31 @@ const authHeaders = () => {
 };
 
 const handleRes = async (res: Response) => {
-  const json = await res.json();
+  const text = await res.text();
+
+  let json = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = {};
+  }
+
   if (!res.ok) {
     const errorMessage =
-      json.message || `API Error: ${res.status} ${res.statusText}`;
+      (json as any).message ||
+      `API Error: ${res.status} ${res.statusText}`;
+
     console.error("[API_ERROR] Payment API Error:", {
       status: res.status,
       statusText: res.statusText,
       message: errorMessage,
       fullResponse: json,
     });
-    const error = new Error(errorMessage) as any;
-    error.response = { data: json, status: res.status };
-    throw error;
+
+    throw new Error(errorMessage);
   }
-  return json.data;
+
+  return (json as any).data;
 };
 
 export type TouristPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";

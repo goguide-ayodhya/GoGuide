@@ -18,8 +18,32 @@ export const initializeSocket = (server: HttpServer) => {
     path: "/socket.io",
   });
 
-  io.on("connection", (socket: { id: any; on: (arg0: string, arg1: () => void) => void; }) => {
+  io.on("connection", (socket: { id: any; on: (arg0: string, arg1: (...args: any[]) => void) => void; }) => {
     logger.info(`Socket connected: ${socket.id}`);
+
+    socket.on('join', async (data: { userId: string, userType: string }) => {
+      const { userId, userType } = data;
+      if (userId) {
+          // Assuming we use User model for both TOURIST and DRIVER sockets
+          // Wait, we need to import User and Driver. We can do that lazily or at the top.
+          const { User } = require('./models/User');
+          await User.findByIdAndUpdate(userId, { socketId: socket.id });
+      }
+    });
+
+    socket.on('update-location-captain', async (data: { userId: string, location: { ltd: number, lng: number } }) => {
+      const { userId, location } = data;
+      if (!userId || !location || !location.ltd || !location.lng) {
+          return;
+      }
+      const { Driver } = require('./models/Driver');
+      await Driver.findOneAndUpdate({ userId }, {
+          currentLocation: {
+              lat: location.ltd,
+              lng: location.lng
+          }
+      });
+    });
 
     socket.on("disconnect", () => {
       logger.info(`Socket disconnected: ${socket.id}`);
