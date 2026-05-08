@@ -5,407 +5,412 @@ import { User } from "../models/User";
 import { Guide } from "../models/Guide";
 import { env } from "../config/environment";
 import {
-    BadRequest,
-    Conflict,
-    Unauthorized,
-    NotFound,
+  BadRequest,
+  Conflict,
+  Unauthorized,
+  NotFound,
 } from "../utils/httpException";
-import { LoginInput, SignupInput, GoogleLoginInput, GoogleSignupInput } from "../validations/auth";
+import {
+  LoginInput,
+  SignupInput,
+  GoogleLoginInput,
+  GoogleSignupInput,
+} from "../validations/auth";
 import { Driver } from "../models/Driver";
 import { sendEmail } from "../config/email.config";
 import { logger } from "../utils/logger";
 
 export class AuthService {
-    // --------------------- Authentication ---------------------
-    async login(input: LoginInput) {
-        const identifier = input.identifier.trim().toLowerCase();
-        const isEmail = identifier.includes("@");
-        const user = await User.findOne(
-            isEmail ? { email: identifier } : { phone: input.identifier.trim() },
+  // --------------------- Authentication ---------------------
+  async login(input: LoginInput) {
+    const identifier = input.identifier.trim().toLowerCase();
+    const isEmail = identifier.includes("@");
+    const user = await User.findOne(
+      isEmail ? { email: identifier } : { phone: input.identifier.trim() },
+    );
+
+    if (!user) {
+      throw new Unauthorized("Invalid email/phone or password");
+    }
+
+    const isPasswordValid = await bcrypt.compare(input.password, user.password);
+    if (!isPasswordValid) {
+      throw new Unauthorized("Invalid email/phone or password");
+    }
+
+    if (user.role === "GUIDE" || user.role === "DRIVER") {
+      if (!user.isEmailVerified) {
+        throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
+      }
+
+      if (!user.isProfileComplete) {
+        throw new BadRequest("PROFILE_INCOMPLETE", { role: user.role });
+      }
+
+      if (!user.status || user.status !== "ACTIVE") {
+        throw new BadRequest("ACCOUNT_INACTIVE");
+      }
+    }
+
+    await User.findByIdAndUpdate(user._id, {
+      lastLoginAt: new Date(),
+    });
+
+    const token = this.generateToken(user._id.toString(), user.email || "");
+
+    return {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isProfileComplete: user.isProfileComplete,
+      },
+      token,
+    };
+  }
+
+  async signup(input: SignupInput) {
+    // Require both email and phone and enforce uniqueness
+    const existingUserByEmail = await User.findOne({ email: input.email });
+    if (existingUserByEmail) {
+      throw new Conflict("Email already registered");
+    }
+
+    const existingUserByPhone = await User.findOne({ phone: input.phone });
+    if (existingUserByPhone) {
+      throw new Conflict("Phone number already registered");
+    }
+
+    const hashedPassword = await bcrypt.hash(input.password, 10);
+
+    const user = await User.create({
+      email: input.email || undefined,
+      password: hashedPassword,
+      name: input.name,
+      phone: input.phone,
+      role: input.role as any,
+      avatar: input.avatar || undefined,
+      status: input.role === "TOURIST" ? "ACTIVE" : "INACTIVE",
+    });
+
+    if (input.role === "GUIDE") {
+      await Guide.create({
+        userId: user._id,
+        specialities: [],
+        locations: [],
+        price: 500,
+        duration: "4 hours",
+        certificates: [],
+        yearsOfExperience: 0,
+        languages: [],
+        verificationStatus: "PENDING",
+        isAvailable: false,
+        averageRating: 0,
+        totalReviews: 0,
+      });
+    }
+
+    if (input.role === "DRIVER") {
+      await Driver.create({
+        userId: user._id,
+        vehicleType: input.vehicleType,
+        vehicleName: input.vehicleName || "",
+        vehicleNumber: input.vehicleNumber || "",
+        seats: input.seats || 0,
+        images: [input.driverPhoto].filter(Boolean) as string[],
+        verificationStatus: "PENDING",
+        isAvailable: false,
+        averageRating: 0,
+        totalRides: 0,
+        driverName: input.name,
+      });
+    }
+    const token = this.generateToken(user._id.toString(), user.email || "");
+
+    // Send email verification if email is provided. Do not fail signup when email delivery fails.
+    if (user.email && user.authProvider !== "GOOGLE") {
+      try {
+        await this.sendOtp(user.email);
+      } catch (error) {
+        logger.warn(
+          `[AUTH] Signup succeeded but email OTP send failed for ${user.email}`,
+          error,
         );
+      }
+    }
 
-        if (!user) {
-            throw new Unauthorized("Invalid email/phone or password");
-        }
+    return {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      token,
+    };
+  }
 
-        const isPasswordValid = await bcrypt.compare(input.password, user.password);
-        if (!isPasswordValid) {
-            throw new Unauthorized("Invalid email/phone or password");
-        }
+  private async verifyGoogleToken(idToken: string) {
+    if (!env.GOOGLE_CLIENT_ID) {
+      throw new Unauthorized("Google client is not configured");
+    }
 
-        if (user.role === "GUIDE" || user.role === "DRIVER") {
-            if (!user.isEmailVerified) {
-                throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
-            }
+    const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
 
-            if (!user.isProfileComplete) {
-                throw new BadRequest("PROFILE_INCOMPLETE", { role: user.role });
-            }
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.sub) {
+      throw new Unauthorized("Invalid Google token");
+    }
 
-            if (!user.status || user.status !== "ACTIVE") {
-                throw new BadRequest("ACCOUNT_INACTIVE");
-            }
-        }
+    if (!payload.email_verified) {
+      throw new Unauthorized("Google email is not verified");
+    }
 
-        await User.findByIdAndUpdate(user._id, {
-            lastLoginAt: new Date(),
+    return {
+      email: payload.email.toLowerCase(),
+      googleId: payload.sub,
+      name: payload.name || payload.email.split("@")[0],
+      avatar: payload.picture || "",
+    };
+  }
+
+  async googleLogin(idToken: string) {
+    const { email, googleId, name, avatar } =
+      await this.verifyGoogleToken(idToken);
+
+    let user = await User.findOne({ googleId });
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    if (!user) {
+      throw new NotFound("Google account not linked. Please sign up first.");
+    }
+
+    if (!user.googleId) {
+      if (user.email && user.email !== email) {
+        throw new Conflict("This email is already linked to another account");
+      }
+      user.googleId = googleId;
+      user.authProvider = "GOOGLE";
+      user.name = user.name || name;
+      user.avatar = user.avatar || avatar;
+    }
+
+    user.isEmailVerified = true;
+    user.lastLoginAt = new Date();
+
+    if (user.role === "TOURIST" && user.status !== "ACTIVE") {
+      user.status = "ACTIVE";
+    }
+
+    await user.save();
+
+    if (user.role === "GUIDE" || user.role === "DRIVER") {
+      if (!user.isEmailVerified) {
+        throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
+      }
+
+      if (!user.isProfileComplete) {
+        throw new BadRequest("PROFILE_INCOMPLETE", {
+          role: user.role,
+          profileStep: user.profileStep || 1,
         });
+      }
 
-        const token = this.generateToken(user._id.toString(), user.email || "");
-
-        return {
-            user: {
-                id: user._id.toString(),
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                phone: user.phone,
-                isEmailVerified: user.isEmailVerified,
-                isProfileComplete: user.isProfileComplete,
-            },
-            token,
-        };
+      if (!user.status || user.status !== "ACTIVE") {
+        throw new BadRequest("ACCOUNT_INACTIVE");
+      }
     }
 
-    async signup(input: SignupInput) {
-        // Require both email and phone and enforce uniqueness
-        const existingUserByEmail = await User.findOne({ email: input.email });
-        if (existingUserByEmail) {
-            throw new Conflict("Email already registered");
-        }
+    const token = this.generateToken(user._id.toString(), user.email || "");
 
-        const existingUserByPhone = await User.findOne({ phone: input.phone });
-        if (existingUserByPhone) {
-            throw new Conflict("Phone number already registered");
-        }
+    return {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isProfileComplete: user.isProfileComplete,
+        avatar: user.avatar,
+      },
+      token,
+    };
+  }
 
-        const hashedPassword = await bcrypt.hash(input.password, 10);
+  async googleSignup(input: GoogleSignupInput) {
+    const { idToken, role } = input;
+    const { email, googleId, name, avatar } =
+      await this.verifyGoogleToken(idToken);
 
-        const user = await User.create({
-            email: input.email || undefined,
-            password: hashedPassword,
-            name: input.name,
-            phone: input.phone,
-            role: input.role as any,
-            avatar: input.avatar || undefined,
-            status: input.role === "TOURIST" ? "ACTIVE" : "INACTIVE",
+    let user = await User.findOne({ googleId });
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    if (user) {
+      if (user.role !== role) {
+        throw new Conflict("Email is already registered with a different role");
+      }
+
+      if (user.googleId && user.googleId !== googleId) {
+        throw new Conflict("This Google account is linked to another user");
+      }
+
+      user.googleId = googleId;
+      user.authProvider = "GOOGLE";
+      user.name = user.name || name;
+      user.avatar = user.avatar || avatar;
+      user.isEmailVerified = true;
+
+      if (user.role === "TOURIST") {
+        user.status = "ACTIVE";
+        user.isProfileComplete = true;
+      }
+
+      await user.save();
+    } else {
+      const randomPassword = `${Math.random().toString(36).slice(2)}${Date.now()}`;
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      user = await User.create({
+        email,
+        password: hashedPassword,
+        name,
+        phone: `google-${googleId}`,
+        avatar,
+        role,
+        status: role === "TOURIST" ? "ACTIVE" : "INACTIVE",
+        authProvider: "GOOGLE",
+        googleId,
+        isEmailVerified: true,
+        isProfileComplete: role === "TOURIST" ? true : false,
+      });
+
+      if (role === "GUIDE") {
+        await Guide.create({
+          userId: user._id,
+          specialities: [],
+          locations: [],
+          price: 500,
+          duration: "4 hours",
+          certificates: [],
+          yearsOfExperience: 0,
+          languages: [],
+          verificationStatus: "PENDING",
+          isAvailable: false,
+          averageRating: 0,
+          totalReviews: 0,
         });
+      }
 
-        if (input.role === "GUIDE") {
-            await Guide.create({
-                userId: user._id,
-                specialities: [],
-                locations: [],
-                price: 500,
-                duration: "4 hours",
-                certificates: [],
-                yearsOfExperience: 0,
-                languages: [],
-                verificationStatus: "PENDING",
-                isAvailable: false,
-                averageRating: 0,
-                totalReviews: 0,
-            });
-        }
-
-        if (input.role === "DRIVER") {
-            await Driver.create({
-                userId: user._id,
-                vehicleType: input.vehicleType,
-                vehicleName: input.vehicleName || "",
-                vehicleNumber: input.vehicleNumber || "",
-                seats: input.seats || 0,
-                images: [input.driverPhoto].filter(
-                    Boolean,
-                ) as string[],
-                verificationStatus: "PENDING",
-                isAvailable: false,
-                averageRating: 0,
-                totalRides: 0,
-                driverName: input.name,
-            });
-        }
-        const token = this.generateToken(user._id.toString(), user.email || "");
-
-        // Send email verification if email is provided. Do not fail signup when email delivery fails.
-        if (user.email) {
-            try {
-                await this.sendOtp(user.email);
-            } catch (error) {
-                logger.warn(
-                    `[AUTH] Signup succeeded but email OTP send failed for ${user.email}`,
-                    error,
-                );
-            }
-        }
-
-        return {
-            user: {
-                id: user._id.toString(),
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                avatar: user.avatar,
-            },
-            token,
-        };
-    }
-
-    private async verifyGoogleToken(idToken: string) {
-        if (!env.GOOGLE_CLIENT_ID) {
-            throw new Unauthorized("Google client is not configured");
-        }
-
-        const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: env.GOOGLE_CLIENT_ID,
+      if (role === "DRIVER") {
+        await Driver.create({
+          userId: user._id,
+          vehicleType: "",
+          vehicleName: "",
+          vehicleNumber: "",
+          seats: 0,
+          images: [],
+          verificationStatus: "PENDING",
+          isAvailable: false,
+          averageRating: 0,
+          totalRides: 0,
+          driverName: user.name,
         });
-
-        const payload = ticket.getPayload();
-        if (!payload || !payload.email || !payload.sub) {
-            throw new Unauthorized("Invalid Google token");
-        }
-
-        if (!payload.email_verified) {
-            throw new Unauthorized("Google email is not verified");
-        }
-
-        return {
-            email: payload.email.toLowerCase(),
-            googleId: payload.sub,
-            name: payload.name || payload.email.split("@")[0],
-            avatar: payload.picture || "",
-        };
+      }
     }
 
-    async googleLogin(idToken: string) {
-        const { email, googleId, name, avatar } = await this.verifyGoogleToken(idToken);
+    const token = this.generateToken(user._id.toString(), user.email || "");
 
-        let user = await User.findOne({ googleId });
-        if (!user) {
-            user = await User.findOne({ email });
-        }
+    return {
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        isProfileComplete: user.isProfileComplete,
+        avatar: user.avatar,
+      },
+      token,
+    };
+  }
 
-        if (!user) {
-            throw new NotFound("Google account not linked. Please sign up first.");
-        }
+  async logout(): Promise<boolean> {
+    return true;
+  }
 
-        if (!user.googleId) {
-            if (user.email && user.email !== email) {
-                throw new Conflict("This email is already linked to another account");
-            }
-            user.googleId = googleId;
-            user.authProvider = "GOOGLE";
-            user.name = user.name || name;
-            user.avatar = user.avatar || avatar;
-        }
+  async logoutAll(userId: string): Promise<boolean> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+    await user.save();
+    return true;
+  }
 
-        user.isEmailVerified = true;
-        user.lastLoginAt = new Date();
+  async validateToken(token: string) {
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
+      return decoded;
+    } catch {
+      throw new Unauthorized("Invalid or expired token");
+    }
+  }
 
-        if (user.role === "TOURIST" && user.status !== "ACTIVE") {
-            user.status = "ACTIVE";
-        }
-
-        await user.save();
-
-        if (user.role === "GUIDE" || user.role === "DRIVER") {
-            if (!user.isEmailVerified) {
-                throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
-            }
-
-            if (!user.isProfileComplete) {
-                throw new BadRequest("PROFILE_INCOMPLETE", {
-                    role: user.role,
-                    profileStep: user.profileStep || 1,
-                });
-            }
-
-            if (!user.status || user.status !== "ACTIVE") {
-                throw new BadRequest("ACCOUNT_INACTIVE");
-            }
-        }
-
-        const token = this.generateToken(user._id.toString(), user.email || "");
-
-        return {
-            user: {
-                id: user._id.toString(),
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                phone: user.phone,
-                isEmailVerified: user.isEmailVerified,
-                isProfileComplete: user.isProfileComplete,
-                avatar: user.avatar,
-            },
-            token,
-        };
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFound("User not Found");
+    }
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new BadRequest("Current password is incorrect");
     }
 
-    async googleSignup(input: GoogleSignupInput) {
-        const { idToken, role } = input;
-        const { email, googleId, name, avatar } = await this.verifyGoogleToken(idToken);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
 
-        let user = await User.findOne({ googleId });
-        if (!user) {
-            user = await User.findOne({ email });
-        }
+    await user.save();
+    await this.logoutAll(userId);
 
-        if (user) {
-            if (user.role !== role) {
-                throw new Conflict("Email is already registered with a different role");
-            }
+    return true;
+  }
 
-            if (user.googleId && user.googleId !== googleId) {
-                throw new Conflict("This Google account is linked to another user");
-            }
-
-            user.googleId = googleId;
-            user.authProvider = "GOOGLE";
-            user.name = user.name || name;
-            user.avatar = user.avatar || avatar;
-            user.isEmailVerified = true;
-
-            if (user.role === "TOURIST") {
-                user.status = "ACTIVE";
-                user.isProfileComplete = true;
-            }
-
-            await user.save();
-        } else {
-            const randomPassword = `${Math.random().toString(36).slice(2)}${Date.now()}`;
-            const hashedPassword = await bcrypt.hash(randomPassword, 10);
-
-            user = await User.create({
-                email,
-                password: hashedPassword,
-                name,
-                phone: `google-${googleId}`,
-                avatar,
-                role,
-                status: role === "TOURIST" ? "ACTIVE" : "INACTIVE",
-                authProvider: "GOOGLE",
-                googleId,
-                isEmailVerified: true,
-                isProfileComplete: role === "TOURIST" ? true : false,
-            });
-
-            if (role === "GUIDE") {
-                await Guide.create({
-                    userId: user._id,
-                    specialities: [],
-                    locations: [],
-                    price: 500,
-                    duration: "4 hours",
-                    certificates: [],
-                    yearsOfExperience: 0,
-                    languages: [],
-                    verificationStatus: "PENDING",
-                    isAvailable: false,
-                    averageRating: 0,
-                    totalReviews: 0,
-                });
-            }
-
-            if (role === "DRIVER") {
-                await Driver.create({
-                    userId: user._id,
-                    vehicleType: "",
-                    vehicleName: "",
-                    vehicleNumber: "",
-                    seats: 0,
-                    images: [],
-                    verificationStatus: "PENDING",
-                    isAvailable: false,
-                    averageRating: 0,
-                    totalRides: 0,
-                    driverName: user.name,
-                });
-            }
-        }
-
-        const token = this.generateToken(user._id.toString(), user.email || "");
-
-        return {
-            user: {
-                id: user._id.toString(),
-                email: user.email,
-                name: user.name,
-                role: user.role,
-                phone: user.phone,
-                isEmailVerified: user.isEmailVerified,
-                isProfileComplete: user.isProfileComplete,
-                avatar: user.avatar,
-            },
-            token,
-        };
+  async sendOtp(email: string) {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new NotFound("User not found with this email address");
     }
 
-    async logout(): Promise<boolean> {
-        return true;
-    }
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    async logoutAll(userId: string): Promise<boolean> {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new NotFound("User not found");
-        }
-        await user.save();
-        return true;
-    }
+    await User.updateOne({ _id: user._id }, { otp: hashedOtp, otpExpiresAt });
 
-    async validateToken(token: string) {
-        try {
-            const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
-            return decoded;
-        } catch {
-            throw new Unauthorized("Invalid or expired token");
-        }
-    }
-
-    async changePassword(
-        userId: string,
-        currentPassword: string,
-        newPassword: string,
-    ) {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new NotFound("User not Found");
-        }
-        const isValid = await bcrypt.compare(currentPassword, user.password);
-        if (!isValid) {
-            throw new BadRequest("Current password is incorrect");
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-
-        await user.save();
-        await this.logoutAll(userId);
-
-        return true;
-    }
-
-    async sendOtp(email: string) {
-        // Find user by email
-        const user = await User.findOne({ email });
-        if (!user) {
-            throw new NotFound("User not found with this email address");
-        }
-
-        // Generate 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedOtp = await bcrypt.hash(otp, 10);
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-        await User.updateOne({ _id: user._id }, { otp: hashedOtp, otpExpiresAt });
-
-        await sendEmail(
-            user.email!,
-            "Verify Your Email Address - GoGuide",
-            `
+    await sendEmail(
+      user.email!,
+      "Verify Your Email Address - GoGuide",
+      `
   <div style="
     max-width: 500px;
     margin: auto;
@@ -457,65 +462,65 @@ export class AuthService {
 
   </div>
   `,
-        );
+    );
 
-        return { message: "OTP sent successfully to your email" };
+    return { message: "OTP sent successfully to your email" };
+  }
+
+  async verifyEmail(email: string, otp: string) {
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw new NotFound("User not found");
     }
 
-    async verifyEmail(email: string, otp: string) {
-        const user = await User.findOne({ email });
-        if (!user) {
-            throw new NotFound("User not found");
-        }
-
-        if (!user.otp || !user.otpExpiresAt) {
-            throw new BadRequest("No OTP found. Please request a new one.");
-        }
-
-        if (user.otpExpiresAt < new Date()) {
-            throw new BadRequest("OTP has expired");
-        }
-
-        const isValid = await bcrypt.compare(otp, user.otp);
-        if (!isValid) {
-            throw new BadRequest("Invalid OTP");
-        }
-
-        // Clear OTP and set email as verified
-        user.otp = undefined;
-        user.otpExpiresAt = undefined;
-        user.isEmailVerified = true;
-
-        // DO NOT activate GUIDE/DRIVER here - they must complete profile first
-        // Only TOURIST gets activated
-        if (user.role === "TOURIST") {
-            user.status = "ACTIVE";
-        }
-
-        await user.save();
-
-        return { message: "Email verified successfully" };
+    if (!user.otp || !user.otpExpiresAt) {
+      throw new BadRequest("No OTP found. Please request a new one.");
     }
 
-    async forgotPassword(identifier: string) {
-        const user = await User.findOne({ email: identifier });
+    if (user.otpExpiresAt < new Date()) {
+      throw new BadRequest("OTP has expired");
+    }
 
-        if (!user) {
-            throw new NotFound("User not found");
-        }
+    const isValid = await bcrypt.compare(otp, user.otp);
+    if (!isValid) {
+      throw new BadRequest("Invalid OTP");
+    }
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedOtp = await bcrypt.hash(otp, 10);
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Clear OTP and set email as verified
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    user.isEmailVerified = true;
 
-        user.otp = hashedOtp;
-        user.otpExpiresAt = otpExpiresAt;
-        await user.save();
+    // DO NOT activate GUIDE/DRIVER here - they must complete profile first
+    // Only TOURIST gets activated
+    if (user.role === "TOURIST") {
+      user.status = "ACTIVE";
+    }
 
-        await sendEmail(
-            user.email!,
-            "Password Reset OTP - GoGuide",
-            `
+    await user.save();
+
+    return { message: "Email verified successfully" };
+  }
+
+  async forgotPassword(identifier: string) {
+    const user = await User.findOne({ email: identifier });
+
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = hashedOtp;
+    user.otpExpiresAt = otpExpiresAt;
+    await user.save();
+
+    await sendEmail(
+      user.email!,
+      "Password Reset OTP - GoGuide",
+      `
   <div style="
     max-width: 500px;
     margin: auto;
@@ -565,64 +570,64 @@ export class AuthService {
 
   </div>
   `,
-        );
+    );
 
-        return { message: "Password reset OTP sent to your email" };
+    return { message: "Password reset OTP sent to your email" };
+  }
+
+  async resetPassword(identifier: string, otp: string, newPassword: string) {
+    const user = await User.findOne({ email: identifier });
+
+    if (!user) {
+      throw new NotFound("User not found");
     }
 
-    async resetPassword(identifier: string, otp: string, newPassword: string) {
-        const user = await User.findOne({ email: identifier });
-
-        if (!user) {
-            throw new NotFound("User not found");
-        }
-
-        if (!user.otp || !user.otpExpiresAt) {
-            throw new BadRequest("No OTP found. Please request a new one.");
-        }
-
-        if (user.otpExpiresAt < new Date()) {
-            throw new BadRequest("OTP has expired");
-        }
-
-        const isValid = await bcrypt.compare(otp, user.otp);
-        if (!isValid) {
-            throw new BadRequest("Invalid OTP");
-        }
-
-        // Hash new password
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-        user.otp = undefined;
-        user.otpExpiresAt = undefined;
-        await user.save();
-
-        // Invalidate all existing sessions for security
-        await this.logoutAll(user._id.toString());
-
-        return { message: "Password reset successfully" };
+    if (!user.otp || !user.otpExpiresAt) {
+      throw new BadRequest("No OTP found. Please request a new one.");
     }
 
-    private generateToken(userId: string, email: string) {
-        // jwt.sign typing requires Secret type and options cast correctly
-        const payload = { userId, email };
-        const secret = env.JWT_SECRET as jwt.Secret;
-        // cast to any because Jwt.SignOptions.expiresIn expects a strict template literal type
-        const options: jwt.SignOptions = {
-            expiresIn: (env.JWT_EXPIRATION || "7d") as any,
-        };
-
-        return jwt.sign(payload, secret, options);
+    if (user.otpExpiresAt < new Date()) {
+      throw new BadRequest("OTP has expired");
     }
 
-    // --------------------- User Management ---------------------
-    async getUserById(userId: string) {
-        const user = await User.findById(userId).select("-password");
-        if (!user) {
-            throw new NotFound("User not found");
-        }
-        return user;
+    const isValid = await bcrypt.compare(otp, user.otp);
+    if (!isValid) {
+      throw new BadRequest("Invalid OTP");
     }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    await user.save();
+
+    // Invalidate all existing sessions for security
+    await this.logoutAll(user._id.toString());
+
+    return { message: "Password reset successfully" };
+  }
+
+  private generateToken(userId: string, email: string) {
+    // jwt.sign typing requires Secret type and options cast correctly
+    const payload = { userId, email };
+    const secret = env.JWT_SECRET as jwt.Secret;
+    // cast to any because Jwt.SignOptions.expiresIn expects a strict template literal type
+    const options: jwt.SignOptions = {
+      expiresIn: (env.JWT_EXPIRATION || "7d") as any,
+    };
+
+    return jwt.sign(payload, secret, options);
+  }
+
+  // --------------------- User Management ---------------------
+  async getUserById(userId: string) {
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      throw new NotFound("User not found");
+    }
+    return user;
+  }
 }
 
 export const authService = new AuthService();

@@ -32,12 +32,8 @@ const handleRes = async (res: Response) => {
 
   if (!res.ok) {
     const errorMessage =
-<<<<<<< HEAD
       (json as any).message || `API Error: ${res.status} ${res.statusText}`;
-=======
-      (json as any).message ||
-      `API Error: ${res.status} ${res.statusText}`;
->>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
+    (json as any).message || `API Error: ${res.status} ${res.statusText}`;
 
     console.error("[API_ERROR] Payment API Error:", {
       status: res.status,
@@ -46,11 +42,8 @@ const handleRes = async (res: Response) => {
       fullResponse: json,
     });
 
-<<<<<<< HEAD
     return handleApiResponse(res);
 
-=======
->>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
     throw new Error(errorMessage);
   }
 
@@ -72,7 +65,7 @@ export const createPaymentApi = async (bookingId: string) => {
 export const setPaymentModeApi = async (
   bookingId: string,
   paymentType: TouristPaymentMode,
-) => {
+): Promise<any> => {
   const res = await fetch(`${base_url}payments/booking/${bookingId}/mode`, {
     method: "POST",
     headers: authHeaders(),

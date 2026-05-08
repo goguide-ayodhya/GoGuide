@@ -174,7 +174,10 @@ export const logoutUser = async () => {
 
   if (!res.ok) {
     if (isAuthError(res.status)) {
-      handleAuthError({ message: "Logout failed due to invalid or expired session", statusCode: res.status });
+      handleAuthError({
+        message: "Logout failed due to invalid or expired session",
+        statusCode: res.status,
+      });
     }
     throw new Error("Logout failed");
   }
@@ -189,7 +192,10 @@ export const logoutAllUsers = async () => {
 
   if (!res.ok) {
     if (isAuthError(res.status)) {
-      handleAuthError({ message: "Logout all failed due to invalid or expired session", statusCode: res.status });
+      handleAuthError({
+        message: "Logout all failed due to invalid or expired session",
+        statusCode: res.status,
+      });
     }
     throw new Error("Logout all failed");
   }
@@ -220,7 +226,11 @@ export const getMe = async () => {
 
   const json = await res.json();
   if (!res.ok) {
-    throwAuthAwareError(json.message || "Failed to fetch user", json.errors, res.status);
+    throwAuthAwareError(
+      json.message || "Failed to fetch user",
+      json.errors,
+      res.status,
+    );
   }
 
   return json.data;
@@ -249,7 +259,11 @@ export const changePassword = async (data: {
         res.status,
       );
     }
-    throwAuthAwareError(json.message || "Change password failed", undefined, res.status);
+    throwAuthAwareError(
+      json.message || "Change password failed",
+      undefined,
+      res.status,
+    );
   }
 
   return json.data;
@@ -298,23 +312,23 @@ export class ApiError extends Error {
   }
 }
 
-<<<<<<< HEAD
 /**
  * Helper function to throw ApiError and check for auth errors
  * If auth error detected, triggers automatic logout and redirect
  */
-function throwAuthAwareError(message: string, errors?: Record<string, string>, statusCode?: number) {
+function throwAuthAwareError(
+  message: string,
+  errors?: Record<string, string>,
+  statusCode?: number,
+) {
   // Check if this is an auth error and handle accordingly
   if (isAuthError(statusCode, message)) {
     console.warn("[AUTH-API] Authentication error detected, triggering logout");
     handleAuthError({ message, statusCode });
   }
-  
+
   throw new ApiError(message, errors, statusCode);
 }
-
-=======
->>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
 export const loginWithGoogle = async (payload: { idToken: string }) => {
   const res = await fetch(`${base_url}auth/google/login`, {
     method: "POST",
@@ -326,11 +340,16 @@ export const loginWithGoogle = async (payload: { idToken: string }) => {
 
   const json = await parseResponse(res);
   if (!res.ok) {
-<<<<<<< HEAD
-    throwAuthAwareError(json.message || "Google login failed", json.errors, res.status);
-=======
-    throw new ApiError(json.message || "Google login failed", json.errors, res.status);
->>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
+    throwAuthAwareError(
+      json.message || "Google login failed",
+      json.errors,
+      res.status,
+    );
+    throw new ApiError(
+      json.message || "Google login failed",
+      json.errors,
+      res.status,
+    );
   }
   if (!json?.data) {
     throw new Error("Invalid Google login response");
@@ -352,11 +371,11 @@ export const signupWithGoogle = async (payload: {
 
   const json = await parseResponse(res);
   if (!res.ok) {
-<<<<<<< HEAD
-    throwAuthAwareError(json.message || "Google signup failed", json.errors, res.status);
-=======
-    throw new ApiError(json.message || "Google signup failed", json.errors, res.status);
->>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
+    throwAuthAwareError(
+      json.message || "Google signup failed",
+      json.errors,
+      res.status,
+    );
   }
   if (!json?.data) {
     throw new Error("Invalid Google signup response");
