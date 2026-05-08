@@ -18,9 +18,11 @@ import { useToast } from "@/hooks/use-toast";
 import Link from "next/dist/client/link";
 import { Save, Lock } from "lucide-react";
 import { Header } from "@/components/common/Header";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -239,7 +241,12 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (error) {}
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    router.push("/login");
   };
 
   if (!user) return null;
