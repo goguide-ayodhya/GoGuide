@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import { handleApiResponse } from "./authErrorHandler";
 
+=======
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
 const base_url = process.env.NEXT_PUBLIC_BASE_URL
 
 const getToken = () => {
@@ -27,12 +30,20 @@ const authHeaders = () => {
 // Public
 export const getAllDrivers = async () => {
   const res = await fetch(`${base_url}drivers`);
+<<<<<<< HEAD
   return handleApiResponse(res);
+=======
+  return handleRes(res);
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
 };
 
 export const getDriverById = async (id: string) => {
   const res = await fetch(`${base_url}drivers/${id}`);
+<<<<<<< HEAD
   return handleApiResponse(res);
+=======
+  return handleRes(res);
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
 };
 
 // Protected

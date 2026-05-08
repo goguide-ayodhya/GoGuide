@@ -298,6 +298,7 @@ export class ApiError extends Error {
   }
 }
 
+<<<<<<< HEAD
 /**
  * Helper function to throw ApiError and check for auth errors
  * If auth error detected, triggers automatic logout and redirect
@@ -312,6 +313,8 @@ function throwAuthAwareError(message: string, errors?: Record<string, string>, s
   throw new ApiError(message, errors, statusCode);
 }
 
+=======
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
 export const loginWithGoogle = async (payload: { idToken: string }) => {
   const res = await fetch(`${base_url}auth/google/login`, {
     method: "POST",
@@ -323,7 +326,11 @@ export const loginWithGoogle = async (payload: { idToken: string }) => {
 
   const json = await parseResponse(res);
   if (!res.ok) {
+<<<<<<< HEAD
     throwAuthAwareError(json.message || "Google login failed", json.errors, res.status);
+=======
+    throw new ApiError(json.message || "Google login failed", json.errors, res.status);
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
   }
   if (!json?.data) {
     throw new Error("Invalid Google login response");
@@ -345,7 +352,11 @@ export const signupWithGoogle = async (payload: {
 
   const json = await parseResponse(res);
   if (!res.ok) {
+<<<<<<< HEAD
     throwAuthAwareError(json.message || "Google signup failed", json.errors, res.status);
+=======
+    throw new ApiError(json.message || "Google signup failed", json.errors, res.status);
+>>>>>>> d0ee4af7f85c1f60a1977528887202f42df26d56
   }
   if (!json?.data) {
     throw new Error("Invalid Google signup response");
