@@ -1,5 +1,6 @@
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 import { LoginData, SignupData, User } from "@/contexts/AuthContext";
+import { isAuthError, handleAuthError } from "./authErrorHandler";
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -118,7 +119,7 @@ export const signupUser = async (data: SignupData) => {
 
     const json = await parseResponse(res);
     if (!res.ok) {
-      throw new ApiError(json.message, json.errors, res.status);
+      throwAuthAwareError(json.message, json.errors, res.status);
     }
 
     return json.data;
@@ -159,120 +160,24 @@ export const signupUser = async (data: SignupData) => {
 
   const json = await parseResponse(res);
   if (!res.ok) {
-    throw new ApiError(json.message, json.errors, res.status);
+    throwAuthAwareError(json.message, json.errors, res.status);
   }
 
   return json.data;
 };
 
-// Signup
-// export const signupUser = async (data: SignupData) => {
-//   const hasFiles =
-//     data.avatar ||
-//     data.profileImage ||
-//     data.certificates ||
-//     data.driverPhoto ||
-//     data.vehiclePhoto;
-
-//   if (!hasFiles) {
-//     // Send as JSON
-//     const res = await fetch(`${base_url}auth/signup`, {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify(data),
-//     });
-
-//     const json = await parseResponse(res);
-//     if (!res.ok) {
-//       throw new ApiError(
-//         json.message || `Signup failed with status ${res.status}`,
-//         json.errors,
-//         res.status,
-//       );
-//     }
-
-//     return json.data;
-//   }
-
-//   // Send as FormData
-//   const form = new FormData();
-//   const { email } = data;
-
-//   form.append("name", data.name);
-//   form.append("email", email || "");
-//   form.append("password", data.password);
-//   form.append("role", data.role);
-
-//   if (data.phone) form.append("phone", data.phone);
-//   if (data.avatar) form.append("avatar", data.avatar);
-
-//   // Updated fields for guides
-//   if (data.specialities) {
-//     data.specialities.forEach((spec) => form.append("specialities", spec));
-//   }
-//   if (data.price) form.append("price", data.price.toString());
-//   if (data.duration) form.append("duration", data.duration);
-//   if (data.locations) {
-//     data.locations.forEach((loc) => form.append("locations", loc));
-//   }
-//   if (data.certificates && Array.isArray(data.certificates)) {
-//     data.certificates.forEach((cert) => {
-//       if (cert instanceof File) {
-//         form.append("certificates", cert);
-//       } else if (
-//         cert &&
-//         typeof cert === "object" &&
-//         "image" in cert &&
-//         cert.image instanceof File
-//       ) {
-//         form.append("certificates", cert.image);
-//       }
-//     });
-//   }
-
-//   // Driver fields
-//   if (data.vehicleType) form.append("vehicleType", data.vehicleType);
-//   if (data.vehicleName) form.append("vehicleName", data.vehicleName);
-//   if (data.vehicleNumber) form.append("vehicleNumber", data.vehicleNumber);
-//   if (data.seats) form.append("seats", data.seats);
-//   if (data.driverPhoto) form.append("driverPhoto", data.driverPhoto);
-//   if (data.vehiclePhoto) form.append("vehiclePhoto", data.vehiclePhoto);
-//   if (data.driverLicenseName)
-//     form.append("driverLicenseName", data.driverLicenseName);
-//   if (data.driverLicenseImage)
-//     form.append("driverLicense", data.driverLicenseImage);
-//   if (data.profileImage) form.append("profileImage", data.profileImage);
-
-//   console.log("SIGNUP PAYLOAD:", data);
-
-//   const res = await fetch(`${base_url}auth/signup`, {
-//     method: "POST",
-//     body: form,
-//   });
-
-//   console.log("SIGNUP PAYLOAD:", data);
-//   const json = await parseResponse(res);
-//   if (!res.ok) {
-//     throw new ApiError(
-//       json.message || `Signup failed with status ${res.status}`,
-//       json.errors,
-//       res.status,
-//     );
-//   }
-
-//   return json.data;
-// };
-
-// Logout
 export const logoutUser = async () => {
   const res = await fetch(`${base_url}auth/logout`, {
     method: "POST",
     headers: authHeaders(),
   });
 
-  if (!res.ok) throw new Error("Logout failed");
+  if (!res.ok) {
+    if (isAuthError(res.status)) {
+      handleAuthError({ message: "Logout failed due to invalid or expired session", statusCode: res.status });
+    }
+    throw new Error("Logout failed");
+  }
 };
 
 // Logout All
@@ -282,7 +187,12 @@ export const logoutAllUsers = async () => {
     headers: authHeaders(),
   });
 
-  if (!res.ok) throw new Error("Logout all failed");
+  if (!res.ok) {
+    if (isAuthError(res.status)) {
+      handleAuthError({ message: "Logout all failed due to invalid or expired session", statusCode: res.status });
+    }
+    throw new Error("Logout all failed");
+  }
 };
 
 export const validateTokenApi = async () => {
@@ -294,7 +204,7 @@ export const validateTokenApi = async () => {
 
   const json = await res.json();
   if (!res.ok) {
-    throw new ApiError(
+    throwAuthAwareError(
       json.message || "Validate Token Failed",
       json.errors,
       res.status,
@@ -310,7 +220,7 @@ export const getMe = async () => {
 
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(json.message || "Failed to fetch user");
+    throwAuthAwareError(json.message || "Failed to fetch user", json.errors, res.status);
   }
 
   return json.data;
@@ -333,9 +243,13 @@ export const changePassword = async (data: {
     // Handle validation errors
     if (json.errors) {
       const errorMessages = Object.values(json.errors).join(", ");
-      throw new Error(errorMessages || json.message);
+      throwAuthAwareError(
+        errorMessages || json.message,
+        json.errors,
+        res.status,
+      );
     }
-    throw new Error(json.message);
+    throwAuthAwareError(json.message || "Change password failed", undefined, res.status);
   }
 
   return json.data;
@@ -384,6 +298,61 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Helper function to throw ApiError and check for auth errors
+ * If auth error detected, triggers automatic logout and redirect
+ */
+function throwAuthAwareError(message: string, errors?: Record<string, string>, statusCode?: number) {
+  // Check if this is an auth error and handle accordingly
+  if (isAuthError(statusCode, message)) {
+    console.warn("[AUTH-API] Authentication error detected, triggering logout");
+    handleAuthError({ message, statusCode });
+  }
+  
+  throw new ApiError(message, errors, statusCode);
+}
+
+export const loginWithGoogle = async (payload: { idToken: string }) => {
+  const res = await fetch(`${base_url}auth/google/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await parseResponse(res);
+  if (!res.ok) {
+    throwAuthAwareError(json.message || "Google login failed", json.errors, res.status);
+  }
+  if (!json?.data) {
+    throw new Error("Invalid Google login response");
+  }
+  return json.data;
+};
+
+export const signupWithGoogle = async (payload: {
+  idToken: string;
+  role: string;
+}) => {
+  const res = await fetch(`${base_url}auth/google/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const json = await parseResponse(res);
+  if (!res.ok) {
+    throwAuthAwareError(json.message || "Google signup failed", json.errors, res.status);
+  }
+  if (!json?.data) {
+    throw new Error("Invalid Google signup response");
+  }
+  return json.data;
+};
+
 export const loginUser = async (payload: {
   identifier: string;
   password: string;
@@ -400,7 +369,7 @@ export const loginUser = async (payload: {
   const result = await res.json();
   if (!res.ok) {
     // Throw custom error with field-level errors if available
-    throw new ApiError(
+    throwAuthAwareError(
       result?.message || "Login failed",
       result?.errors,
       res.status,

@@ -67,20 +67,21 @@ export default function Home() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      if (user?.role === "GUIDE") router.push("/guide/dashboard");
-      if (user?.role === "DRIVER") router.push("/driver/dashboard");
+      if (user?.role === "GUIDE" && user.isProfileComplete) router.push("/guide/dashboard");
+      if (user?.role === "DRIVER" && user.isProfileComplete) router.push("/driver/dashboard");
       if (user?.role === "TOURIST") router.push("/");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isLoggedIn]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div
-          className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"
-          aria-hidden="true"
-        ></div>
-        <span className="sr-only">Loading</span>
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
+        <Image width={70} height={70} src={assets.logo} alt="" />
+        <div className="mt-8 flex justify-center gap-2">
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce"></span>
+          <span className="w-3 h-3 bg-secondary rounded-full animate-bounce [animation-delay:0.2s]"></span>
+          <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></span>
+        </div>
       </div>
     );
   }

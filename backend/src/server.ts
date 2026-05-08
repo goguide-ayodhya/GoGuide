@@ -25,6 +25,8 @@ import settingsRoutes from "./routes/setting.routes";
 import notificationRoutes from "./routes/notification.routes";
 import payoutRoutes from "./routes/payout.routes";
 import supportRoutes from "./routes/setting.routes";
+import rideRoutes from "./routes/ride.routes";
+import mapRoutes from "./routes/maps.routes";
 import path from "path";
 
 const app: Application = express();
@@ -84,6 +86,8 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/rides", rideRoutes);
+app.use("/api/maps", mapRoutes);
 
 // Serve uploaded files when using local fallback storage
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

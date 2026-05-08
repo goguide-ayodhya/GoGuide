@@ -1,3 +1,5 @@
+import { handleApiResponse, isAuthError } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -19,21 +21,32 @@ const authHeaders = () => {
 };
 
 const handleRes = async (res: Response) => {
-  const json = await res.json();
+  const text = await res.text();
+
+  let json = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = {};
+  }
+
   if (!res.ok) {
     const errorMessage =
-      json.message || `API Error: ${res.status} ${res.statusText}`;
+      (json as any).message || `API Error: ${res.status} ${res.statusText}`;
+
     console.error("[API_ERROR] Payment API Error:", {
       status: res.status,
       statusText: res.statusText,
       message: errorMessage,
       fullResponse: json,
     });
-    const error = new Error(errorMessage) as any;
-    error.response = { data: json, status: res.status };
-    throw error;
+
+    return handleApiResponse(res);
+
+    throw new Error(errorMessage);
   }
-  return json.data;
+
+  return (json as any).data;
 };
 
 export type TouristPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
@@ -78,12 +91,28 @@ export const createRazorpayOrderApi = async (
     },
   );
 
-  const json = await res.json().catch(() => ({}));
-  // If booking already has a pending/completed payment, backend may return 200 with data
-  // or 409 to indicate duplicate prevention. Treat 409 as a recoverable response.
+  const text = await res.text();
+  let json: any = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = {};
+  }
+
   if (res.ok) return json.data;
-  if (res.status === 409) return json.data ?? json; // return data when present, else full json
-  throw new Error(json.message || `API Error: ${res.status} ${res.statusText}`);
+  if (res.status === 409) return json.data ?? json;
+
+  const errorMessage =
+    json.message || `API Error: ${res.status} ${res.statusText}`;
+  if (isAuthError(res.status, errorMessage, json)) {
+    console.warn(
+      "[PAYMENTS_API] Authentication error detected, triggering logout",
+    );
+    const { handleAuthError } = await import("./authErrorHandler");
+    handleAuthError({ message: errorMessage });
+  }
+
+  throw new Error(errorMessage);
 };
 
 export const getBookingPaymentsApi = async (bookingId: string) => {

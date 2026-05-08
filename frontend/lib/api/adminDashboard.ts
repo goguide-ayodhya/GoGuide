@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -16,16 +18,10 @@ const authHeaders = () => {
   return headers;
 };
 
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message);
-  return json.data;
-};
-
 // PUBLIC
 export const getPublicStats = async () => {
   const res = await fetch(`${base_url}adminDashboard/public/stats`);
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // ADMIN
@@ -33,7 +29,7 @@ export const getAdminDashboard = async () => {
   const res = await fetch(`${base_url}adminDashboard/admin`, {
     headers: authHeaders(),
   });
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // GUIDE
@@ -41,7 +37,7 @@ export const getGuideDashboard = async () => {
   const res = await fetch(`${base_url}adminDashboard/guide`, {
     headers: authHeaders(),
   });
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // USER
@@ -49,5 +45,5 @@ export const getUserDashboard = async () => {
   const res = await fetch(`${base_url}adminDashboard/user`, {
     headers: authHeaders(),
   });
-  return handleRes(res);
+  return handleApiResponse(res);
 };

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
 import { User } from "../models/User";
 import { Guide } from "../models/Guide";
 import { env } from "../config/environment";
@@ -9,7 +10,7 @@ import {
     Unauthorized,
     NotFound,
 } from "../utils/httpException";
-import { LoginInput, SignupInput } from "../validations/auth";
+import { LoginInput, SignupInput, GoogleLoginInput, GoogleSignupInput } from "../validations/auth";
 import { Driver } from "../models/Driver";
 import { sendEmail } from "../config/email.config";
 import { logger } from "../utils/logger";
@@ -32,8 +33,18 @@ export class AuthService {
             throw new Unauthorized("Invalid email/phone or password");
         }
 
-        if (user.status === "BLOCKED" || user.status === "SUSPENDED" || user.status === "DELETED") {
-            throw new BadRequest(`Account is ${user.status.toLowerCase()}`);
+        if (user.role === "GUIDE" || user.role === "DRIVER") {
+            if (!user.isEmailVerified) {
+                throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
+            }
+
+            if (!user.isProfileComplete) {
+                throw new BadRequest("PROFILE_INCOMPLETE", { role: user.role });
+            }
+
+            if (!user.status || user.status !== "ACTIVE") {
+                throw new BadRequest("ACCOUNT_INACTIVE");
+            }
         }
 
         await User.findByIdAndUpdate(user._id, {
@@ -42,29 +53,16 @@ export class AuthService {
 
         const token = this.generateToken(user._id.toString(), user.email || "");
 
-        const userData = {
-            id: user._id.toString(),
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            phone: user.phone,
-            isEmailVerified: user.isEmailVerified,
-            isProfileComplete: user.isProfileComplete,
-            profileStep: user.profileStep,
-        };
-
-        if ((user.role === "GUIDE" || user.role === "DRIVER") && !user.isProfileComplete) {
-            throw new BadRequest("Profile is incomplete", {
-                code: "PROFILE_INCOMPLETE",
-                role: user.role,
-                profileStep: user.profileStep || 1,
-                user: userData,
-                token
-            });
-        }
-
         return {
-            user: userData,
+            user: {
+                id: user._id.toString(),
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                phone: user.phone,
+                isEmailVerified: user.isEmailVerified,
+                isProfileComplete: user.isProfileComplete,
+            },
             token,
         };
     }
@@ -117,7 +115,7 @@ export class AuthService {
                 vehicleName: input.vehicleName || "",
                 vehicleNumber: input.vehicleNumber || "",
                 seats: input.seats || 0,
-                images: [input.driverPhoto, input.vehiclePhoto].filter(
+                images: [input.driverPhoto].filter(
                     Boolean,
                 ) as string[],
                 verificationStatus: "PENDING",
@@ -147,6 +145,198 @@ export class AuthService {
                 email: user.email,
                 name: user.name,
                 role: user.role,
+                avatar: user.avatar,
+            },
+            token,
+        };
+    }
+
+    private async verifyGoogleToken(idToken: string) {
+        if (!env.GOOGLE_CLIENT_ID) {
+            throw new Unauthorized("Google client is not configured");
+        }
+
+        const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email || !payload.sub) {
+            throw new Unauthorized("Invalid Google token");
+        }
+
+        if (!payload.email_verified) {
+            throw new Unauthorized("Google email is not verified");
+        }
+
+        return {
+            email: payload.email.toLowerCase(),
+            googleId: payload.sub,
+            name: payload.name || payload.email.split("@")[0],
+            avatar: payload.picture || "",
+        };
+    }
+
+    async googleLogin(idToken: string) {
+        const { email, googleId, name, avatar } = await this.verifyGoogleToken(idToken);
+
+        let user = await User.findOne({ googleId });
+        if (!user) {
+            user = await User.findOne({ email });
+        }
+
+        if (!user) {
+            throw new NotFound("Google account not linked. Please sign up first.");
+        }
+
+        if (!user.googleId) {
+            if (user.email && user.email !== email) {
+                throw new Conflict("This email is already linked to another account");
+            }
+            user.googleId = googleId;
+            user.authProvider = "GOOGLE";
+            user.name = user.name || name;
+            user.avatar = user.avatar || avatar;
+        }
+
+        user.isEmailVerified = true;
+        user.lastLoginAt = new Date();
+
+        if (user.role === "TOURIST" && user.status !== "ACTIVE") {
+            user.status = "ACTIVE";
+        }
+
+        await user.save();
+
+        if (user.role === "GUIDE" || user.role === "DRIVER") {
+            if (!user.isEmailVerified) {
+                throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
+            }
+
+            if (!user.isProfileComplete) {
+                throw new BadRequest("PROFILE_INCOMPLETE", {
+                    role: user.role,
+                    profileStep: user.profileStep || 1,
+                });
+            }
+
+            if (!user.status || user.status !== "ACTIVE") {
+                throw new BadRequest("ACCOUNT_INACTIVE");
+            }
+        }
+
+        const token = this.generateToken(user._id.toString(), user.email || "");
+
+        return {
+            user: {
+                id: user._id.toString(),
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                phone: user.phone,
+                isEmailVerified: user.isEmailVerified,
+                isProfileComplete: user.isProfileComplete,
+                avatar: user.avatar,
+            },
+            token,
+        };
+    }
+
+    async googleSignup(input: GoogleSignupInput) {
+        const { idToken, role } = input;
+        const { email, googleId, name, avatar } = await this.verifyGoogleToken(idToken);
+
+        let user = await User.findOne({ googleId });
+        if (!user) {
+            user = await User.findOne({ email });
+        }
+
+        if (user) {
+            if (user.role !== role) {
+                throw new Conflict("Email is already registered with a different role");
+            }
+
+            if (user.googleId && user.googleId !== googleId) {
+                throw new Conflict("This Google account is linked to another user");
+            }
+
+            user.googleId = googleId;
+            user.authProvider = "GOOGLE";
+            user.name = user.name || name;
+            user.avatar = user.avatar || avatar;
+            user.isEmailVerified = true;
+
+            if (user.role === "TOURIST") {
+                user.status = "ACTIVE";
+                user.isProfileComplete = true;
+            }
+
+            await user.save();
+        } else {
+            const randomPassword = `${Math.random().toString(36).slice(2)}${Date.now()}`;
+            const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+            user = await User.create({
+                email,
+                password: hashedPassword,
+                name,
+                phone: `google-${googleId}`,
+                avatar,
+                role,
+                status: role === "TOURIST" ? "ACTIVE" : "INACTIVE",
+                authProvider: "GOOGLE",
+                googleId,
+                isEmailVerified: true,
+                isProfileComplete: role === "TOURIST" ? true : false,
+            });
+
+            if (role === "GUIDE") {
+                await Guide.create({
+                    userId: user._id,
+                    specialities: [],
+                    locations: [],
+                    price: 500,
+                    duration: "4 hours",
+                    certificates: [],
+                    yearsOfExperience: 0,
+                    languages: [],
+                    verificationStatus: "PENDING",
+                    isAvailable: false,
+                    averageRating: 0,
+                    totalReviews: 0,
+                });
+            }
+
+            if (role === "DRIVER") {
+                await Driver.create({
+                    userId: user._id,
+                    vehicleType: "",
+                    vehicleName: "",
+                    vehicleNumber: "",
+                    seats: 0,
+                    images: [],
+                    verificationStatus: "PENDING",
+                    isAvailable: false,
+                    averageRating: 0,
+                    totalRides: 0,
+                    driverName: user.name,
+                });
+            }
+        }
+
+        const token = this.generateToken(user._id.toString(), user.email || "");
+
+        return {
+            user: {
+                id: user._id.toString(),
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                phone: user.phone,
+                isEmailVerified: user.isEmailVerified,
+                isProfileComplete: user.isProfileComplete,
                 avatar: user.avatar,
             },
             token,

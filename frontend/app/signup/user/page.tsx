@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export default function UserForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, signupWithGoogle } = useAuth();
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
@@ -53,6 +54,38 @@ export default function UserForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const handleGoogleResponse = async (
+    credentialResponse: CredentialResponse,
+  ) => {
+    setError("");
+    if (!credentialResponse?.credential) {
+      setError("Google login failed. Please try again.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const user = await signupWithGoogle(
+        credentialResponse.credential,
+        "TOURIST",
+      );
+      if (!user) {
+        throw new Error("Google signup did not return a user");
+      }
+      if (user.role === "GUIDE") {
+        router.push("/guide/dashboard");
+      } else if (user.role === "DRIVER") {
+        router.push("/driver/dashboard");
+      } else {
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError(err.message || "Google signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const passwordStrength = {
     hasLength: formData.password.length >= 8,
@@ -178,6 +211,21 @@ export default function UserForm() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <GoogleLogin
+              theme="filled_blue"
+              size="large"
+              shape="circle"
+              text="signin_with"
+              onSuccess={handleGoogleResponse}
+              onError={() => {
+                setError("Google login failed. Please try again.");
+              }}
+            />
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              Or create a new account with email and password.
+            </p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
@@ -291,7 +339,7 @@ export default function UserForm() {
 
             <Button
               type="submit"
-              className="w-full cursor-pointer"
+              className="w-full cursor-pointer rounded-full"
               disabled={loading}
             >
               {loading ? "Creating Account..." : "Create Account"}

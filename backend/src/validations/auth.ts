@@ -71,7 +71,6 @@ export const signupSchema = z.object({
     return value;
   }, z.number().optional()),
   driverPhoto: z.string().optional(),
-  vehiclePhoto: z.string().optional(),
   driverLicenseName: z.string().optional(),
   driverLicenseImage: z.string().optional(),
 });
@@ -132,7 +131,6 @@ export const updateProfileSchema = z.object({
   bio: z.string().optional(),
   profileImage: z.string().optional(),
   driverPhoto: z.string().optional(),
-  vehiclePhoto: z.string().optional(),
 });
 
 export const sendOtpSchema = z.object({
@@ -154,6 +152,17 @@ export const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const googleLoginSchema = z.object({
+  idToken: z.string().min(1, "Google ID token is required"),
+});
+
+export const googleSignupSchema = z.object({
+  idToken: z.string().min(1, "Google ID token is required"),
+  role: z.enum(["GUIDE", "TOURIST", "DRIVER"]),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
+export type GoogleLoginInput = z.infer<typeof googleLoginSchema>;
+export type GoogleSignupInput = z.infer<typeof googleSignupSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

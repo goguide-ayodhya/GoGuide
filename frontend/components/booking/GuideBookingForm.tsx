@@ -51,6 +51,7 @@ export function GuideBookingForm({
   const [phone, setPhone] = useState("");
   const [groupSize, setGroupSize] = useState("1");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [open, setOpen] = useState(false)
 
   const totalPrice = price;
 
@@ -179,24 +180,28 @@ export function GuideBookingForm({
       {/* Date */}
       <FormField label="Tour Date" error={errors.date} required>
         <div className="relative">
-          <Popover>
+          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant={"outline"}
+                onClick={() => setOpen(true)}
                 className={cn(
-                  "w-full justify-start text-left font-normal h-11 bg-muted border-0 hover:bg-muted/80",
+                  "w-full justify-start text-left font-normal group h-11 bg-muted border-0 hover:bg-muted/80",
                   !date && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-5 w-5 hover:text-primary" />
-                {date ? date.toLocaleDateString('en-GB') : <span>Pick a date</span>}
+                <CalendarIcon className="mr-2 h-5 w-5 group-hover:text-black" />
+                {date ? date.toLocaleDateString('en-GB') : <span className="group-hover:text-black">Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(date) => {
+                  setDate(date)
+                  setOpen(false)
+                }}
                 disabled={(d) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
@@ -210,17 +215,9 @@ export function GuideBookingForm({
       </FormField>
 
       {/* Time */}
-      <FormField label="Start Time" error={errors.time} required>
-        <div className="relative">
-          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="pl-10 bg-muted border-0"
-          />
-        </div>
-      </FormField>
+      <FormField label="Start Time" error={errors.time} required> <div className="relative"> <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" /> <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="pl-10 bg-muted border-0" /> </div> </FormField>
+
+
       <FormField label="Your Name" error={errors.touristName} required>
         <Input
           value={touristName}
@@ -349,7 +346,7 @@ export function GuideBookingForm({
         <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">Price Breakdown</h4>
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Base Price</span>
-          <span>₹{Math.round(totalPrice / 1.05)}</span>
+          <span>₹{Math.round(totalPrice)}</span>
         </div>
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>GST (5%)</span>
@@ -358,7 +355,7 @@ export function GuideBookingForm({
         <div className="flex justify-between pt-2 border-t border-secondary/20 font-semibold text-foreground">
           <span>Total</span>
           <span className="text-secondary text-lg">
-            ₹{totalPrice}
+            ₹{totalPrice + Math.round(totalPrice - (totalPrice / 1.05))}
           </span>
         </div>
       </div>

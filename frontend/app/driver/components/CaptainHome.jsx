@@ -1,13 +1,12 @@
-import React, { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useRef, useState, useEffect, useContext } from 'react'
+import Link from 'next/link'
 import CaptainDetails from '../components/CaptainDetails'
 import RidePopUp from '../components/RidePopUp'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import ConfirmRidePopUp from '../components/ConfirmRidePopUp'
-import { useEffect, useContext } from 'react'
-import { SocketContext } from '../context/SocketContext'
-import { CaptainDataContext } from '../context/CapatainContext'
+import { SocketContext } from '@/contexts/cabs/SocketContext'
+import { useAuth } from '@/contexts/AuthContext'
 import axios from 'axios'
 
 const CaptainHome = () => {
@@ -20,19 +19,22 @@ const CaptainHome = () => {
     const [ ride, setRide ] = useState(null)
 
     const { socket } = useContext(SocketContext)
-    const { captain } = useContext(CaptainDataContext)
+    const { user: captain } = useAuth()
 
     useEffect(() => {
+        if (!captain?._id && !captain?.id) return;
+        const captainId = captain._id || captain.id;
+
         socket.emit('join', {
-            userId: captain._id,
-            userType: 'captain'
+            userId: captainId,
+            userType: 'driver'
         })
         const updateLocation = () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
 
                     socket.emit('update-location-captain', {
-                        userId: captain._id,
+                        userId: captainId,
                         location: {
                             ltd: position.coords.latitude,
                             lng: position.coords.longitude
@@ -57,12 +59,8 @@ const CaptainHome = () => {
 
     async function confirmRide() {
 
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/confirm`, {
-
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/rides/confirm`, {
             rideId: ride._id,
-            captainId: captain._id,
-
-
         }, {
             headers: {
                 Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -103,7 +101,7 @@ const CaptainHome = () => {
         <div className='h-screen'>
             <div className='fixed p-6 top-0 flex items-center justify-between w-screen'>
                 <img className='w-16' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="" />
-                <Link to='/captain-home' className=' h-10 w-10 bg-white flex items-center justify-center rounded-full'>
+                <Link href='/driver/dashboard' className=' h-10 w-10 bg-white flex items-center justify-center rounded-full'>
                     <i className="text-lg font-medium ri-logout-box-r-line"></i>
                 </Link>
             </div>

@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -21,16 +23,6 @@ const authHeaders = () => {
   return headers;
 };
 
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) {
-    const error = new Error(json.message || "API error");
-    (error as any).errors = json.errors;
-    throw error;
-  }
-  return json.data;
-};
-
 // Create Booking
 export const createBooking = async (data: any) => {
   const res = await fetch(`${base_url}bookings/`, {
@@ -39,7 +31,7 @@ export const createBooking = async (data: any) => {
     body: JSON.stringify(data),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // My Bookings
@@ -48,7 +40,7 @@ export const getMyBookings = async () => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Guide Bookings
@@ -57,7 +49,7 @@ export const getGuideBookings = async () => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Driver Bookings
@@ -66,7 +58,7 @@ export const getDriverBookings = async () => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Get by ID
@@ -75,7 +67,7 @@ export const getBookingsById = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Cancel
@@ -86,7 +78,7 @@ export const cancelBookingApi = async (bookingId: string, reason: string) => {
     body: JSON.stringify({ reason }),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Guide Actions
@@ -97,7 +89,7 @@ export const acceptBookingApi = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 export const rejectBookingApi = async (bookingId: string) => {
@@ -107,7 +99,7 @@ export const rejectBookingApi = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 export const completeBookingApi = async (bookingId: string) => {
@@ -117,7 +109,7 @@ export const completeBookingApi = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Admin
@@ -127,5 +119,5 @@ export const seenBooking = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };

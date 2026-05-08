@@ -60,10 +60,6 @@ export interface Booking {
   adminCommission?: number;
   cancellationReason?: string;
   cancelledBy?: "GUIDE" | "TOURIST" | "DRIVER";
-  finalPrice?: number;
-  originalPrice?: number;
-  guideEarning?: number;
-  adminCommission?: number;
   createdAt: string;
   notes?: string;
   paymentMethod?: string;

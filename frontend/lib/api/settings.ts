@@ -1,3 +1,4 @@
+import { handleApiResponse } from "./authErrorHandler";
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -21,13 +22,11 @@ const authHeaders = () => {
 export const sendSupportMessageApi = async (message: string) => {
   const res = await fetch(`${base_url}support/send`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     body: JSON.stringify({ message }),
   });
 
-  return res.json();
+  return handleApiResponse(res);
 };
 
 // Profile
@@ -35,7 +34,8 @@ export const getProfile = async () => {
   const res = await fetch(`${base_url}settings/me`, {
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
 
 export const updateProfile = async (data: any) => {
@@ -44,5 +44,6 @@ export const updateProfile = async (data: any) => {
     headers: authHeaders(),
     body: JSON.stringify(data),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };

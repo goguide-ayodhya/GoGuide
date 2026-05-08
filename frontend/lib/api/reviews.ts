@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -17,13 +19,6 @@ const authHeaders = () => {
   }
   return headers;
 };
-
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Review API error");
-  return json.data;
-};
-
 // Create
 export const createReviewApi = async (bookingId: string, data: any) => {
   const res = await fetch(`${base_url}reviews/booking/${bookingId}`, {
@@ -32,7 +27,7 @@ export const createReviewApi = async (bookingId: string, data: any) => {
     body: JSON.stringify(data),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Guide Reviews
@@ -41,7 +36,7 @@ export const getGuideReviewsApi = async (guideId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Driver Reviews
@@ -50,7 +45,7 @@ export const getDriverReviewsApi = async (driverId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Booking Review
@@ -59,7 +54,7 @@ export const getBookingReviewApi = async (bookingId: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Update
@@ -70,7 +65,7 @@ export const updateReviewApi = async (reviewId: string, data: any) => {
     body: JSON.stringify(data),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Delete
@@ -80,8 +75,6 @@ export const deleteReviewApi = async (reviewId: string) => {
     headers: authHeaders(),
   });
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message);
-
+  await handleApiResponse(res, { allowEmpty: true });
   return true;
 };

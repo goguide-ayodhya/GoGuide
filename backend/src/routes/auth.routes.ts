@@ -5,6 +5,8 @@ import { authenticate } from "../middleware/auth";
 import {
   loginSchema,
   signupSchema,
+  googleLoginSchema,
+  googleSignupSchema,
   changePasswordSchema,
   sendOtpSchema,
   verifyOtpSchema,
@@ -27,7 +29,6 @@ router.post(
     { name: "avatar", maxCount: 1 },
     { name: "profileImage", maxCount: 1 },
     { name: "driverPhoto", maxCount: 1 },
-    { name: "vehiclePhoto", maxCount: 1 },
     { name: "driverLicense", maxCount: 1 },
   ]),
   validate(signupSchema),
@@ -39,6 +40,18 @@ router.post(
 router.post("/logout", authenticate, (req, res, next) => {
   authController.logout(req, res).catch(next);
 });
+
+router.post("/google/login", validate(googleLoginSchema), (req, res, next) => {
+  authController.googleLogin(req, res).catch(next);
+});
+
+router.post(
+  "/google/signup",
+  validate(googleSignupSchema),
+  (req, res, next) => {
+    authController.googleSignup(req, res).catch(next);
+  },
+);
 
 router.post("/logoutall", authenticate, (req, res, next) => {
   authController.logoutAll(req, res).catch(next);

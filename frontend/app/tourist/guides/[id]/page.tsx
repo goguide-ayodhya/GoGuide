@@ -254,7 +254,7 @@ export default function GuideDetailsPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">
-                                {cert.name || `Certificate ${index + 1}`}
+                                {cert.name && !cert.name.match(/\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i) && !cert.name.startsWith("http") ? cert.name : `Certificate ${index + 1}`}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 Click to view

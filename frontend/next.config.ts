@@ -5,15 +5,20 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(),
   },
+
   images: {
     remotePatterns: [
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
     ],
-    // domains: [],
   },
+
   typescript: {
     ignoreBuildErrors: true,
   },

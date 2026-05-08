@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -18,11 +20,6 @@ const authHeaders = () => {
   return headers;
 };
 
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Refund API error");
-  return json.data;
-};
 
 export type RefundStatus = "REQUESTED" | "PROCESSED" | "FAILED";
 
@@ -51,7 +48,7 @@ export const getBookingRefundsApi = async (
       headers: authHeaders(),
     },
   );
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 /**
@@ -61,7 +58,7 @@ export const getMyRefundsApi = async (): Promise<Refund[]> => {
   const res = await fetch(`${base_url}payments/my-refunds`, {
     headers: authHeaders(),
   });
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 /**
@@ -80,5 +77,5 @@ export const requestRefundApi = async (data: {
       reason: data.reason,
     }),
   });
-  return handleRes(res);
+  return handleApiResponse(res);
 };

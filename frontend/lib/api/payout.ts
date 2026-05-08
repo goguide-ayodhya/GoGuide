@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -9,15 +11,15 @@ const getToken = () => {
 
 const authHeaders = () => {
   const token = getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 };
 
 const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "Payout API error");
-  return json.data;
+  return handleApiResponse(res);
 };
 
 export type PayoutWalletSummary = {

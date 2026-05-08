@@ -1,3 +1,5 @@
+import { handleApiResponse, isAuthError } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 export const saveFCMTokenToBackend = async (token: string) => {
@@ -14,9 +16,7 @@ export const saveFCMTokenToBackend = async (token: string) => {
       body: JSON.stringify({ fcmToken: token }),
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to save FCM token");
-    }
+    await handleApiResponse(response);
   } catch (error) {
     console.warn("Error saving FCM token to backend:", error);
   }

@@ -1,5 +1,7 @@
-const base_url = process.env.NEXT_PUBLIC_BASE_URL;
+import { handleApiResponse } from "./authErrorHandler";
 import { RideData } from "@/types/ride";
+
+const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
@@ -26,21 +28,20 @@ const authHeaders = () => {
 };
 
 const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) {
-    const error = new Error(json.message || "API error");
-    (error as any).errors = json.errors;
-    throw error;
-  }
-  return json.data;
+  // Use centralized auth error handler that checks for 401, token expiry, etc.
+  return handleApiResponse(res);
 };
 
 export const getFare = async (pickup: string, destination: string) => {
   try {
-    const response = await fetch(`${base_url}/rides/get-fare`, {
-      headers: { ...authHeaders(), pickup, destination },
+    const url = new URL(`${base_url}/rides/get-fare`);
+    url.searchParams.append('pickup', pickup);
+    url.searchParams.append('destination', destination);
+    
+    const response = await fetch(url.toString(), {
+      headers: { ...authHeaders() },
     });
-    return handleRes(response);
+    return handleApiResponse(response);
   } catch (error) {
     console.error("Error fetching fare:", error);
     throw error;
@@ -54,7 +55,7 @@ export const createRide = async (rideData: RideData) => {
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(rideData),
     });
-    return handleRes(response);
+    return handleApiResponse(response);
   } catch (error) {
     console.error("Error creating ride:", error);
     throw error;

@@ -51,14 +51,12 @@ export class AuthController {
       const avatarUrl = await uploadImage(files?.avatar?.[0]);
       const profileImageUrl = await uploadImage(files?.profileImage?.[0]);
       const driverPhotoUrl = await uploadImage(files?.driverPhoto?.[0]);
-      const vehiclePhotoUrl = await uploadImage(files?.vehiclePhoto?.[0]);
       const driverLicenseUrl = await uploadImage(files?.driverLicense?.[0]);
 
       const response = await authService.signup({
         ...req.body,
         avatar: avatarUrl || profileImageUrl || "",
         driverPhoto: driverPhotoUrl,
-        vehiclePhoto: vehiclePhotoUrl,
         driverLicenseImage: driverLicenseUrl,
         driverLicenseName: req.body.driverLicenseName || "",
       });
@@ -66,6 +64,36 @@ export class AuthController {
       res.status(201).json({
         success: true,
         message: "Account created successfully",
+        data: response,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async googleLogin(req: AuthRequest, res: Response) {
+    try {
+      const { idToken } = req.body;
+      const response = await authService.googleLogin(idToken);
+
+      res.status(200).json({
+        success: true,
+        message: "Google login successful",
+        data: response,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async googleSignup(req: AuthRequest, res: Response) {
+    try {
+      const { idToken, role } = req.body;
+      const response = await authService.googleSignup({ idToken, role });
+
+      res.status(201).json({
+        success: true,
+        message: "Google signup successful",
         data: response,
       });
     } catch (error) {

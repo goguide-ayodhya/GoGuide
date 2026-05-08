@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -21,22 +23,12 @@ const authHeaders = () => {
   return headers;
 };
 
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) {
-    const error = new Error(json.message || "API error");
-    (error as any).errors = json.errors;
-    throw error;
-  }
-  return json.data;
-};
-
 export const getSuggestions = async (input: string) => {
   try {
     const response = await fetch(`${base_url}/maps/get-suggestions?input=${encodeURIComponent(input)}`, {
       headers: authHeaders(),
     });
-    return handleRes(response);
+    return handleApiResponse(response);
   } catch (error) {
     console.error('Error fetching suggestions:', error);
     throw error;

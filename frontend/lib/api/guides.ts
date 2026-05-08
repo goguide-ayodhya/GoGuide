@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -18,16 +20,11 @@ const authHeaders = () => {
   return headers;
 };
 
-const handleRes = async (res: Response) => {
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.message || "API error");
-  return json.data;
-};
 
 // Public
 export const getAllGuides = async () => {
   const res = await fetch(`${base_url}guides`);
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Protected
@@ -36,7 +33,7 @@ export const getGuideProfile = async () => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 export const getGuideById = async (id: string) => {
@@ -44,7 +41,7 @@ export const getGuideById = async (id: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 export const updateGuide = async (data: any) => {
@@ -104,7 +101,7 @@ export const updateGuide = async (data: any) => {
     body: formData,
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Availability
@@ -115,7 +112,7 @@ export const setAvailabilityApi = async (isAvailable: boolean) => {
     body: JSON.stringify({ isAvailable }),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // Online
@@ -126,7 +123,7 @@ export const setAvailabilityApi = async (isAvailable: boolean) => {
 //     body: JSON.stringify({ isOnline }),
 //   });
 
-//   return handleRes(res);
+//   return handleApiResponse(res);
 // };
 
 // Complete Profile
@@ -136,7 +133,7 @@ export const completeProfileApi = async () => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 // ADMIN
@@ -146,7 +143,7 @@ export const verifyGuide = async (id: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };
 
 export const rejectGuide = async (id: string) => {
@@ -155,5 +152,5 @@ export const rejectGuide = async (id: string) => {
     headers: authHeaders(),
   });
 
-  return handleRes(res);
+  return handleApiResponse(res);
 };

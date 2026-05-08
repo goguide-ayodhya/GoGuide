@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ type GuideSignupData = {
 
 export default function GuideSignupPage() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, signupWithGoogle } = useAuth();
   const [formData, setFormData] = useState<GuideSignupData>({
     name: "",
     email: "",
@@ -97,6 +98,27 @@ export default function GuideSignupPage() {
     return true;
   };
 
+  const handleGoogleResponse = async (credentialResponse: CredentialResponse) => {
+    setError("");
+    if (!credentialResponse?.credential) {
+      setError("Google signup failed. Please try again.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const user = await signupWithGoogle(credentialResponse.credential, "GUIDE");
+      if (!user) {
+        throw new Error("Google signup did not return a user");
+      }
+      router.push("/guide/complete-profile?step=1");
+    } catch (err: any) {
+      setError(err.message || "Google signup failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -154,6 +176,15 @@ export default function GuideSignupPage() {
         </CardHeader>
 
         <CardContent>
+          <div className="mb-4">
+            <GoogleLogin
+              onSuccess={handleGoogleResponse}
+              onError={() => setError("Google signup failed. Please try again.")}
+            />
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              Or create a new account with email and password.
+            </p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error Message */}
             {error && (
@@ -343,7 +374,7 @@ export default function GuideSignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white h-10 font-medium"
+              className="w-full bg-primary rounded-full hover:bg-primary/90 text-white h-10 font-medium"
             >
               {loading ? (
                 <>

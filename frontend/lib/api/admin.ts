@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./authErrorHandler";
+
 const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
 const getToken = () => {
@@ -21,7 +23,8 @@ export const getUsersApi = async () => {
   const res = await fetch(`${base_url}admin/users`, {
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
 
 // Block
@@ -30,7 +33,8 @@ export const blockUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
 
 // Activate
@@ -39,7 +43,8 @@ export const activateUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
 
 // Suspend
@@ -48,7 +53,8 @@ export const suspendUserApi = async (id: string) => {
     method: "PATCH",
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
 
 // Delete
@@ -57,5 +63,6 @@ export const deleteUserApi = async (id: string) => {
     method: "DELETE",
     headers: authHeaders(),
   });
-  return res.json();
+  // Check for auth errors and handle accordingly (401, expired tokens, etc.)
+  return handleApiResponse(res);
 };
