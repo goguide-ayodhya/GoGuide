@@ -113,7 +113,11 @@ function LoginPageContent(): JSX.Element {
 
         if (err.fieldErrors?.code === "PROFILE_INCOMPLETE") {
           const role = err.fieldErrors.role;
+          console.log("Role aftr login:", role);
+
           const step = err.fieldErrors.profileStep || 1;
+          console.log("Role aftr step:", step);
+          
           if (role === "DRIVER") {
             router.push(`/driver/complete-profile?step=${step}`);
           } else {

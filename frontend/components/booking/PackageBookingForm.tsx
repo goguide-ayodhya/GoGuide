@@ -7,8 +7,21 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
 import { PriceBreakdown } from "./PriceBreakdown";
 import { Card } from "@/components/ui/card";
-import { Calendar, Users, FileText, MapPin } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Users,
+  FileText,
+  MapPin,
+} from "lucide-react";
 import { poppins } from "@/lib/fonts";
+import { Calendar } from "@/components/ui/calendar";
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn, CURRENCY } from "@/lib/utils";
 
 interface PackageBookingFormProps {
   packagePrice?: number;
@@ -44,6 +57,8 @@ export function PackageBookingForm({
   buttonStyle,
   maxGroupSize = 3,
 }: PackageBookingFormProps) {
+  const [date, setDate] = useState<Date | undefined>();
+  const [open, setOpen] = useState(false);
   const { currentBooking, setCurrentBooking } = useBooking();
   const [startDate, setStartDate] = useState(currentBooking?.bookingDate || "");
   const [groupSize, setGroupSize] = useState(
@@ -221,19 +236,45 @@ export function PackageBookingForm({
         </h3>
         <div className="space-y-4">
           {/* Start Date */}
-          <FormField
-            label="Package Start Date"
-            error={errors.startDate}
-            required
-          >
+          <FormField label="Tour Date" error={errors.date} required>
             <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="pl-12 rounded-2xl border-slate-200 bg-slate-50"
-              />
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    onClick={() => setOpen(true)}
+                    className={cn(
+                      "w-full justify-start text-left font-normal group h-11 bg-muted border-0 hover:bg-muted/80",
+                      !date && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-5 w-5 group-hover:text-black" />
+                    {date ? (
+                      date.toLocaleDateString("en-GB")
+                    ) : (
+                      <span className="group-hover:text-black">
+                        Pick a date
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(date) => {
+                      setDate(date);
+                      setOpen(false);
+                    }}
+                    disabled={(d) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return d < today;
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </FormField>
 
@@ -350,7 +391,7 @@ export function PackageBookingForm({
         disabled={isLoading}
         className="w-full rounded-2xl h-12 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-base"
       >
-        {isLoading ? "Processing..." : "Proceed to Payment"}
+        {isLoading ? "Processing..." : "Proceed to Book"}
       </Button>
     </div>
   );

@@ -44,7 +44,10 @@ export class AuthService {
       }
 
       if (!user.isProfileComplete) {
-        throw new BadRequest("PROFILE_INCOMPLETE", { role: user.role });
+        throw new BadRequest("PROFILE_INCOMPLETE", {
+          role: user.role,
+          profileStep: user.profileStep || 1,
+        });
       }
 
       if (!user.status || user.status !== "ACTIVE") {

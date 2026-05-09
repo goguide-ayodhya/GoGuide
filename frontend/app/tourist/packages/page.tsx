@@ -7,6 +7,7 @@ import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { PackageCard } from "@/components/features/PackageCard";
 import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
@@ -134,7 +135,7 @@ export default function PackagesPage() {
                 </div>
               </div>
 
-              <div className="flex items-end grid gap-6 md:grid-cols-[1.6fr_1fr]">
+              <div className="flex items-end grid gap-6 justify-between md:grid-cols-[1.6fr_1fr]">
                 <label className="relative flex flex-col">
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -146,51 +147,55 @@ export default function PackagesPage() {
                 </label>
 
                 <div className="flex items-end justify-between">
-                  <div className="flex flex-col">
-                    <label className="text-sm font-semibold text-slate-700 mb-2">
-                      Sort by
-                    </label>
-                    <Select
-                      value={sortBy}
-                      onValueChange={(value: any) =>
-                        setSortBy(value as SortOption)
-                      }
-                    >
-                      <SelectTrigger className="rounded-3xl border-slate-200 bg-slate-50 text-slate-900">
-                        <SelectValue placeholder="Sort" />
-                      </SelectTrigger>
-                      <SelectContent className="text-sm font-semibold text-slate-500 mb-2">
-                        <SelectItem value="popular">Most Popular</SelectItem>
-                        <SelectItem value="price-low">
-                          Price: Low to High
-                        </SelectItem>
-                        <SelectItem value="price-high">
-                          Price: High to Low
-                        </SelectItem>
-                        <SelectItem value="duration">
-                          Duration (Shortest First)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm font-semibold text-slate-700 mb-2">
-                      Type
-                    </label>
-
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="rounded-3xl border-slate-200 bg-slate-50 text-slate-900">
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent className="text-sm font-semibold text-slate-500 mb-2">
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="basic">Basic</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex items-center justify-center gap-3">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 mb-2">
+                        Sort by
+                      </label>
+                    </div>
+                    <div>
+                      <Select
+                        value={sortBy}
+                        onValueChange={(value: any) =>
+                          setSortBy(value as SortOption)
+                        }
+                      >
+                        <SelectTrigger className="rounded-3xl border-slate-200 bg-slate-50 text-slate-900">
+                          <SelectValue placeholder="Sort" />
+                        </SelectTrigger>
+                        <SelectContent className="text-sm font-semibold text-slate-500 mb-2">
+                          <SelectItem value="popular">Most Popular</SelectItem>
+                          <SelectItem value="price-low">
+                            Price: Low to High
+                          </SelectItem>
+                          <SelectItem value="price-high">
+                            Price: High to Low
+                          </SelectItem>
+                          <SelectItem value="duration">
+                            Duration (Shortest First)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-col"></div>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {["all", "basic", "medium", "premium"].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(type)}
+                    className={`rounded-2xl border sm:px-4 py-2 text-xs font-semibold transition-all
+                          ${
+                            typeFilter === type
+                              ? "bg-slate-900 text-white border-slate-900"
+                              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                          }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
           </section>

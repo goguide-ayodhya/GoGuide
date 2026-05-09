@@ -149,7 +149,7 @@ const getVerificationBadge = (status: string) => {
       className="bg-muted text-muted-foreground border-border text-[10px] sm:text-xs"
       variant="outline"
     >
-      UNVERIFIED
+      PENDING
     </Badge>
   );
 };
@@ -566,9 +566,9 @@ export default function GuidesPage() {
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
                       Verification
                     </th>
-                    <th className="text-left text-xs font-medium text-muted-foreground py-3">
+                    {/* <th className="text-left text-xs font-medium text-muted-foreground py-3">
                       Available
-                    </th>
+                    </th> */}
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
                       Last Login
                     </th>
@@ -597,11 +597,14 @@ export default function GuidesPage() {
                         handleRowClick(user.id);
                       }}
                     >
-                      <td className="py-3 text-sm font-medium text-foreground">
-                        {user.id}
+                      <td
+                        className="py-3 text-sm font-medium text-foreground"
+                        title={user.id}
+                      >
+                        {user.id.slice(0, 5)}...
                       </td>
                       <td className="py-3 text-sm text-foreground">
-                        {user.name}
+                        {user.name.slice(0, 7)}...
                       </td>
                       <td className="py-3 text-sm text-muted-foreground">
                         {user.email}
@@ -619,7 +622,7 @@ export default function GuidesPage() {
                             )
                           : "-"}
                       </td>
-                      <td className="py-3 text-sm text-foreground">
+                      {/* <td className="py-3 text-sm text-foreground">
                         {user.role === "GUIDE" || user.role === "DRIVER"
                           ? user.isAvailable !== undefined
                             ? user.isAvailable
@@ -627,7 +630,7 @@ export default function GuidesPage() {
                               : "No"
                             : "-"
                           : "-"}
-                      </td>
+                      </td> */}
                       <td className="py-3 text-sm text-foreground">
                         {formatDate(user.lastLoginAt)}
                       </td>
@@ -677,36 +680,20 @@ export default function GuidesPage() {
                                 <Button
                                   variant="outline"
                                   className="h-8 px-2 text-[10px]"
-                                  disabled={actionLoading === user.id}
+                                  disabled={
+                                    actionLoading === user.id ||
+                                    user.status === "BLOCKED" ||
+                                    user.status === "SUSPENDED"
+                                  }
                                 >
                                   Verify
                                 </Button>
                               </AlertDialogTrigger>
+
                               <AlertDialogContent
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Verify{" "}
-                                    {user.role === "GUIDE" ? "Guide" : "Driver"}
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will verify the profile and activate
-                                    the{" "}
-                                    {user.role === "GUIDE" ? "guide" : "driver"}{" "}
-                                    account.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleUserAction("verify", user.id)
-                                    }
-                                  >
-                                    Verify
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
+                                ...
                               </AlertDialogContent>
                             </AlertDialog>
                           )}

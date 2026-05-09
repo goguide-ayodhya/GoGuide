@@ -696,7 +696,7 @@ function DriverSignupFlowContent() {
               </div>
             )}
 
-            {currentStep === 1 && !isLoggedIn && (
+            {/* {currentStep === 1 && !isLoggedIn && (
               <div className="mb-6">
                 <GoogleLogin
                   theme="filled_blue"
@@ -712,7 +712,7 @@ function DriverSignupFlowContent() {
                   Or continue with email and password.
                 </p>
               </div>
-            )}
+            )} */}
 
             {stepContent()}
 

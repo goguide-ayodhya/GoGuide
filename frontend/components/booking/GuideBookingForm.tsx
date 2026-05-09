@@ -6,7 +6,11 @@ import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
 import { Calendar as CalendarIcon, Clock, MapPin, Zap } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn, CURRENCY } from "@/lib/utils";
 
 interface GuideBookingFormProps {
@@ -51,7 +55,7 @@ export function GuideBookingForm({
   const [phone, setPhone] = useState("");
   const [groupSize, setGroupSize] = useState("1");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   const totalPrice = price;
 
@@ -81,7 +85,7 @@ export function GuideBookingForm({
     // Check if date/time is at least 1 hour in the future
     if (date && time) {
       const selectedDateTime = new Date(date);
-      const [hours, minutes] = time.split(':').map(Number);
+      const [hours, minutes] = time.split(":").map(Number);
       selectedDateTime.setHours(hours, minutes, 0, 0);
 
       const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
@@ -120,10 +124,32 @@ export function GuideBookingForm({
   };
 
   const meetingOptions = [
-    "Hotel Lobby",
-    "Ram Mandir Main Gate",
-    "Hanuman Garhi Temple",
-    "Ayodhya Train Station",
+    "Ram mandir",
+    "Hanuman garhi",
+    "Kanak bhawan",
+    "Dashrath Mahal",
+    "Rang mahal",
+    "Sita ki rasoi",
+    "Nageshwar nath",
+    "Kaleram",
+    "Treta ke thakur",
+    "Ram ki paidi",
+    "Hanuman gufa",
+    "Tulsi smarak bhawan",
+    "Ram janambhoomi workshop",
+    "Valmiki Ramayan bhawan",
+    "Jain shwetambar Temple",
+    "Jain Digambar Temple",
+    "Mani parbat",
+    "Maa Badi devkali (Kul Devi)",
+    "Guptar ghat (Shri Rama’s Jal Samadhi)",
+    "Panchmukhi Mahadev",
+    "Surya kund (laser show)",
+    "Chhapiye (Swaminarayan janmabhoomi)",
+    "Bharat kund (Nandigram)",
+    "Dogra temple Cantt",
+    "Maa kamakhya mandir (Rudauli)",
+    "Parijaat vriksh (Barabanki)",
   ];
 
   const filteredOptions = meetingOptions.filter((option) =>
@@ -187,11 +213,15 @@ export function GuideBookingForm({
                 onClick={() => setOpen(true)}
                 className={cn(
                   "w-full justify-start text-left font-normal group h-11 bg-muted border-0 hover:bg-muted/80",
-                  !date && "text-muted-foreground"
+                  !date && "text-muted-foreground",
                 )}
               >
                 <CalendarIcon className="mr-2 h-5 w-5 group-hover:text-black" />
-                {date ? date.toLocaleDateString('en-GB') : <span className="group-hover:text-black">Pick a date</span>}
+                {date ? (
+                  date.toLocaleDateString("en-GB")
+                ) : (
+                  <span className="group-hover:text-black">Pick a date</span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -199,8 +229,8 @@ export function GuideBookingForm({
                 mode="single"
                 selected={date}
                 onSelect={(date) => {
-                  setDate(date)
-                  setOpen(false)
+                  setDate(date);
+                  setOpen(false);
                 }}
                 disabled={(d) => {
                   const today = new Date();
@@ -215,8 +245,19 @@ export function GuideBookingForm({
       </FormField>
 
       {/* Time */}
-      <FormField label="Start Time" error={errors.time} required> <div className="relative"> <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" /> <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="pl-10 bg-muted border-0" /> </div> </FormField>
-
+      <FormField label="Start Time" error={errors.time} required>
+        {" "}
+        <div className="relative">
+          {" "}
+          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />{" "}
+          <Input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="pl-10 bg-muted border-0"
+          />{" "}
+        </div>{" "}
+      </FormField>
 
       <FormField label="Your Name" error={errors.touristName} required>
         <Input
@@ -343,19 +384,21 @@ export function GuideBookingForm({
 
       {/* Price Summary */}
       <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 space-y-2">
-        <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">Price Breakdown</h4>
+        <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">
+          Price Breakdown
+        </h4>
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>Base Price</span>
           <span>₹{Math.round(totalPrice)}</span>
         </div>
         <div className="flex justify-between text-sm text-muted-foreground">
           <span>GST (5%)</span>
-          <span>₹{Math.round(totalPrice - (totalPrice / 1.05))}</span>
+          <span>₹{Math.round(totalPrice - totalPrice / 1.05)}</span>
         </div>
         <div className="flex justify-between pt-2 border-t border-secondary/20 font-semibold text-foreground">
           <span>Total</span>
           <span className="text-secondary text-lg">
-            ₹{totalPrice + Math.round(totalPrice - (totalPrice / 1.05))}
+            ₹{totalPrice + Math.round(totalPrice - totalPrice / 1.05)}
           </span>
         </div>
       </div>
