@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useParams, useRouter } from "next/navigation";
 import { usePackage } from "@/contexts/TourPackageContext";
@@ -17,7 +16,6 @@ import {
   Users,
   Calendar,
   Star,
-  ChevronRight,
 } from "lucide-react";
 import { poppins } from "@/lib/fonts";
 import { getPackageById } from "@/lib/api/tourPackages";

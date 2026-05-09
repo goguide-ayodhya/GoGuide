@@ -236,7 +236,7 @@ export function PackageBookingForm({
         </h3>
         <div className="space-y-4">
           {/* Start Date */}
-          <FormField label="Tour Date" error={errors.date} required>
+          <FormField label="Tour Date" error={errors.startDate} required>
             <div className="relative">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
@@ -265,6 +265,9 @@ export function PackageBookingForm({
                     onSelect={(date) => {
                       setDate(date);
                       setOpen(false);
+                      if (date) {
+                        setStartDate(date.toISOString());
+                      }
                     }}
                     disabled={(d) => {
                       const today = new Date();

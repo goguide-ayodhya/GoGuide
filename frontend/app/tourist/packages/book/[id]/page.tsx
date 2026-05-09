@@ -165,6 +165,7 @@ export default function PackageBookingPage() {
       console.log("Booking created successfully:", booking);
 
       router.push(`/tourist/payment?bookingId=${bookingId}`);
+      
     } catch (error: any) {
       console.error("Booking creation error:", error);
       setIsSubmitting(false);

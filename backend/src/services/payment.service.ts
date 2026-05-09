@@ -8,6 +8,7 @@ import { NotificationService } from "./notification.service";
 import {
   advanceAmountForPartial,
   applyPaymentModePricing,
+  calculateFinalPrice,
   roundMoney,
 } from "../utils/bookingPricing";
 import {
@@ -518,12 +519,27 @@ export class PaymentService {
       );
     }
 
-    const pricing = applyPaymentModePricing({
-      originalPrice,
-      paidAmount,
-      mode: paymentType,
-      partialDiscountApplied: booking.partialDiscountApplied ?? false,
-    });
+    let pricing;
+    if (booking.bookingType === "PACKAGE") {
+      // For packages, no payment discount applies
+      pricing = calculateFinalPrice({
+        totalPrice: originalPrice,
+        discountPercent: 0,
+        paymentMode: paymentType,
+      });
+      pricing = {
+        ...pricing,
+        remainingAmount: roundMoney(pricing.finalPrice - paidAmount),
+        partialDiscountApplied: false,
+      };
+    } else {
+      pricing = applyPaymentModePricing({
+        originalPrice,
+        paidAmount,
+        mode: paymentType,
+        partialDiscountApplied: booking.partialDiscountApplied ?? false,
+      });
+    }
 
     booking.originalPrice = originalPrice;
     booking.discount = pricing.discount;
@@ -637,16 +653,6 @@ export class PaymentService {
       paymentType = "FULL";
       chargeAmount = remaining;
     }
-
-    console.log("💰 PAYMENT CALCULATION AUDIT:", {
-      bookingId,
-      finalPrice,
-      paidAmount,
-      remaining,
-      paymentType: booking.paymentType,
-      chargeAmount,
-      paymentStage,
-    });
 
     if (opts?.paymentStage && booking.paymentType === "FULL") {
       paymentStage = "FULL";
