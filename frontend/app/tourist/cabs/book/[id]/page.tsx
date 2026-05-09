@@ -108,7 +108,7 @@ export default function CabBookingPage() {
 
     try {
       const estimatedDistance = 10;
-      const totalPrice = estimatedDistance * driver.pricePerKm;
+      const totalPrice = estimatedDistance;
       const bookingDateTime = `${formData.bookingDate}T${formData.startTime}:00.000Z`;
 
       const bookingPayload = {

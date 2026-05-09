@@ -128,25 +128,21 @@ const RideForm = () => {
 
   return (
     <div className="h-screen relative overflow-hidden">
-      <img
-        className="w-16 absolute left-5 top-5"
-        src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png"
-        alt=""
-      />
-      <div className="h-screen w-screen">
+    
+      <div className="h-screen w-full">
         <LiveTracking />
       </div>
-      <div className="flex flex-col justify-end h-screen absolute top-0 w-full">
-        <div className="h-[30%] p-6 bg-white relative">
+      <div className="flex flex-col justify-end h-screen absolute top-0 w-full pointer-events-none">
+        <div className="h-[30%] sm:h-[35%] md:h-[40%] lg:h-[45%] xl:h-1/2 p-4 sm:p-6 md:p-8 bg-white relative shadow-lg pointer-events-auto rounded-t-3xl md:rounded-t-2xl">
           <h5
             onClick={() => setPanelOpen(false)}
-            className={`absolute right-6 top-6 text-2xl ${panelOpen ? "opacity-100" : "opacity-0"}`}
+            className={`absolute right-4 sm:right-6 top-4 sm:top-6 text-2xl cursor-pointer ${panelOpen ? "opacity-100" : "opacity-0"}`}
           >
             <i className="ri-arrow-down-wide-line"></i>
           </h5>
-          <h4 className="text-2xl font-semibold">Find a trip</h4>
+          <h4 className="text-xl sm:text-2xl font-semibold">Find a trip</h4>
           <form className="relative py-3">
-            <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-gray-700 rounded-full"></div>
+            <div className="line absolute h-12 sm:h-16 w-1 top-[50%] -translate-y-1/2 left-4 sm:left-5 bg-gray-700 rounded-full"></div>
             <input
               onClick={() => {
                 setPanelOpen(true);
@@ -154,7 +150,7 @@ const RideForm = () => {
               }}
               value={pickup}
               onChange={handlePickupChange}
-              className="bg-[#eee] px-12 py-2 text-lg rounded-lg w-full"
+              className="bg-[#eee] px-10 sm:px-12 py-2 sm:py-3 text-base sm:text-lg rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               type="text"
               placeholder="Add a pick-up location"
             />
@@ -165,14 +161,14 @@ const RideForm = () => {
               }}
               value={destination}
               onChange={handleDestinationChange}
-              className="bg-[#eee] px-12 py-2 text-lg rounded-lg w-full mt-3"
+              className="bg-[#eee] px-10 sm:px-12 py-2 sm:py-3 text-base sm:text-lg rounded-lg w-full mt-2 sm:mt-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
               type="text"
               placeholder="Enter your destination"
             />
           </form>
           <button
             onClick={findTrip}
-            className="bg-black text-white px-4 py-2 rounded-lg mt-3 w-full"
+            className="bg-black hover:bg-gray-800 text-white px-4 py-2 sm:py-3 rounded-lg mt-2 sm:mt-3 w-full font-medium transition"
           >
             Find Trip
           </button>
@@ -181,10 +177,10 @@ const RideForm = () => {
           {panelOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "70%", opacity: 1 }}
+              animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="bg-white overflow-hidden"
+              className="bg-white overflow-y-auto max-h-[60vh] md:max-h-[50vh] pointer-events-auto"
             >
               <LocationSearchPanel
                 suggestions={
@@ -207,7 +203,7 @@ const RideForm = () => {
         initial={{ y: "100%" }}
         animate={{ y: vehiclePanel ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed w-full z-10 bottom-0 bg-white px-3 py-10 pt-12"
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
       >
         <VehiclePanel
           selectVehicle={setVehicleType}
@@ -221,7 +217,7 @@ const RideForm = () => {
         initial={{ y: "100%" }}
         animate={{ y: confirmRidePanel ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed w-full z-10 bottom-0 bg-white px-3 py-6 pt-12"
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
       >
         <ConfirmRide
           createRide={handleCreateRide}
@@ -238,7 +234,7 @@ const RideForm = () => {
         initial={{ y: "100%" }}
         animate={{ y: vehicleFound ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed w-full z-10 bottom-0 bg-white px-3 py-6 pt-12"
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
       >
         <LookingForDriver
           createRide={handleCreateRide}
@@ -254,7 +250,7 @@ const RideForm = () => {
         initial={{ y: "100%" }}
         animate={{ y: waitingForDriver ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed w-full z-10 bottom-0 bg-white px-3 py-6 pt-12"
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
       >
         <WaitingForDriver
           ride={ride}

@@ -133,7 +133,9 @@ export class AuthService {
     // Send email verification if email is provided. Do not fail signup when email delivery fails.
     if (user.email && user.authProvider !== "GOOGLE") {
       try {
+        console.log("SIGNUP API HIT");
         await this.sendOtp(user.email);
+        console.log("SIGNUP API HIT");
       } catch (error) {
         logger.warn(
           `[AUTH] Signup succeeded but email OTP send failed for ${user.email}`,

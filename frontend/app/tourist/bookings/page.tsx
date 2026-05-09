@@ -287,10 +287,10 @@ export default function BookingsPage() {
     <main className="min-h-screen flex flex-col bg-background">
       <Header showBack={true} />
 
-      <div className="flex-1 px-4 py-8">
+      <div className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
         <div className="mx-auto flex items-center justify-center">
           {bookings.length === 0 ? (
-            <Card className="p-8 text-center max-w-xl">
+            <Card className="p-6 sm:p-8 md:p-10 text-center max-w-xl">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-foreground mb-2">
                 No Bookings Yet
@@ -309,9 +309,9 @@ export default function BookingsPage() {
             </Card>
           ) : (
             <div className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-                <aside className="hidden sticky lg:block sticky top-28 self-start">
-                  <Card className="space-y-4">
+              <div className="grid gap-4 sm:gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+                <aside className="hidden lg:block sticky top-32 self-start">
+                  <Card className="space-y-3 sm:space-y-4">
                     <CardHeader>
                       <CardTitle className="text-xl">Filters</CardTitle>
                       <CardDescription>

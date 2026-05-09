@@ -103,6 +103,9 @@ export const updateDriverProfile = async (data: any) => {
             formData.append(`existingLicenseImages`, item);
           }
         });
+      } else if (key === "languages" && Array.isArray(value)) {
+        // Send languages as JSON string for proper parsing on backend
+        formData.append(key, JSON.stringify(value));
       } else if (Array.isArray(value)) {
         value.forEach(item => {
           formData.append(key, String(item));
@@ -115,6 +118,7 @@ export const updateDriverProfile = async (data: any) => {
     });
 
     delete headers["Content-Type"];
+    console.log("[DRIVER-API] FormData being sent with languages:", data.languages);
 
     const res = await fetch(`${base_url}drivers/me/profile`, {
       method: "PUT",

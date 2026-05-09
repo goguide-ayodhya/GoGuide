@@ -170,6 +170,13 @@ export default function GuidesPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const providerDetails = selectedUserDetails?.providerDetails;
+  const driverLicenseImages = Array.isArray(providerDetails?.driverLicenseImage)
+    ? providerDetails.driverLicenseImage
+    : providerDetails?.driverLicenseImage
+      ? [providerDetails.driverLicenseImage]
+      : [];
+
   const fetchUsers = async (
     role: "all" | AdminRole,
     status: string,
@@ -838,10 +845,20 @@ export default function GuidesPage() {
       )}
 
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {" "}
           <DialogHeader>
-            <DialogTitle>User Profile</DialogTitle>
-            <DialogDescription>Detailed view of the user.</DialogDescription>
+            <DialogHeader>
+              <DialogTitle>
+                {selectedUserDetails?.role === "GUIDE"
+                  ? "Guide Profile"
+                  : selectedUserDetails?.role === "DRIVER"
+                    ? "Driver Profile"
+                    : "User Profile"}
+              </DialogTitle>
+
+              <DialogDescription>Detailed view of the user.</DialogDescription>
+            </DialogHeader>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {profileLoading ? (
@@ -851,9 +868,13 @@ export default function GuidesPage() {
             ) : selectedUserDetails ? (
               <div className="space-y-4 text-sm">
                 <div className="flex items-center gap-4">
-                  {selectedUserDetails.avatar ? (
+                  {selectedUserDetails.avatar ||
+                  providerDetails?.driverPhoto ? (
                     <img
-                      src={selectedUserDetails.avatar}
+                      src={
+                        selectedUserDetails.avatar ||
+                        providerDetails?.driverPhoto
+                      }
                       alt="Avatar"
                       className="w-16 h-16 rounded-full object-cover"
                     />
@@ -913,6 +934,7 @@ export default function GuidesPage() {
                       </p>
                     </div>
                   )}
+
                   <div>
                     <p className="text-muted-foreground text-xs">
                       Registered At
@@ -982,18 +1004,17 @@ export default function GuidesPage() {
                         </div>
                       )}
 
-                    {selectedUserDetails.providerDetails.vehicleType && (
+                    {selectedUserDetails.providerDetails.vehicleNumber && (
                       <div>
                         <p className="text-muted-foreground text-xs mb-1">
-                          Vehicle
+                          Vehicle Number
                         </p>
-                        <p className="text-sm font-medium">
-                          {selectedUserDetails.providerDetails.vehicleType} -{" "}
-                          {selectedUserDetails.providerDetails.vehicleNumber}
+
+                        <p className="font-medium">
+                          {providerDetails?.vehicleNumber}
                         </p>
                       </div>
                     )}
-
                     {selectedUserDetails.providerDetails.certificates &&
                       selectedUserDetails.providerDetails.certificates.length >
                         0 && (
@@ -1052,6 +1073,181 @@ export default function GuidesPage() {
                           </div>
                         </div>
                       )}
+
+                    {selectedUserDetails.role === "DRIVER" && (
+                      <div className="space-y-6 border-t pt-4">
+                        <h4 className="font-semibold text-base text-foreground">
+                          Driver Details
+                        </h4>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          {providerDetails?.vehicleType ||
+                          providerDetails?.vehicleName ? (
+                            <div>
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Vehicle
+                              </p>
+                              <p className="font-medium">
+                                {[
+                                  providerDetails?.vehicleType,
+                                  providerDetails?.vehicleName,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" - ") || "-"}
+                              </p>
+                            </div>
+                          ) : null}
+
+                          {providerDetails?.vehicleNumber && (
+                            <div>
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Vehicle Number
+                              </p>
+                              <p className="font-medium">
+                                {providerDetails.vehicleNumber}
+                              </p>
+                            </div>
+                          )}
+
+                          {providerDetails?.seats != null && (
+                            <div>
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Seats
+                              </p>
+                              <p className="font-medium">
+                                {providerDetails.seats}
+                              </p>
+                            </div>
+                          )}
+
+                          {providerDetails?.languages?.length > 0 && (
+                            <div className="sm:col-span-2">
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Languages
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {providerDetails.languages.map(
+                                  (lang: string) => (
+                                    <Badge
+                                      key={lang}
+                                      variant="secondary"
+                                      className="text-[10px]"
+                                    >
+                                      {lang}
+                                    </Badge>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="text-muted-foreground text-xs mb-1">
+                              Availability
+                            </p>
+                            <p className="font-medium">
+                              {providerDetails?.isAvailable
+                                ? "Available"
+                                : "Offline"}
+                            </p>
+                          </div>
+
+                          {providerDetails?.averageRating != null && (
+                            <div>
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Average Rating
+                              </p>
+                              <p className="font-medium">
+                                {providerDetails.averageRating}
+                              </p>
+                            </div>
+                          )}
+
+                          {providerDetails?.totalRides != null && (
+                            <div>
+                              <p className="text-muted-foreground text-xs mb-1">
+                                Total Rides
+                              </p>
+                              <p className="font-medium">
+                                {providerDetails.totalRides}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {driverLicenseImages.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-muted-foreground text-xs mb-1">
+                              License Information
+                            </p>
+                            {providerDetails?.driverLicenseName && (
+                              <p className="font-medium">
+                                {providerDetails.driverLicenseName}
+                              </p>
+                            )}
+                            <div className="flex flex-col gap-2">
+                              {driverLicenseImages.map(
+                                (
+                                  image: string | Blob | undefined,
+                                  idx: number,
+                                ) => (
+                                  <a
+                                    key={`${image}-${idx}`}
+                                    href={String(image)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sm bg-muted p-2 rounded-md flex items-center justify-between hover:bg-muted/80 transition"
+                                  >
+                                    <span className="text-primary font-medium">
+                                      View License {idx + 1}
+                                    </span>
+
+                                    <span className="text-xs text-muted-foreground">
+                                      Open
+                                    </span>
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {providerDetails?.vehiclePhoto && (
+                          <div className="space-y-2">
+                            <p className="text-muted-foreground text-xs mb-1">
+                              Vehicle Photo
+                            </p>
+                            <img
+                              src={providerDetails.vehiclePhoto}
+                              alt="Vehicle Photo"
+                              className="w-full max-w-xs rounded-xl object-cover border"
+                            />
+                          </div>
+                        )}
+
+                        {providerDetails?.currentLocation?.lat != null &&
+                          providerDetails?.currentLocation?.lng != null && (
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div>
+                                <p className="text-muted-foreground text-xs mb-1">
+                                  Current Latitude
+                                </p>
+                                <p className="font-medium">
+                                  {providerDetails.currentLocation.lat}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground text-xs mb-1">
+                                  Current Longitude
+                                </p>
+                                <p className="font-medium">
+                                  {providerDetails.currentLocation.lng}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

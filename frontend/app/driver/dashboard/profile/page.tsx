@@ -14,7 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DriverAvailabilityToggle } from "@/app/driver/components/driver-availability-toggle";
 import { DriverStatusCard } from "@/app/driver/components/driver-status-card";
-import { Upload, Save, Lock, X, Car, User, MapPin, FileText, Star } from "lucide-react";
+import {
+  Upload,
+  Save,
+  Lock,
+  X,
+  Car,
+  User,
+  MapPin,
+  FileText,
+  Star,
+} from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
@@ -41,14 +51,20 @@ export default function ProfilePage() {
     driverLicenseImages: myDriver?.driverLicenseImage || [],
     driverPhoto: myDriver?.driverPhoto || "",
     yearsOfExperience: myDriver?.totalRides || 0,
-    languages: (myDriver?.languages || []) as string[],
+    languages: Array.isArray(myDriver?.languages)
+  ? myDriver.languages
+  : [],
     reviews: myDriver?.totalRides,
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState("");
-  const [selectedLicenseImages, setSelectedLicenseImages] = useState<File[]>([]);
-  const [selectedDriverPhoto, setSelectedDriverPhoto] = useState<File | null>(null);
+  const [selectedLicenseImages, setSelectedLicenseImages] = useState<File[]>(
+    [],
+  );
+  const [selectedDriverPhoto, setSelectedDriverPhoto] = useState<File | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -78,7 +94,9 @@ export default function ProfilePage() {
       driverLicenseImages: myDriver.driverLicenseImage || [],
       driverPhoto: myDriver.driverPhoto || "",
       yearsOfExperience: myDriver.totalRides || 0,
-      languages: myDriver.languages || [],
+      languages: Array.isArray(myDriver.languages)
+  ? myDriver.languages
+  : [],
       reviews: myDriver.totalRides,
     });
   }, [myDriver, user]);
@@ -105,7 +123,10 @@ export default function ProfilePage() {
       languages: formData.languages,
       avatar: selectedImage,
       driverPhoto: selectedDriverPhoto,
-      driverLicenseImages: [...formData.driverLicenseImages, ...selectedLicenseImages],
+      driverLicenseImages: [
+        ...formData.driverLicenseImages,
+        ...selectedLicenseImages,
+      ],
       driverName: formData.name,
       phone: formData.phone,
     };
@@ -119,7 +140,9 @@ export default function ProfilePage() {
     setSelectedDriverPhoto(null);
   };
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -128,13 +151,6 @@ export default function ProfilePage() {
         name === "yearsOfExperience" || name === "seats"
           ? parseInt(value) || 0
           : value,
-    }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
     }));
   };
 
@@ -163,14 +179,6 @@ export default function ProfilePage() {
     setSelectedImage(file);
     const previewUrl = URL.createObjectURL(file);
     setPreviewImage(previewUrl);
-  };
-
-  const handleDriverPhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      return null;
-    }
-    setSelectedDriverPhoto(file);
   };
 
   const handleLicenseImagesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -349,7 +357,11 @@ export default function ProfilePage() {
                     ? previewImage
                     : user.avatar
                       ? user.avatar
-                      : assets.guideImage
+                      : myDriver?.driverPhoto
+                        ? myDriver.driverPhoto
+                        : user.profileImage
+                          ? user.profileImage
+                          : assets.guideImage
                 }
                 alt={user.name}
                 fill
@@ -448,46 +460,7 @@ export default function ProfilePage() {
                   placeholder="Your phone number"
                 />
               </div>
-              {/* <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Location
-                </label>
-                <Input
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="bg-muted border-border"
-                  placeholder="Your city/area"
-                />
-              </div> */}
             </div>
-
-            {/* <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Bio
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="w-full min-h-[100px] px-3 py-2 bg-muted border border-border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Tell tourists about yourself and your services..."
-              />
-            </div> */}
-
-            {/* {isEditing && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSave}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Save size={18} />
-                  {loading ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )} */}
           </div>
         </CardContent>
       </Card>
@@ -525,7 +498,7 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
-                  Vehicle Name
+                  Vehicle Nameī
                 </label>
                 <Input
                   name="vehicleName"
@@ -577,7 +550,9 @@ export default function ProfilePage() {
       <Card className="bg-card border border-border">
         <CardHeader>
           <CardTitle>Professional Documents</CardTitle>
-          <CardDescription>Your professional credentials and photos</CardDescription>
+          <CardDescription>
+            Your professional credentials and photos
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -596,47 +571,6 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
-            {/* Driver Photo */}
-            {/* <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Driver Photo
-              </label>
-              <div className="flex items-center gap-4">
-                {formData.driverPhoto && (
-                  <div className="relative w-32 aspect-square rounded-lg overflow-hidden border-2 border-border shadow-sm">
-                    <Image
-                      src={formData.driverPhoto}
-                      alt="Driver photo"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <input
-                    ref={driverPhotoInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleDriverPhotoChange}
-                  />
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => driverPhotoInputRef.current?.click()}
-                    disabled={!isEditing}
-                  >
-                    <Upload size={18} />
-                    {formData.driverPhoto ? "Replace Driver Photo" : "Upload Driver Photo"}
-                  </Button>
-                  {selectedDriverPhoto && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Selected: {selectedDriverPhoto.name}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div> */}
 
             {/* License Images */}
             <div>
@@ -672,10 +606,7 @@ export default function ProfilePage() {
               {formData.driverLicenseImages.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {formData.driverLicenseImages.map((image, index) => (
-                    <div
-                      key={index}
-                      className="relative group"
-                    >
+                    <div key={index} className="relative group">
                       <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-border shadow-sm">
                         <Image
                           src={image}
@@ -690,9 +621,12 @@ export default function ProfilePage() {
                           size="sm"
                           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              driverLicenseImages: prev.driverLicenseImages.filter((_, i) => i !== index)
+                              driverLicenseImages:
+                                prev.driverLicenseImages.filter(
+                                  (_, i) => i !== index,
+                                ),
                             }));
                           }}
                         >
@@ -755,19 +689,34 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2">Suggested Languages:</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Suggested Languages:
+                  </p>
                   <div className="flex flex-wrap gap-2">
-                    {["English", "Hindi", "Marathi", "Gujarati", "Bengali", "Tamil", "Telugu", "Kannada", "Malayalam", "French", "Spanish", "German"]
-                      .filter(lang => !formData.languages.includes(lang))
-                      .map(lang => (
+                    {[
+                      "English",
+                      "Hindi",
+                      "Marathi",
+                      "Gujarati",
+                      "Bengali",
+                      "Tamil",
+                      "Telugu",
+                      "Kannada",
+                      "Malayalam",
+                      "French",
+                      "Spanish",
+                      "German",
+                    ]
+                      .filter((lang) => !formData.languages.includes(lang))
+                      .map((lang) => (
                         <Badge
                           key={lang}
                           variant="outline"
                           className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                           onClick={() => {
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
-                              languages: [...prev.languages, lang]
+                              languages: [...prev.languages, lang],
                             }));
                           }}
                         >
@@ -792,9 +741,7 @@ export default function ProfilePage() {
             </Button>
           </div>
         )}
-
       </Card>
-
 
       {/* Account Settings */}
       <Card className="bg-card border border-border">

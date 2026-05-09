@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
 import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 
 const ConfirmRidePopUp = (props) => {
-    const [ otp, setOtp ] = useState('')
-    const navigate = useNavigate()
+    const [otp, setOtp] = useState('')
+    const router = useRouter()
 
-    const submitHander = async (e) => {
+    const submitHandler = async (e) => {
         e.preventDefault()
 
         const response = await axios.get(`${process.env.NEXT_PUBLIC_BASE_URL}/rides/start-ride`, {
@@ -23,65 +22,85 @@ const ConfirmRidePopUp = (props) => {
         if (response.status === 200) {
             props.setConfirmRidePopupPanel(false)
             props.setRidePopupPanel(false)
-            navigate('/captain-riding', { state: { ride: props.ride } })
+            router.push('/riding', { state: { ride: props.ride } })
         }
-
-
     }
+
     return (
-        <div>
-            <h5 className='p-1 text-center w-[93%] absolute top-0' onClick={() => {
-                props.setRidePopupPanel(false)
-            }}><i className="text-3xl text-gray-200 ri-arrow-down-wide-line"></i></h5>
-            <h3 className='text-2xl font-semibold mb-5'>Confirm this ride to Start</h3>
-            <div className='flex items-center justify-between p-3 border-2 border-yellow-400 rounded-lg mt-4'>
-                <div className='flex items-center gap-3 '>
-                    <img className='h-12 rounded-full object-cover w-12' src="https://i.pinimg.com/236x/af/26/28/af26280b0ca305be47df0b799ed1b12b.jpg" alt="" />
-                    <h2 className='text-lg font-medium capitalize'>{props.ride?.user.fullname.firstname}</h2>
+        <div className="w-full">
+            <button 
+                onClick={() => {
+                    props.setRidePopupPanel(false)
+                }}
+                className='sticky top-0 p-2 text-center w-full md:hidden focus:outline-none'
+            >
+                <i className="text-3xl text-gray-300 ri-arrow-down-wide-line"></i>
+            </button>
+            <h3 className='text-xl sm:text-2xl font-semibold mb-4 sm:mb-5'>Confirm Ride to Start</h3>
+            <div className='flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 border-2 border-yellow-300 rounded-lg mt-3 sm:mt-4 bg-yellow-50'>
+                <div className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0'>
+                    <img className='h-12 sm:h-14 rounded-full object-cover w-12 sm:w-14 flex-shrink-0' src="https://i.pinimg.com/236x/af/26/28/af26280b0ca305be47df0b799ed1b12b.jpg" alt="User" />
+                    <h2 className='text-base sm:text-lg font-medium capitalize truncate'>{props.ride?.user?.fullname?.firstname || 'Passenger'}</h2>
                 </div>
-                <h5 className='text-lg font-semibold'>2.2 KM</h5>
+                <h5 className='text-base sm:text-lg font-semibold whitespace-nowrap ml-2'>2.2 KM</h5>
             </div>
             <div className='flex gap-2 justify-between flex-col items-center'>
-                <div className='w-full mt-5'>
-                    <div className='flex items-center gap-5 p-3 border-b-2'>
-                        <i className="ri-map-pin-user-fill"></i>
-                        <div>
-                            <h3 className='text-lg font-medium'>562/11-A</h3>
-                            <p className='text-sm -mt-1 text-gray-600'>{props.ride?.pickup}</p>
+                <div className='w-full mt-4 sm:mt-5 space-y-0'>
+                    <div className='flex items-center gap-3 sm:gap-5 p-3 sm:p-4 border-b-2'>
+                        <i className="ri-map-pin-user-fill text-lg sm:text-xl"></i>
+                        <div className='flex-1 min-w-0'>
+                            <h3 className='text-base sm:text-lg font-medium'>Pickup Location</h3>
+                            <p className='text-xs sm:text-sm text-gray-600 truncate'>{props.ride?.pickup || 'Loading...'}</p>
                         </div>
                     </div>
-                    <div className='flex items-center gap-5 p-3 border-b-2'>
-                        <i className="text-lg ri-map-pin-2-fill"></i>
-                        <div>
-                            <h3 className='text-lg font-medium'>562/11-A</h3>
-                            <p className='text-sm -mt-1 text-gray-600'>{props.ride?.destination}</p>
+                    <div className='flex items-center gap-3 sm:gap-5 p-3 sm:p-4 border-b-2'>
+                        <i className="text-base sm:text-lg ri-map-pin-2-fill"></i>
+                        <div className='flex-1 min-w-0'>
+                            <h3 className='text-base sm:text-lg font-medium'>Destination</h3>
+                            <p className='text-xs sm:text-sm text-gray-600 truncate'>{props.ride?.destination || 'Loading...'}</p>
                         </div>
                     </div>
-                    <div className='flex items-center gap-5 p-3'>
-                        <i className="ri-currency-line"></i>
-                        <div>
-                            <h3 className='text-lg font-medium'>₹{props.ride?.fare} </h3>
-                            <p className='text-sm -mt-1 text-gray-600'>Cash Cash</p>
+                    <div className='flex items-center gap-3 sm:gap-5 p-3 sm:p-4'>
+                        <i className="ri-currency-line text-lg sm:text-xl"></i>
+                        <div className='flex-1 min-w-0'>
+                            <h3 className='text-base sm:text-lg font-medium'>₹{props.ride?.fare || '0'}</h3>
+                            <p className='text-xs sm:text-sm text-gray-600'>Estimated Fare</p>
                         </div>
                     </div>
                 </div>
 
-                <div className='mt-6 w-full'>
-                    <form onSubmit={submitHander}>
-                        <input value={otp} onChange={(e) => setOtp(e.target.value)} type="text" className='bg-[#eee] px-6 py-4 font-mono text-lg rounded-lg w-full mt-3' placeholder='Enter OTP' />
-
-                        <button className='w-full mt-5 text-lg flex justify-center bg-green-600 text-white font-semibold p-3 rounded-lg'>Confirm</button>
-                        <button onClick={() => {
-                            props.setConfirmRidePopupPanel(false)
-                            props.setRidePopupPanel(false)
-
-                        }} className='w-full mt-2 bg-red-600 text-lg text-white font-semibold p-3 rounded-lg'>Cancel</button>
-
+                <div className='mt-4 sm:mt-5 md:mt-6 w-full'>
+                    <form onSubmit={submitHandler} className="space-y-3">
+                        <input 
+                            value={otp} 
+                            onChange={(e) => setOtp(e.target.value)} 
+                            type="text" 
+                            className='bg-gray-100 px-4 sm:px-6 py-2.5 sm:py-4 font-mono text-base sm:text-lg rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500' 
+                            placeholder='Enter OTP' 
+                        />
+                        <button 
+                            type="submit"
+                            className='w-full bg-green-600 hover:bg-green-700 text-white font-semibold p-2.5 sm:p-3 rounded-lg transition'
+                        >
+                            Confirm Ride
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                props.setConfirmRidePopupPanel(false)
+                                props.setRidePopupPanel(false)
+                            }} 
+                            className='w-full bg-red-600 hover:bg-red-700 text-white font-semibold p-2.5 sm:p-3 rounded-lg transition'
+                        >
+                            Cancel
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     )
 }
+
+export default ConfirmRidePopUp
 
 export default ConfirmRidePopUp

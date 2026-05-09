@@ -8,21 +8,29 @@ const LocationSearchPanel = ({ suggestions, setVehiclePanel, setPanelOpen, setPi
         } else if (activeField === 'destination') {
             setDestination(suggestion)
         }
-        // setVehiclePanel(true)
-        // setPanelOpen(false)
     }
 
     return (
-        <div>
+        <div className="w-full px-2 sm:px-4">
             {/* Display fetched suggestions */}
-            {
-                suggestions.map((elem, idx) => (
-                    <div key={idx} onClick={() => handleSuggestionClick(elem)} className='flex gap-4 border-2 p-3 border-gray-50 active:border-black rounded-xl items-center my-2 justify-start'>
-                        <h2 className='bg-[#eee] h-8 flex items-center justify-center w-12 rounded-full'><i className="ri-map-pin-fill"></i></h2>
-                        <h4 className='font-medium'>{elem}</h4>
-                    </div>
-                ))
-            }
+            <div className="space-y-2">
+                {suggestions.length > 0 ? (
+                    suggestions.map((elem, idx) => (
+                        <div 
+                            key={idx} 
+                            onClick={() => handleSuggestionClick(elem)} 
+                            className='flex gap-3 sm:gap-4 border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 p-2.5 sm:p-3 rounded-lg items-center cursor-pointer transition'
+                        >
+                            <div className='bg-gray-100 h-8 sm:h-10 flex items-center justify-center w-8 sm:w-10 rounded-full flex-shrink-0'>
+                                <i className="ri-map-pin-fill text-gray-600 text-lg sm:text-xl"></i>
+                            </div>
+                            <h4 className='font-medium text-sm sm:text-base text-gray-800 truncate'>{elem}</h4>
+                        </div>
+                    ))
+                ) : (
+                    <p className="text-center text-gray-500 text-sm py-4">No suggestions found</p>
+                )}
+            </div>
         </div>
     )
 }

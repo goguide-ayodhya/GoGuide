@@ -98,21 +98,20 @@ const CaptainHome = () => {
     }, [ confirmRidePopupPanel ])
 
     return (
-        <div className='h-screen'>
-            <div className='fixed p-6 top-0 flex items-center justify-between w-screen'>
-                <img className='w-16' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="" />
-                <Link href='/driver/dashboard' className=' h-10 w-10 bg-white flex items-center justify-center rounded-full'>
-                    <i className="text-lg font-medium ri-logout-box-r-line"></i>
+        <div className='h-screen flex flex-col'>
+            <div className='fixed inset-x-0 top-0 p-4 sm:p-6 flex items-center justify-between bg-white/95 backdrop-blur-sm z-40 border-b border-gray-100'>
+                <img className='w-12 sm:w-16' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="Logo" />
+                <Link href='/driver/dashboard' className='h-9 sm:h-10 w-9 sm:w-10 bg-white flex items-center justify-center rounded-full hover:bg-gray-100 transition'>
+                    <i className="text-base sm:text-lg font-medium ri-logout-box-r-line"></i>
                 </Link>
             </div>
-            <div className='h-3/5'>
-                <img className='h-full w-full object-cover' src="https://miro.medium.com/v2/resize:fit:1400/0*gwMx05pqII5hbfmX.gif" alt="" />
-
+            <div className='h-3/5 mt-14 sm:mt-16'>
+                <img className='h-full w-full object-cover' src="https://miro.medium.com/v2/resize:fit:1400/0*gwMx05pqII5hbfmX.gif" alt="Background" />
             </div>
-            <div className='h-2/5 p-6'>
+            <div className='h-2/5 p-4 sm:p-6 overflow-y-auto'>
                 <CaptainDetails />
             </div>
-            <div ref={ridePopupPanelRef} className='fixed w-full z-10 bottom-0 translate-y-full bg-white px-3 py-10 pt-12'>
+            <div ref={ridePopupPanelRef} className='fixed inset-x-0 bottom-0 z-50 translate-y-full bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2'>
                 <RidePopUp
                     ride={ride}
                     setRidePopupPanel={setRidePopupPanel}
@@ -120,7 +119,7 @@ const CaptainHome = () => {
                     confirmRide={confirmRide}
                 />
             </div>
-            <div ref={confirmRidePopupPanelRef} className='fixed w-full h-screen z-10 bottom-0 translate-y-full bg-white px-3 py-10 pt-12'>
+            <div ref={confirmRidePopupPanelRef} className='fixed inset-x-0 bottom-0 z-50 translate-y-full bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2'>
                 <ConfirmRidePopUp
                     ride={ride}
                     setConfirmRidePopupPanel={setConfirmRidePopupPanel} setRidePopupPanel={setRidePopupPanel} />

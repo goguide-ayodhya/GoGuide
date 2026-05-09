@@ -356,7 +356,7 @@ function DriverSignupFlowContent() {
     try {
       setLoading(true);
       await signupWithGoogle(credentialResponse.credential, "DRIVER");
-      router.push("/driver/complete-profile?step=1");
+      router.push("/driver/complete-profile?step=3");
     } catch (error: any) {
       setGlobalError(error?.message || "Google signup failed");
     } finally {

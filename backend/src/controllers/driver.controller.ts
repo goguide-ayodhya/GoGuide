@@ -61,8 +61,6 @@ export class DriverController {
 
     if (req.body.languages) {
       data.languages = Array.isArray(req.body.languages) ? req.body.languages : [req.body.languages];
-    } else {
-      data.languages = [];
     }
 
     const driver = await driverService.createDriverProfile(userId, data);
@@ -122,8 +120,6 @@ export class DriverController {
 
     if (req.body.languages) {
       data.languages = Array.isArray(req.body.languages) ? req.body.languages : [req.body.languages];
-    } else {
-      data.languages = [];
     }
 
     if (files?.driverPhoto?.[0]) {
