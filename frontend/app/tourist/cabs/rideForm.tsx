@@ -79,11 +79,16 @@ const RideForm = () => {
 
   const handlePickupChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setPickup(e.target.value);
-    try {
-      const suggestions = await getSuggestions(e.target.value);
-      setPickupSuggestions(suggestions);
-    } catch (error) {
-      console.error("Error fetching pickup suggestions:", error);
+    if (e.target.value.length >= 3) {
+      try {
+        const suggestions = await getSuggestions(e.target.value);
+        setPickupSuggestions(suggestions);
+      } catch (error) {
+        console.error("Error fetching pickup suggestions:", error);
+        setPickupSuggestions([]);
+      }
+    } else {
+      setPickupSuggestions([]);
     }
   };
 
@@ -91,11 +96,16 @@ const RideForm = () => {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setDestination(e.target.value);
-    try {
-      const suggestions = await getSuggestions(e.target.value);
-      setDestinationSuggestions(suggestions);
-    } catch (error) {
-      console.error("Error fetching destination suggestions:", error);
+    if (e.target.value.length >= 3) {
+      try {
+        const suggestions = await getSuggestions(e.target.value);
+        setDestinationSuggestions(suggestions);
+      } catch (error) {
+        console.error("Error fetching destination suggestions:", error);
+        setDestinationSuggestions([]);
+      }
+    } else {
+      setDestinationSuggestions([]);
     }
   };
 
@@ -106,6 +116,7 @@ const RideForm = () => {
     try {
       const fareData = await getFare(pickup, destination);
       setFare(fareData);
+      console.log("FareData created:", fareData);
     } catch (error) {
       console.error("Error fetching fare:", error);
     }
@@ -126,14 +137,20 @@ const RideForm = () => {
     }
   };
 
+  const handleSelectVehicle = (type: VehicleType) => {
+    setVehicleType(type);
+    setVehiclePanel(false);
+    setConfirmRidePanel(true);
+  };
+
   return (
     <div className="h-screen relative overflow-hidden">
     
       <div className="h-screen w-full">
         <LiveTracking />
       </div>
-      <div className="flex flex-col justify-end h-screen absolute top-0 w-full pointer-events-none">
-        <div className="h-[30%] sm:h-[35%] md:h-[40%] lg:h-[45%] xl:h-1/2 p-4 sm:p-6 md:p-8 bg-white relative shadow-lg pointer-events-auto rounded-t-3xl md:rounded-t-2xl">
+      <div className={`flex flex-col ${panelOpen ? 'justify-start' : 'justify-end'} h-screen absolute top-0 w-full pointer-events-none`}>
+        <div className={`p-4 sm:p-6 md:p-8 bg-white relative shadow-lg pointer-events-auto ${panelOpen ? 'h-screen rounded-none' : 'h-[30%] sm:h-[35%] md:h-[40%] lg:h-[45%] xl:h-1/2 rounded-t-3xl md:rounded-t-2xl'}`}>
           <h5
             onClick={() => setPanelOpen(false)}
             className={`absolute right-4 sm:right-6 top-4 sm:top-6 text-2xl cursor-pointer ${panelOpen ? "opacity-100" : "opacity-0"}`}
@@ -172,44 +189,41 @@ const RideForm = () => {
           >
             Find Trip
           </button>
+          <AnimatePresence>
+            {panelOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="bg-white overflow-y-auto max-h-[60vh] md:max-h-[50vh] pointer-events-auto"
+              >
+                <LocationSearchPanel
+                  suggestions={
+                    activeField === "pickup"
+                      ? pickupSuggestions
+                      : destinationSuggestions
+                  }
+                  setPanelOpen={setPanelOpen}
+                  setVehiclePanel={setVehiclePanel}
+                  setPickup={setPickup}
+                  setDestination={setDestination}
+                  activeField={activeField}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <AnimatePresence>
-          {panelOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white overflow-y-auto max-h-[60vh] md:max-h-[50vh] pointer-events-auto"
-            >
-              <LocationSearchPanel
-                suggestions={
-                  activeField === "pickup"
-                    ? pickupSuggestions
-                    : destinationSuggestions
-                }
-                setPanelOpen={setPanelOpen}
-                setVehiclePanel={setVehiclePanel}
-                setPickup={setPickup}
-                setDestination={setDestination}
-                activeField={activeField}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       <motion.div
         initial={{ y: "100%" }}
         animate={{ y: vehiclePanel ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 pointer-events-auto"
       >
         <VehiclePanel
-          selectVehicle={setVehicleType}
+          selectVehicle={handleSelectVehicle}
           fare={fare}
-          setConfirmRidePanel={setConfirmRidePanel}
-          setVehiclePanel={setVehiclePanel}
         />
       </motion.div>
 
@@ -217,7 +231,7 @@ const RideForm = () => {
         initial={{ y: "100%" }}
         animate={{ y: confirmRidePanel ? 0 : "100%" }}
         transition={{ duration: 0.3 }}
-        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
+        className="fixed inset-x-0 bottom-0 z-20 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2 pointer-events-auto"
       >
         <ConfirmRide
           createRide={handleCreateRide}
@@ -259,6 +273,7 @@ const RideForm = () => {
           waitingForDriver={waitingForDriver}
         />
       </motion.div>
+    </div>
     </div>
   );
 };

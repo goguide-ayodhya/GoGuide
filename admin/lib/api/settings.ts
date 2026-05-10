@@ -34,3 +34,20 @@ export const updateProfile = async (data: any) => {
   });
   return res.json();
 };
+
+// Ride Pricing
+export const getRidePricing = async () => {
+  const res = await fetch(`${base_url}settings/ride-pricing`, {
+    headers: authHeaders(),
+  });
+  return res.json();
+};
+
+export const updateRidePricing = async (data: any) => {
+  const res = await fetch(`${base_url}settings/ride-pricing`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};

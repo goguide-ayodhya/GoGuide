@@ -18,6 +18,15 @@ router.put("/cab-pricing", authorize(["ADMIN"]), (req, res, next) => {
   settingsController.updateCabPricing(req, res).catch(next);
 });
 
+// Ride pricing is admin-only
+router.get("/ride-pricing", authorize(["ADMIN"]), (req, res, next) => {
+  settingsController.getRidePricing(req, res).catch(next);
+});
+
+router.put("/ride-pricing", authorize(["ADMIN"]), (req, res, next) => {
+  settingsController.updateRidePricing(req, res).catch(next);
+});
+
 // GET profile
 router.get("/me", (req, res, next) => {
   settingsController.getProfile(req, res).catch(next);

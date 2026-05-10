@@ -10,13 +10,9 @@ import {
   CalendarDays,
   Users,
   Car,
-  Ticket,
   CreditCard,
   TrendingUp,
-  MessageSquare,
-  Star,
   Settings,
-  MapPin,
   X,
   Package,
   HandCoins,
@@ -74,11 +70,11 @@ const menuItems = [
     href: "/admin/revenue",
     icon: TrendingUp,
   },
-  {
-    title: "Reviews",
-    href: "/admin/reviews",
-    icon: Star,
-  },
+  // {
+  //   title: "Reviews",
+  //   href: "/admin/reviews",
+  //   icon: Star,
+  // },
   {
     title: "Settings",
     href: "/admin/settings",
@@ -195,11 +191,11 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                         {stats.bookings}
                       </Badge>
                     )}
-                    {item.title === "Cabs" && stats.pendingGuides > 0 && (
+                    {/* {item.title === "Cabs" && stats.pendingGuides > 0 && (
                       <Badge className="ml-auto bg-amber-500 hover:bg-amber-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
                         {stats.pendingGuides}
                       </Badge>
-                    )}
+                    )} */}
                     {item.title === "Users" && stats.newUsers > 0 && (
                       <Badge className="ml-auto bg-blue-500 hover:bg-blue-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
                         {stats.newUsers}

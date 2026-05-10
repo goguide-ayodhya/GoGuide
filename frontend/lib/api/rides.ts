@@ -34,7 +34,7 @@ const handleRes = async (res: Response) => {
 
 export const getFare = async (pickup: string, destination: string) => {
   try {
-    const url = new URL(`${base_url}/rides/get-fare`);
+    const url = new URL(`${base_url}rides/get-fare`);
     url.searchParams.append('pickup', pickup);
     url.searchParams.append('destination', destination);
     
@@ -50,7 +50,7 @@ export const getFare = async (pickup: string, destination: string) => {
 
 export const createRide = async (rideData: RideData) => {
   try {
-    const response = await fetch(`${base_url}/rides/create`, {
+    const response = await fetch(`${base_url}rides/create`, {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(rideData),

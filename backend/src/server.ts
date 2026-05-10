@@ -86,8 +86,8 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payout", payoutRoutes);
 app.use("/api/support", supportRoutes);
-app.use("/api/rides", rideRoutes);
 app.use("/api/maps", mapRoutes);
+app.use("/api/rides", rideRoutes);
 
 // Serve uploaded files when using local fallback storage
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

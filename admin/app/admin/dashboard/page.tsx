@@ -29,9 +29,7 @@ import { getAdminDashboard } from "@/lib/api/adminDashboard"
 import { DateFilter } from "@/components/ui/date-filter"
 import { BookingActions } from "@/components/admin/booking-actions"
 import { RecentUsers } from "@/components/admin/recent-users"
-import { RecentGuides } from "@/components/admin/recent-guides"
 import { AlertsPanel } from "@/components/admin/alerts-panel"
-import { PendingGuides } from "@/components/admin/pending-guides"
 
 type FilterPeriod = 'all' | 'today' | 'week' | 'month'
 
@@ -135,7 +133,6 @@ export default function DashboardPage() {
       title: "Total Bookings",
       value: dashboardStats.totalBookings,
       icon: CalendarDays,
-      trend: "+12%",
       trendUp: true,
       color: "text-chart-1"
     },
@@ -143,7 +140,6 @@ export default function DashboardPage() {
       title: "Pending Bookings",
       value: dashboardStats.pendingBookings,
       icon: Clock,
-      trend: "-5%",
       trendUp: false,
       color: "text-warning"
     },
@@ -151,7 +147,6 @@ export default function DashboardPage() {
       title: "Completed",
       value: dashboardStats.completedBookings,
       icon: CheckCircle,
-      trend: "+8%",
       trendUp: true,
       color: "text-success"
     },
@@ -159,7 +154,6 @@ export default function DashboardPage() {
       title: "Total Guides",
       value: dashboardStats.totalGuides,
       icon: Users,
-      trend: "+3",
       trendUp: true,
       color: "text-chart-2"
     },
@@ -167,7 +161,6 @@ export default function DashboardPage() {
       title: "Active Guides",
       value: dashboardStats.activeGuides,
       icon: UserCheck,
-      trend: "+2",
       trendUp: true,
       color: "text-primary"
     },
@@ -175,7 +168,6 @@ export default function DashboardPage() {
       title: "Total Revenue",
       value: `₹${(dashboardStats.totalRevenue / 1000).toFixed(0)}K`,
       icon: IndianRupee,
-      trend: "+18%",
       trendUp: true,
       color: "text-chart-4"
     }
@@ -186,7 +178,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">GoGuide Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">Welcome back! Here&apos;s your platform overview.</p>
         </div>
         <DateFilter 
@@ -232,15 +224,6 @@ export default function DashboardPage() {
             {statCards.map((stat) => (
               <Card key={stat.title} className="border-border">
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div className={`p-1.5 sm:p-2 rounded-lg bg-muted ${stat.color}`}>
-                      <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </div>
-                    <div className={`flex items-center text-[10px] sm:text-xs font-medium ${stat.trendUp ? "text-success" : "text-destructive"}`}>
-                      {stat.trendUp ? <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5" />}
-                      {stat.trend}
-                    </div>
-                  </div>
                   <p className="text-lg sm:text-2xl font-semibold text-foreground">{stat.value}</p>
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">{stat.title}</p>
                 </CardContent>
@@ -341,13 +324,7 @@ export default function DashboardPage() {
           <RecentUsers />
         </div>
         <div className="lg:col-span-1 xl:col-span-1">
-          <RecentGuides />
-        </div>
-        <div className="lg:col-span-1 xl:col-span-1">
           <AlertsPanel />
-        </div>
-        <div className="lg:col-span-1 xl:col-span-1">
-          <PendingGuides />
         </div>
       </div>
 

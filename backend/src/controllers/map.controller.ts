@@ -8,7 +8,6 @@ export const getCoordinates = async (req: Request, res: Response, next: NextFunc
         return res.status(400).json({ errors: errors.array() });
     }
 
-
     const address = req.query.address as string;
 
     try {

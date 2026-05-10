@@ -6,4 +6,21 @@ export const defaultSettings = {
   notificationPush: true,
   securityTwoFactor: false,
   securitySessionTimeout: 30,
+  ridePricing: {
+    baseFare: {
+      auto: 30,
+      car: 50,
+      moto: 20
+    },
+    perKmRate: {
+      auto: 10,
+      car: 15,
+      moto: 8
+    },
+    perMinuteRate: {
+      auto: 2,
+      car: 3,
+      moto: 1.5
+    }
+  }
 };

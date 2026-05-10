@@ -25,7 +25,7 @@ const authHeaders = () => {
 
 export const getSuggestions = async (input: string) => {
   try {
-    const response = await fetch(`${base_url}/maps/get-suggestions?input=${encodeURIComponent(input)}`, {
+    const response = await fetch(`${base_url}maps/get-suggestions?input=${encodeURIComponent(input)}`, {
       headers: authHeaders(),
     });
     return handleApiResponse(response);

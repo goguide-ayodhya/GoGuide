@@ -84,6 +84,23 @@ export class SettingsController {
       data: pricing,
     });
   }
+
+  async getRidePricing(req: AuthRequest, res: Response) {
+    const pricing = await settingsService.getRidePricing();
+    res.status(200).json({
+      success: true,
+      data: pricing,
+    });
+  }
+
+  async updateRidePricing(req: AuthRequest, res: Response) {
+    const pricing = await settingsService.updateRidePricing(req.body);
+    res.status(200).json({
+      success: true,
+      message: "Ride pricing updated successfully",
+      data: pricing,
+    });
+  }
 }
 
 export const settingsController = new SettingsController();
