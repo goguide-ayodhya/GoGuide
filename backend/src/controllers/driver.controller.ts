@@ -3,6 +3,8 @@ import { AuthRequest } from "../middleware/auth";
 import { driverService } from "../services/driver.service";
 import cloudinary from "../config/cloudinary";
 import { User } from "../models/User";
+import { NotFound } from "../utils/httpException";
+import { Driver } from "../models/Driver";
 
 export class DriverController {
   async getAll(req: AuthRequest, res: Response) {

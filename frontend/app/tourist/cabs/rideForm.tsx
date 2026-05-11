@@ -12,6 +12,7 @@ import VehiclePanel from "@/components/cabs/VehiclePanel";
 import ConfirmRide from "@/components/cabs/ConfirmRide";
 import LookingForDriver from "@/components/cabs/LookingForDriver";
 import WaitingForDriver from "@/components/cabs/WaitingForDriver";
+import BookingSuccess from "@/components/cabs/BookingSuccess";
 
 import { SocketContext } from "@/contexts/cabs/SocketContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,6 +32,7 @@ const RideForm = () => {
   const [confirmRidePanel, setConfirmRidePanel] = useState(false);
   const [vehicleFound, setVehicleFound] = useState(false);
   const [waitingForDriver, setWaitingForDriver] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
   const [pickupSuggestions, setPickupSuggestions] = useState<Suggestion[]>([]);
   const [destinationSuggestions, setDestinationSuggestions] = useState<
     Suggestion[]
@@ -57,9 +59,10 @@ const RideForm = () => {
 
   useEffect(() => {
     const handleRideConfirmed = (ride: any) => {
-      setVehicleFound(false);
-      setWaitingForDriver(true);
-      setRide(ride);
+      console.log("Ride confirmed by driver:", ride);
+      // Show notification and navigate to bookings page
+      setBookingSuccess(false);
+      router.push("/tourist/bookings");
     };
 
     const handleRideStarted = (ride: any) => {
@@ -132,6 +135,9 @@ const RideForm = () => {
       });
       // Handle response if needed
       console.log("Ride created:", rideData);
+      // Show booking success instead of looking for driver
+      setConfirmRidePanel(false);
+      setBookingSuccess(true);
     } catch (error) {
       console.error("Error creating ride:", error);
     }
@@ -257,6 +263,21 @@ const RideForm = () => {
           fare={fare}
           vehicleType={vehicleType}
           setVehicleFound={setVehicleFound}
+        />
+      </motion.div>
+
+      <motion.div
+        initial={{ y: "100%" }}
+        animate={{ y: bookingSuccess ? 0 : "100%" }}
+        transition={{ duration: 0.3 }}
+        className="fixed inset-x-0 bottom-0 z-10 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
+      >
+        <BookingSuccess
+          pickup={pickup}
+          destination={destination}
+          fare={fare}
+          vehicleType={vehicleType}
+          setBookingSuccess={setBookingSuccess}
         />
       </motion.div>
 

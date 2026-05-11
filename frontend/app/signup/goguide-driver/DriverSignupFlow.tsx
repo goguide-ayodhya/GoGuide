@@ -121,7 +121,7 @@ function DriverSignupFlowContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stepParam = searchParams.get("step");
-  const { signup, signupWithGoogle, user, isLoggedIn } = useAuth();
+  const { signup, signupWithGoogle, user, isLoggedIn, refreshUser } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormDataType>(initialFormData);
@@ -160,6 +160,15 @@ function DriverSignupFlowContent() {
 
   useEffect(() => {
     if (isLoggedIn && user && !initialSyncDone) {
+      console.log("[ONBOARDING] User logged in, syncing form data:", {
+        userName: user.name,
+        userEmail: user.email,
+        userPhone: user.phone,
+        profileStep: user.profileStep,
+        isProfileComplete: user.isProfileComplete,
+        isEmailVerified: user.isEmailVerified
+      });
+
       setFormData((prev) => ({
         ...prev,
         signup: {
@@ -170,11 +179,28 @@ function DriverSignupFlowContent() {
         },
       }));
 
-      if (user.isEmailVerified && currentStep < 3) {
-        setCurrentStep(
-          user.profileStep && user.profileStep > 1 ? user.profileStep : 3,
-        );
+      // Enhanced step recovery logic
+      if (user.isEmailVerified) {
+        let targetStep = 3; // Default to personal details
+        
+        if (user.profileStep) {
+          targetStep = user.profileStep;
+        }
+        
+        // If profile is complete, redirect to dashboard
+        if (user.isProfileComplete) {
+          console.log("[ONBOARDING] Profile already complete, redirecting to dashboard");
+          router.push("/driver/dashboard");
+          return;
+        }
+        
+        // Ensure we don't go backwards
+        if (targetStep > currentStep) {
+          console.log("[ONBOARDING] Advancing to step:", targetStep);
+          setCurrentStep(targetStep);
+        }
       }
+      
       setInitialSyncDone(true);
 
       // Check if profile exists
@@ -182,13 +208,15 @@ function DriverSignupFlowContent() {
         .then((profile) => {
           if (profile) {
             setIsProfileExists(true);
+            console.log("[ONBOARDING] Driver profile exists:", profile._id);
           }
         })
-        .catch(() => {
+        .catch((error) => {
           setIsProfileExists(false);
+          console.log("[ONBOARDING] No driver profile found:", error.message);
         });
     }
-  }, [isLoggedIn, user, initialSyncDone, currentStep]);
+  }, [isLoggedIn, user, initialSyncDone, currentStep, router]);
 
   useEffect(() => {
     saveDraft({
@@ -503,6 +531,10 @@ function DriverSignupFlowContent() {
     setSuccessMessage("");
 
     try {
+      console.log("🚀 [ONBOARDING] Starting final profile completion");
+      console.log("🚀 [ONBOARDING] Token before API call:", localStorage.getItem("token")?.substring(0, 20) + "...");
+      console.log("🚀 [ONBOARDING] User before completion:", user);
+
       const form = new FormData();
 
       const driverName = formData.signup?.name?.trim();
@@ -542,7 +574,7 @@ function DriverSignupFlowContent() {
         email: email || undefined,
       };
 
-      console.log("🚀 FINAL FORM DATA:", finalPayload);
+      console.log("🚀 [ONBOARDING] FINAL FORM DATA:", finalPayload);
 
       form.append("driverName", driverName);
       form.append("vehicleType", vehicleType);
@@ -563,25 +595,49 @@ function DriverSignupFlowContent() {
       }
       form.append("driverLicense", formData.documents.driverLicense);
 
-      console.log("🚀 FINAL FORM DATA ENTRIES:", [...form.entries()]);
+      console.log("🚀 [ONBOARDING] FINAL FORM DATA ENTRIES:", [...form.entries()]);
 
+      // Make the API call to complete profile
       if (isProfileExists) {
+        console.log("🚀 [ONBOARDING] Updating existing driver profile");
         await updateDriverProfile(form);
       } else {
+        console.log("🚀 [ONBOARDING] Creating new driver profile");
         await createDriverProfile(form);
       }
 
+      console.log("🚀 [ONBOARDING] Profile API call successful");
+
+      // CRITICAL: Refresh user state to get updated profileStep and isProfileComplete
+      console.log("🚀 [ONBOARDING] Refreshing user state after profile completion");
+      try {
+        const updatedUser = await refreshUser();
+        console.log("🚀 [ONBOARDING] User refreshed successfully:", updatedUser);
+        console.log("🚀 [ONBOARDING] Updated profileStep:", updatedUser?.profileStep);
+        console.log("🚀 [ONBOARDING] Updated isProfileComplete:", updatedUser?.isProfileComplete);
+      } catch (refreshError) {
+        console.warn("🚀 [ONBOARDING] Failed to refresh user state:", refreshError);
+      }
+
+      // Clear onboarding draft data
+      console.log("🚀 [ONBOARDING] Clearing onboarding draft data");
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("signupProgress");
+      localStorage.removeItem("signupRole");
+
       setSuccessMessage(
-        "Driver onboarding is complete. Your profile is submitted for review.",
+        "🎉 Driver onboarding is complete! Your profile is submitted for review.",
       );
 
       setFinalSuccess(true);
 
       setTimeout(() => {
+        console.log("🚀 [ONBOARDING] Redirecting to driver dashboard");
         router.push("/driver/dashboard");
-      }, 1200);
+      }, 2000);
     } catch (error: any) {
-      setGlobalError(error?.message || "Unable to upload documents.");
+      console.error("🚀 [ONBOARDING] Profile completion failed:", error);
+      setGlobalError(error?.message || "Unable to complete profile. Please try again.");
     } finally {
       setLoading(false);
     }

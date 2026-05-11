@@ -167,6 +167,7 @@ export class BookingService {
 
     return bookings.map((booking) => ({
       ...booking.toObject(),
+      bookingType: booking.bookingType,
       reviewed: reviewedBookingIds.has(booking._id.toString()),
     }));
   }

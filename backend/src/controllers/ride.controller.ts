@@ -5,8 +5,9 @@ import * as mapService from '../services/maps.service';
 import { sendMessageToSocketId } from '../socket';
 import { Ride } from '../models/Ride';
 import { AuthRequest } from '../middleware/auth';
-import { Driver } from '../models/Driver';
-import { User } from '../models/User';
+import { Driver, IDriver } from '../models/Driver';
+import { User, IUser } from '../models/User';
+
 
 export const createRide = async (req: AuthRequest, res: Response) => {
     const errors = validationResult(req);
@@ -26,9 +27,11 @@ export const createRide = async (req: AuthRequest, res: Response) => {
 
         res.status(201).json(ride);
 
-        const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
-
-        const captainsInRadius = await mapService.getCaptainsInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 2);
+        // Get all active verified drivers instead of nearby drivers
+        const activeDrivers = await Driver.find({
+            isAvailable: true,
+            verificationStatus: "VERIFIED"
+        }).populate('userId');
 
         // don't send OTP to drivers
         const rideData = ride.toObject() as any;
@@ -36,8 +39,9 @@ export const createRide = async (req: AuthRequest, res: Response) => {
 
         const rideWithUser = await Ride.findOne({ _id: ride._id }).populate('user');
 
-        captainsInRadius.map(async (captain) => {
-            const driverUser = await User.findById(captain.userId);
+        // Send ride request to all active drivers
+        activeDrivers.forEach(async (driver) => {
+            const driverUser = driver.userId as any;
             if (driverUser && driverUser.socketId) {
                 sendMessageToSocketId(driverUser.socketId, {
                     event: 'new-ride',
@@ -45,6 +49,8 @@ export const createRide = async (req: AuthRequest, res: Response) => {
                 });
             }
         });
+
+        console.log(`[RIDE] Broadcasted ride ${ride._id} to ${activeDrivers.length} active drivers`);
 
     } catch (err: any) {
         console.log(err);
@@ -83,6 +89,19 @@ export const confirmRide = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Driver profile not found' });
         }
 
+        // Check if ride is still pending before accepting
+        const existingRide = await Ride.findById(rideId);
+        if (!existingRide) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        if (existingRide.status !== 'pending') {
+            return res.status(400).json({ 
+                message: 'Ride is no longer available',
+                status: existingRide.status 
+            });
+        }
+
         const ride = await rideService.confirmRide({ rideId, driver });
 
         // populate to get the user's socketId
@@ -95,6 +114,7 @@ export const confirmRide = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        console.log(`[RIDE] Driver ${driver._id} accepted ride ${rideId}`);
         return res.status(200).json(ride);
     } catch (err: any) {
         console.log(err);

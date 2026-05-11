@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authenticate = (
+export const authenticate = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
@@ -52,7 +52,38 @@ export const authenticate = (
       email: decoded.email
     });
 
-    req.user = decoded;
+    // Get user and validate status
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      throw new Unauthorized("User not found");
+    }
+
+    // Check user status - block suspended/blocked/deleted users
+    if (user.status === "BLOCKED") {
+      console.log(`[AUTH] Blocked user ${decoded.userId} attempted access`);
+      throw new Unauthorized("Your account has been blocked. Please contact support.");
+    }
+
+    if (user.status === "SUSPENDED") {
+      // Check if suspension has expired
+      if (user.suspendUntil && new Date() > user.suspendUntil) {
+        // Auto-reactivate expired suspension
+        user.status = "ACTIVE";
+        user.suspendUntil = undefined;
+        await user.save();
+        console.log(`[AUTH] Auto-reactivated user ${decoded.userId} after suspension expired`);
+      } else {
+        console.log(`[AUTH] Suspended user ${decoded.userId} attempted access`);
+        throw new Unauthorized("Your account has been suspended. Please contact support.");
+      }
+    }
+
+    if (user.status === "DELETED" || user.isDeleted) {
+      console.log(`[AUTH] Deleted user ${decoded.userId} attempted access`);
+      throw new Unauthorized("Your account has been deleted.");
+    }
+
+    req.user = { ...decoded, role: user.role, status: user.status };
     req.userId = decoded.userId;
 
     console.log("[AUTH-MIDDLEWARE] Authentication successful for user:", decoded.userId);
@@ -79,6 +110,31 @@ export const authorize = (requiredRoles: string[]) => {
 
       if (!user) {
         throw new Unauthorized("User not found");
+      }
+
+      // Check user status - block suspended/blocked/deleted users
+      if (user.status === "BLOCKED") {
+        console.log(`[AUTH] Blocked user ${req.userId} attempted access`);
+        throw new Unauthorized("Your account has been blocked. Please contact support.");
+      }
+
+      if (user.status === "SUSPENDED") {
+        // Check if suspension has expired
+        if (user.suspendUntil && new Date() > user.suspendUntil) {
+          // Auto-reactivate expired suspension
+          user.status = "ACTIVE";
+          user.suspendUntil = undefined;
+          await user.save();
+          console.log(`[AUTH] Auto-reactivated user ${req.userId} after suspension expired`);
+        } else {
+          console.log(`[AUTH] Suspended user ${req.userId} attempted access`);
+          throw new Unauthorized("Your account has been suspended. Please contact support.");
+        }
+      }
+
+      if (user.status === "DELETED" || user.isDeleted) {
+        console.log(`[AUTH] Deleted user ${req.userId} attempted access`);
+        throw new Unauthorized("Your account has been deleted.");
       }
 
       if (!requiredRoles.includes(user.role)) {

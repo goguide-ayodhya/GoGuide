@@ -163,6 +163,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         paymentMethod: b.paymentMethod,
         avatar: b.userId?.avatar || b.userId?.profileImage || "",
         reviewed: b.reviewed || false,
+        bookingType: b.bookingType,
       }));
 
       console.log("Formatted bookings:", formattedData);

@@ -193,6 +193,7 @@ export default function BookingsPage() {
 
     return statusMatch && reviewMatch && paymentMatch && searchMatch;
   });
+{console.log(filteredBookings.map(b => b.bookingType))}
 
   const handleViewReview = async (bookingId: string) => {
     setSelectedBookingForReview(bookingId);
@@ -624,33 +625,14 @@ export default function BookingsPage() {
                     </DialogContent>
                   </Dialog>
 
-                  <Tabs defaultValue="tours" className="w-full">
+                  <Tabs defaultValue="tourPackages" className="w-full">
                     <TabsList className="mb-6 w-full flex bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar justify-start sm:justify-center h-auto">
-                      <TabsTrigger value="tours" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tours & Cabs</TabsTrigger>
-                      <TabsTrigger value="packages" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tour Packages</TabsTrigger>
+                      <TabsTrigger value="tourPackages" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tour Packages</TabsTrigger>
+                      <TabsTrigger value="guideBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Guide Bookings</TabsTrigger>
+                      <TabsTrigger value="cabBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Cab Bookings</TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="tours" className="mt-0">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {filteredBookings.filter(b => b.bookingType !== "PACKAGE").length > 0 ? (
-                          filteredBookings.filter(b => b.bookingType !== "PACKAGE").map((booking) => (
-                            <BookingCard
-                              key={booking.id}
-                              booking={booking}
-                              onCancel={(bookingId) => setCancellingId(bookingId)}
-                              onLeaveReview={handleLeaveReview}
-                              onViewReview={handleViewReview}
-                            />
-                          ))
-                        ) : (
-                          <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                            No tours or cabs match your filters.
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="packages" className="mt-0">
+                    <TabsContent value="tourPackages" className="mt-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
                         {filteredBookings.filter(b => b.bookingType === "PACKAGE").length > 0 ? (
                           filteredBookings.filter(b => b.bookingType === "PACKAGE").map((booking) => (
@@ -665,6 +647,46 @@ export default function BookingsPage() {
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             No tour packages match your filters.
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="guideBookings" className="mt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                        {filteredBookings.filter(b => b.bookingType === "GUIDE").length > 0 ? (
+                          filteredBookings.filter(b => b.bookingType === "GUIDE").map((booking) => (
+                            <BookingCard
+                              key={booking.id}
+                              booking={booking}
+                              onCancel={(bookingId) => setCancellingId(bookingId)}
+                              onLeaveReview={handleLeaveReview}
+                              onViewReview={handleViewReview}
+                            />
+                          ))
+                        ) : (
+                          <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            No guide bookings match your filters.
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="cabBookings" className="mt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                        {filteredBookings.filter(b => b.bookingType === "DRIVER").length > 0 ? (
+                          filteredBookings.filter(b => b.bookingType === "DRIVER").map((booking) => (
+                            <BookingCard
+                              key={booking.id}
+                              booking={booking}
+                              onCancel={(bookingId) => setCancellingId(bookingId)}
+                              onLeaveReview={handleLeaveReview}
+                              onViewReview={handleViewReview}
+                            />
+                          ))
+                        ) : (
+                          <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            No cab bookings match your filters.
                           </div>
                         )}
                       </div>

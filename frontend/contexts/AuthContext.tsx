@@ -201,6 +201,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             "[AUTH] Token invalid or expired, clearing all auth state",
             error,
           );
+          
+          // Handle specific account status messages
+          let title = "Session Expired";
+          let description = "Your session has expired. Please log in again.";
+          let variant = "destructive" as const;
+          
+          if (error instanceof ApiError) {
+            if (error.message.includes("blocked")) {
+              title = "Account Blocked";
+              description = "Your account has been blocked. Please contact support.";
+            } else if (error.message.includes("suspended")) {
+              title = "Account Suspended";
+              description = "Your account has been suspended. Please contact support.";
+            } else if (error.message.includes("deleted")) {
+              title = "Account Deleted";
+              description = "Your account has been deleted. Contact support if this is a mistake.";
+            }
+          }
+          
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           localStorage.removeItem("signupRole");
@@ -209,13 +228,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem("guide-signup-draft");
           setUser(null);
           
-          // Show toast for expired session
+          // Show appropriate toast message
           if (typeof window !== 'undefined' && window.dispatchEvent) {
             window.dispatchEvent(new CustomEvent('showToast', {
               detail: {
-                title: "Session Expired",
-                description: "Your session has expired. Please log in again.",
-                variant: "destructive"
+                title,
+                description,
+                variant
               }
             }));
           }

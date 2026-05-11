@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { StatsCard } from "@/components/stats-card";
 import { DriverAvailabilityToggle } from "@/app/driver/components/driver-availability-toggle";
 import { DriverStatusCard } from "@/app/driver/components/driver-status-card";
@@ -52,6 +52,8 @@ import { useDriver } from "@/contexts/DriverContext";
 import { useBooking } from "@/contexts/BookingsContext";
 import { useEarnings } from "@/contexts/EarningContext";
 import { useReview } from "@/contexts/ReviewContext";
+import { SocketContext } from "@/contexts/cabs/SocketContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardPage() {
   const { myDriver } = useDriver();
@@ -60,6 +62,8 @@ export default function DashboardPage() {
   const monthlyData = earningsContext?.monthlyData;
   const { bookings, setBookings } = useBooking();
   const { reviews, getDriverReview } = useReview();
+  const { socket } = useContext(SocketContext);
+  const { user } = useAuth();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,6 +137,76 @@ export default function DashboardPage() {
       getDriverReview(myDriver.id);
     }
   }, [myDriver?.id]);
+
+  // Socket integration for new ride requests
+  useEffect(() => {
+    if (!socket || !user?.id) return;
+
+    // Join driver room
+    socket.emit("join", { userType: "driver", userId: user.id });
+
+    // Handle new ride requests
+    const handleNewRide = (rideData: any) => {
+      console.log("[DRIVER] New ride request received:", rideData);
+      
+      // Convert ride data to booking format and add to bookings list
+      const newBooking: Booking = {
+        bookingId: rideData._id,
+        _id: rideData._id,
+        id: rideData._id,
+        guideId: "",
+        driverId: user?.id || "",
+        touristName: rideData.user?.name || "Unknown",
+        email: rideData.user?.email || "",
+        phone: rideData.user?.phone || "",
+        groupSize: rideData.groupSize || 1,
+        participants: rideData.groupSize || 1,
+        bookingDate: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        date: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        startTime: rideData.startTime || "09:00",
+        bookingType: "DRIVER" as const,
+        tourType: rideData.tourType || "City Tour",
+        meetingPoint: rideData.pickup || "",
+        location: rideData.pickup || "",
+        dropoffLocation: rideData.destination || "",
+        totalPrice: rideData.fare || 0,
+        totalAmount: rideData.fare || 0,
+        status: "PENDING" as const,
+        paymentStatus: "PENDING" as const,
+        paymentType: "COD" as const,
+        paidAmount: 0,
+        remainingAmount: rideData.fare || 0,
+        discount: 0,
+        finalPrice: rideData.fare || 0,
+        originalPrice: rideData.fare || 0,
+        guideEarning: 0,
+        adminCommission: 0,
+        cancellationReason: "",
+        cancelledBy: undefined,
+        createdAt: new Date(rideData.createdAt).toISOString(),
+        notes: rideData.notes || "",
+        paymentMethod: "cod",
+        avatar: rideData.user?.avatar || rideData.user?.profileImage || "",
+        reviewed: false,
+        hours: rideData.hours || 1,
+      };
+
+      // Add to bookings list if not already present
+      setBookings((prev) => {
+        const exists = prev.some((b) => b.id === newBooking.id);
+        if (!exists) {
+          return [newBooking, ...prev];
+        }
+        return prev;
+      });
+    };
+
+    socket.on("new-ride", handleNewRide);
+
+    return () => {
+      socket.off("new-ride", handleNewRide);
+    };
+  }, [socket, user?.id, setBookings]);
 
   return (
     <div className="space-y-8">

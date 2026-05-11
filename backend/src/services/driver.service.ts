@@ -86,8 +86,8 @@ export class DriverService {
                       driver.vehicleNumber && 
                       driver.seats && 
                       driver.driverLicenseName &&
-                      driver.driverPhoto &&
-                      driver.driverLicense;
+                      driver.driverPhoto;
+                      // driver.driverLicense;
 
     if (isComplete) {
       console.log("[DRIVER-SERVICE] Profile is complete, updating User model");
