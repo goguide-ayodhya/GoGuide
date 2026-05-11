@@ -4,8 +4,20 @@ import { isAuthError, handleAuthError } from "./authErrorHandler";
 
 const getToken = () => {
   if (typeof window === "undefined") return null;
+  
   const token = localStorage.getItem("token");
-  if (!token || token === "null" || token === "undefined") return null;
+  console.log("[AUTH-API] getToken check:", {
+    hasToken: !!token,
+    tokenLength: token?.length || 0,
+    tokenStart: token?.substring(0, 20) + "..." || "null",
+    tokenValue: token === "null" ? "null string" : token === "undefined" ? "undefined string" : "valid token"
+  });
+  
+  if (!token || token === "null" || token === "undefined") {
+    console.warn("[AUTH-API] No valid token found in localStorage");
+    return null;
+  }
+  
   return token;
 };
 

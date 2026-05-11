@@ -1,61 +1,69 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import type { Guide } from '@/contexts/GuideContext'
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { Guide } from "@/contexts/GuideContext";
 
 interface BookingFormProps {
-  guide: Guide
-  onSubmit: (bookingData: BookingData) => void
-  isLoading?: boolean
+  guide: Guide;
+  onSubmit: (bookingData: BookingData) => void;
+  isLoading?: boolean;
 }
 
 export interface BookingData {
-  date: string
-  time: string
-  duration: number
-  meetingPoint: string
-  specialRequests: string
+  date: string;
+  time: string;
+  duration: number;
+  meetingPoint: string;
+  specialRequests: string;
 }
 
-export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormProps) {
+export function BookingForm({
+  guide,
+  onSubmit,
+  isLoading = false,
+}: BookingFormProps) {
   const [formData, setFormData] = useState<BookingData>({
-    date: '',
-    time: '',
+    date: "",
+    time: "",
     duration: 2,
-    meetingPoint: '',
-    specialRequests: '',
-  })
+    meetingPoint: "",
+    specialRequests: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (formData.date && formData.time && formData.meetingPoint) {
-      onSubmit(formData)
+      onSubmit(formData);
     }
-  }
+  };
 
-  const totalPrice = (guide.price * formData.duration)
+  const totalPrice = guide.price * formData.duration;
 
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-4">Booking Details</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">
+            Booking Details
+          </h3>
         </div>
 
         {/* Date */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Date</label>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Date
+          </label>
           <Input
             type="date"
             required
@@ -67,7 +75,9 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
 
         {/* Time */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Time</label>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Time
+          </label>
           <Input
             type="time"
             required
@@ -79,8 +89,15 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
 
         {/* Duration */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Duration (hours)</label>
-          <Select value={formData.duration.toString()} onValueChange={(value) => setFormData({ ...formData, duration: parseInt(value) })}>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Duration (hours)
+          </label>
+          <Select
+            value={formData.duration.toString()}
+            onValueChange={(value) =>
+              setFormData({ ...formData, duration: parseInt(value) })
+            }
+          >
             <SelectTrigger className="bg-background">
               <SelectValue />
             </SelectTrigger>
@@ -97,16 +114,74 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
 
         {/* Meeting Point */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Meeting Point</label>
-          <Select value={formData.meetingPoint} onValueChange={(value) => setFormData({ ...formData, meetingPoint: value })}>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Meeting Point
+          </label>
+          <Select
+            value={formData.meetingPoint}
+            onValueChange={(value) =>
+              setFormData({ ...formData, meetingPoint: value })
+            }
+          >
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Select a meeting point" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ram-mandir">Ram Mandir</SelectItem>
-              <SelectItem value="railway-station">Railway Station</SelectItem>
-              <SelectItem value="airport">Airport</SelectItem>
-              <SelectItem value="hotel">Hotel (specify below)</SelectItem>
+              <SelectItem value="Ram mandir">Ram mandir</SelectItem>
+              <SelectItem value="Hanuman garhi">Hanuman garhi</SelectItem>
+              <SelectItem value="Kanak bhawan">Kanak bhawan</SelectItem>
+              <SelectItem value="Dashrath Mahal">Dashrath Mahal</SelectItem>
+              <SelectItem value="Rang mahal">Rang mahal</SelectItem>
+              <SelectItem value="Sita ki rasoi">Sita ki rasoi</SelectItem>
+              <SelectItem value="Nageshwar nath">Nageshwar nath</SelectItem>
+              <SelectItem value="Kaleram">Kaleram</SelectItem>
+              <SelectItem value="Treta ke thakur">Treta ke thakur</SelectItem>
+              <SelectItem value="Ram ki paidi">Ram ki paidi</SelectItem>
+              <SelectItem value="Hanuman gufa">Hanuman gufa</SelectItem>
+              <SelectItem value="Tulsi smarak bhawan">
+                Tulsi smarak bhawan
+              </SelectItem>
+              <SelectItem value="Ram janambhoomi workshop">
+                Ram janambhoomi workshop
+              </SelectItem>
+              <SelectItem value="Valmiki Ramayan bhawan">
+                Valmiki Ramayan bhawan
+              </SelectItem>
+              <SelectItem value="Jain shwetambar Temple">
+                Jain shwetambar Temple
+              </SelectItem>
+              <SelectItem value="Jain Digambar Temple">
+                Jain Digambar Temple
+              </SelectItem>
+              <SelectItem value="Mani parbat">Mani parbat</SelectItem>
+              <SelectItem value="Maa Badi devkali (Kul Devi)">
+                Maa Badi devkali (Kul Devi)
+              </SelectItem>
+              <SelectItem value="Guptar ghat (Shri Rama’s Jal Samadhi)">
+                Guptar ghat (Shri Rama’s Jal Samadhi)
+              </SelectItem>
+              <SelectItem value="Panchmukhi Mahadev">
+                Panchmukhi Mahadev
+              </SelectItem>
+              <SelectItem value="Surya kund (laser show)">
+                Surya kund (laser show)
+              </SelectItem>
+              <SelectItem value="Chhapiye (Swaminarayan janmabhoomi)">
+                Chhapiye (Swaminarayan janmabhoomi)
+              </SelectItem>
+              <SelectItem value="Bharat kund (Nandigram)">
+                Bharat kund (Nandigram)
+              </SelectItem>
+              <SelectItem value="Dogra temple Cantt">
+                Dogra temple Cantt
+              </SelectItem>
+              <SelectItem value="Maa kamakhya mandir (Rudauli)">
+                Maa kamakhya mandir (Rudauli)
+              </SelectItem>
+              <SelectItem value="Parijaat vriksh (Barabanki)">
+                Parijaat vriksh (Barabanki)
+              </SelectItem>
+
               <SelectItem value="other">Other Location</SelectItem>
             </SelectContent>
           </Select>
@@ -114,11 +189,15 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
 
         {/* Special Requests */}
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">Special Requests (Optional)</label>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Special Requests (Optional)
+          </label>
           <textarea
             placeholder="Any special requirements or preferences..."
             value={formData.specialRequests}
-            onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, specialRequests: e.target.value })
+            }
             className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             rows={3}
           />
@@ -128,7 +207,9 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
         <div className="border-t border-border pt-6">
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-muted-foreground">
-              <span>Guide fee ({formData.duration}h × ₹{guide.price}/h)</span>
+              <span>
+                Guide fee ({formData.duration}h × ₹{guide.price}/h)
+              </span>
               <span>₹{guide.price * formData.duration}</span>
             </div>
             <div className="flex justify-between text-lg font-bold text-foreground pt-2 border-t border-border">
@@ -139,13 +220,18 @@ export function BookingForm({ guide, onSubmit, isLoading = false }: BookingFormP
 
           <Button
             type="submit"
-            disabled={isLoading || !formData.date || !formData.time || !formData.meetingPoint}
+            disabled={
+              isLoading ||
+              !formData.date ||
+              !formData.time ||
+              !formData.meetingPoint
+            }
             className="w-full bg-secondary hover:bg-secondary/90"
           >
-            {isLoading ? 'Processing...' : 'Confirm Booking'}
+            {isLoading ? "Processing..." : "Confirm Booking"}
           </Button>
         </div>
       </form>
     </Card>
-  )
+  );
 }

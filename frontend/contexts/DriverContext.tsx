@@ -36,11 +36,8 @@ export type Driver = {
   isEmailVerified: boolean;
   isProfileComplete?: boolean;
   profileStep?: number;
-  languages?: string[];
   // Legacy fields for compatibility
-  driverAadhar?: string;
   images?: string[];
-  pricePerKm?: number;
 };
 
 type DriverContextType = {
@@ -62,39 +59,45 @@ export const DriverProvider = ({ children }: any) => {
   const [myDriver, setMyDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const mapDriver = (driver: any): Driver => ({
-    id: driver._id || driver.id || "",
-    name: driver.userId?.name || driver.driverName || driver.name || "Unknown",
-    email: driver.userId?.email || driver.email || "",
-    avatar: driver.userId?.avatar || driver.driverPhoto || driver.avatar || "",
-    phone: driver.userId?.phone || driver.phone || "",
-    bio: driver.userId?.bio || driver.bio || "",
-    vehicleType: driver.vehicleType || "CAR",
-    vehicleName: driver.vehicleName || "",
-    vehicleNumber: driver.vehicleNumber || "",
-    seats: driver.seats || 4,
-    location: driver.location || "",
-    driverPhoto: driver.driverPhoto || "",
-    driverLicenseName: driver.driverLicenseName || "",
-    driverLicenseImage: driver.driverLicenseImage || [],
-    isAvailable: driver.isAvailable ?? false,
-    averageRating: driver.averageRating || 0,
-    totalRides: driver.totalRides || 0,
-    verificationStatus: driver.verificationStatus || "PENDING",
-    driverName: driver.driverName || driver.userId?.name || "",
-    createdAt: driver.createdAt || "",
-    updatedAt: driver.updatedAt || "",
-    // User model fields
-    status: driver.userId?.status || driver.status || "INACTIVE",
-    isEmailVerified: driver.userId?.isEmailVerified || driver.isEmailVerified || false,
-    isProfileComplete: driver.userId?.isProfileComplete || driver.isProfileComplete || false,
-    profileStep: driver.userId?.profileStep || driver.profileStep || 1,
-    languages: driver.languages || [],
-    // Legacy fields for compatibility
-    driverAadhar: driver.driverAadhar || "",
-    images: driver.images || driver.driverLicenseImage || [],
-    pricePerKm: driver.pricePerKm || 0,
-  });
+  const mapDriver = (driver: any): Driver => {
+    console.log("[DRIVER-CONTEXT] mapDriver input:", driver);
+    
+    const mapped = {
+      id: driver._id || driver.id || "",
+      name: driver.userId?.name || driver.driverName || driver.name || "Unknown",
+      email: driver.userId?.email || driver.email || "",
+      avatar: driver.userId?.avatar || driver.driverPhoto || driver.avatar || "",
+      phone: driver.userId?.phone || driver.phone || "",
+      bio: driver.userId?.bio || driver.bio || "",
+      vehicleType: driver.vehicleType || "CAR",
+      vehicleName: driver.vehicleName || "",
+      vehicleNumber: driver.vehicleNumber || "",
+      seats: driver.seats || 4,
+      location: driver.location || "",
+      driverPhoto: driver.driverPhoto || "",
+      driverLicenseName: driver.driverLicenseName || "",
+      driverLicenseImage: driver.driverLicenseImage || [],
+      isAvailable: driver.isAvailable ?? false,
+      averageRating: driver.averageRating || 0,
+      totalRides: driver.totalRides || 0,
+      verificationStatus: driver.verificationStatus || "PENDING",
+      driverName: driver.driverName || driver.userId?.name || "",
+      createdAt: driver.createdAt || "",
+      updatedAt: driver.updatedAt || "",
+      // User model fields
+      status: driver.userId?.status || driver.status || "INACTIVE",
+      isEmailVerified: driver.userId?.isEmailVerified || driver.isEmailVerified || false,
+      isProfileComplete: driver.userId?.isProfileComplete || driver.isProfileComplete || false,
+      profileStep: driver.userId?.profileStep || driver.profileStep || 1,
+      // Legacy fields for compatibility
+      driverAadhar: driver.driverAadhar || "",
+      images: driver.images || driver.driverLicenseImage || [],
+      pricePerKm: driver.pricePerKm || 0,
+    };
+    
+    console.log("[DRIVER-CONTEXT] mapDriver output:", mapped);
+    return mapped;
+  };
 
   const fetchDrivers = useCallback(async () => {
     try {
@@ -120,20 +123,33 @@ export const DriverProvider = ({ children }: any) => {
 
   const fetchMyDriver = useCallback(async () => {
     if (!user || user.role !== "DRIVER") {
+      console.log("[DRIVER-CONTEXT] Not a driver user, skipping fetch");
       setMyDriver(null);
       return;
     }
 
     try {
+      console.log("[DRIVER-CONTEXT] Fetching driver profile for user:", user.id);
       const data = await getMyDriverProfile();
-      if (data) setMyDriver(mapDriver(data));
+      console.log("[DRIVER-CONTEXT] Raw API response:", data);
+      
+      if (data) {
+        const mappedDriver = mapDriver(data);
+        console.log("[DRIVER-CONTEXT] Mapped driver data:", mappedDriver);
+        setMyDriver(mappedDriver);
+      } else {
+        console.log("[DRIVER-CONTEXT] No driver profile data received");
+        setMyDriver(null);
+      }
     } catch (error: any) {
+      console.log("[DRIVER-CONTEXT] Driver profile fetch error:", error);
+      
       // Handle 404 (profile not found) gracefully - this is expected for new drivers
       if (error.message?.includes("Driver Profile not found") || error.status === 404) {
-        console.log("Driver profile not found - user hasn't created profile yet");
+        console.log("[DRIVER-CONTEXT] Driver profile not found - user hasn't created profile yet");
         setMyDriver(null);
       } else {
-        console.error("Failed to fetch driver profile", error);
+        console.error("[DRIVER-CONTEXT] Failed to fetch driver profile", error);
         setMyDriver(null);
       }
     }

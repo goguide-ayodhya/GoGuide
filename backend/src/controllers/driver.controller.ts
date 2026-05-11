@@ -68,7 +68,7 @@ export class DriverController {
     // Update User profile status and details
     const userUpdate: any = {
       isProfileComplete: true,
-      profileStep: 4,
+      profileStep: 5,
       status: "ACTIVE"
     };
 
@@ -81,8 +81,38 @@ export class DriverController {
   }
 
   async getMyProfile(req: AuthRequest, res: Response) {
-    const driver = await driverService.getDriverByUserId(req.userId!);
-    res.status(200).json({ success: true, data: driver });
+    try {
+      console.log("[DRIVER-CONTROLLER] Getting profile for user:", req.userId);
+      const driver = await driverService.getDriverByUserId(req.userId!);
+      console.log("[DRIVER-CONTROLLER] Driver profile found:", driver._id);
+      res.status(200).json({ success: true, data: driver });
+    } catch (error) {
+      console.log("[DRIVER-CONTROLLER] Driver profile not found, creating fallback for user:", req.userId);
+      
+      // Get user details to create fallback profile
+      const user = await User.findById(req.userId);
+      if (!user || user.role !== "DRIVER") {
+        throw new NotFound("Driver profile not found and user is not a driver");
+      }
+
+      // Create fallback driver profile
+      const fallbackDriver = await Driver.create({
+        userId: user._id,
+        vehicleType: "",
+        vehicleName: "",
+        vehicleNumber: "",
+        seats: 0,
+        images: [],
+        verificationStatus: "PENDING",
+        isAvailable: false,
+        averageRating: 0,
+        totalRides: 0,
+        driverName: user.name,
+      });
+
+      console.log("[DRIVER-CONTROLLER] Fallback driver profile created:", fallbackDriver._id);
+      res.status(200).json({ success: true, data: fallbackDriver });
+    }
   }
 
   async updateProfile(req: AuthRequest, res: Response) {
@@ -128,7 +158,7 @@ export class DriverController {
 
     const userUpdate: any = {
       isProfileComplete: true,
-      profileStep: 4,
+      profileStep: 5,
     };
 
     if (files?.avatar?.[0]) {

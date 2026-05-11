@@ -9,7 +9,7 @@ export const createDriverProfileSchema = z.object({
   vehicleNumber: z.string().regex(/^[A-Z]{2}\d{2}[A-Z]{2}\d{4}$/, "Vehicle number must be in format: XX00XX0000 (e.g., UP32AB1234)"),
   seats: z.coerce.number().int().min(1, "Seats must be at least 1").max(50, "Seats cannot exceed 50"),
   driverLicenseName: z.string().min(2, "License holder name is required").max(100, "License holder name must be less than 100 characters"),
-  phone: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits").optional(),
+  phone: z.string().min(3, "Phone number is required").optional(),
   email: z.string().email("Please enter a valid email address").optional(),
 });
 
@@ -22,6 +22,6 @@ export const updateDriverProfileSchema = z.object({
   vehicleNumber: z.string().regex(/^[A-Z]{2}\d{2}[A-Z]{2}\d{4}$/, "Vehicle number must be in format: XX00XX0000 (e.g., UP32AB1234)").optional(),
   seats: z.coerce.number().int().min(1, "Seats must be at least 1").max(50, "Seats cannot exceed 50").optional(),
   driverLicenseName: z.string().min(2, "License holder name is required").max(100, "License holder name must be less than 100 characters").optional(),
-  phone: z.string().regex(/^\d{10}$/, "Phone number must be 10 digits").optional(),
+  phone: z.string().min(3, "Phone number is required").optional(),
   email: z.string().email("Please enter a valid email address").optional(),
 });

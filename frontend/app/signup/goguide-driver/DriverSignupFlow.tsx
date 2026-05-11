@@ -22,6 +22,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { DriverStep1Signup } from "./DriverStep1Signup";
 import { DriverStep2Verify } from "./DriverStep2Verify";
+import { DriverStep3Personal } from "./DriverStep3Personal";
 import { DriverStep4Vehicle } from "./DriverStep4Vehicle";
 import { DriverStep5Documents } from "./DriverStep5Documents";
 const STORAGE_KEY = "driver-signup-draft";
@@ -29,8 +30,9 @@ const STORAGE_KEY = "driver-signup-draft";
 const STEPS = [
   { id: 1, name: "Signup", label: "Step 1" },
   { id: 2, name: "Verify", label: "Step 2" },
-  { id: 3, name: "Vehicle", label: "Step 3" },
-  { id: 4, name: "Documents", label: "Step 4" },
+  { id: 3, name: "Personal", label: "Step 3" },
+  { id: 4, name: "Vehicle", label: "Step 4" },
+  { id: 5, name: "Documents", label: "Step 5" },
 ];
 
 const initialFormData = {
@@ -120,6 +122,7 @@ function DriverSignupFlowContent() {
   const searchParams = useSearchParams();
   const stepParam = searchParams.get("step");
   const { signup, signupWithGoogle, user, isLoggedIn } = useAuth();
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormDataType>(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -445,7 +448,7 @@ function DriverSignupFlowContent() {
     try {
       // No API call here, just proceed to documents step
       setSuccessMessage("Vehicle details saved. One final step remains.");
-      setCurrentStep(4);
+      setCurrentStep(5);
     } catch (error: any) {
       setGlobalError(error?.message || "Unable to save vehicle details.");
     } finally {
@@ -468,6 +471,28 @@ function DriverSignupFlowContent() {
     setErrors(currentErrors);
     setGlobalError("");
     return Object.keys(currentErrors).length === 0;
+  };
+
+  const validatePersonalStep = () => {
+    const currentErrors: Errors = {};
+    if (!formData.signup.name.trim()) {
+      currentErrors.name = "Full name is required";
+    }
+
+    setErrors(currentErrors);
+    setGlobalError("");
+    return Object.keys(currentErrors).length === 0;
+  };
+
+  const handlePersonalNext = async () => {
+    if (!validatePersonalStep()) {
+      return;
+    }
+
+    setGlobalError("");
+    setSuccessMessage("");
+    setSuccessMessage("Personal details confirmed. Moving to vehicle details.");
+    setCurrentStep(4);
   };
 
   const handleComplete = async () => {
@@ -604,6 +629,19 @@ function DriverSignupFlowContent() {
 
     if (currentStep === 3) {
       return (
+        <DriverStep3Personal
+          formData={formData.signup}
+          errors={errors}
+          onChange={(field: string, value: string) => {
+            setField(field, value);
+            setErrors((prev) => ({ ...prev, [field]: "" }));
+          }}
+        />
+      );
+    }
+
+    if (currentStep === 4) {
+      return (
         <DriverStep4Vehicle
           formData={formData.vehicle}
           errors={errors}
@@ -696,7 +734,7 @@ function DriverSignupFlowContent() {
               </div>
             )}
 
-            {/* {currentStep === 1 && !isLoggedIn && (
+            {currentStep === 1 && !isLoggedIn && (
               <div className="mb-6">
                 <GoogleLogin
                   theme="filled_blue"
@@ -712,7 +750,7 @@ function DriverSignupFlowContent() {
                   Or continue with email and password.
                 </p>
               </div>
-            )} */}
+            )}
 
             {stepContent()}
 
@@ -761,13 +799,15 @@ function DriverSignupFlowContent() {
                     onClick={() => {
                       if (currentStep === 1) handleSignupNext();
                       else if (currentStep === 2) handleVerifyOtp();
-                      else if (currentStep === 3) handleVehicleNext();
+                      else if (currentStep === 3) handlePersonalNext();
+                      else if (currentStep === 4) handleVehicleNext();
                     }}
                     disabled={
                       loading ||
                       verifyLoading ||
                       otpSending ||
-                      (currentStep === 2 && !formData.signup.otp.trim())
+                      (currentStep === 2 && !formData.signup.otp.trim()) ||
+                      (currentStep === 3 && !formData.signup.name.trim())
                     }
                     className="flex-1"
                   >

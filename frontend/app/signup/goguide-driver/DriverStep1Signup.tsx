@@ -42,7 +42,7 @@ export function DriverStep1Signup({
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -67,7 +67,7 @@ export function DriverStep1Signup({
               />
               {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
-          </div>
+          </div> */}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">

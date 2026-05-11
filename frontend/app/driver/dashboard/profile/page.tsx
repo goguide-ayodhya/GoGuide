@@ -51,14 +51,17 @@ export default function ProfilePage() {
     driverLicenseImages: myDriver?.driverLicenseImage || [],
     driverPhoto: myDriver?.driverPhoto || "",
     yearsOfExperience: myDriver?.totalRides || 0,
-    languages: Array.isArray(myDriver?.languages)
-  ? myDriver.languages
-  : [],
     reviews: myDriver?.totalRides,
   });
+
+  console.log("[DRIVER-PROFILE] Initial state:", {
+    user: user?.name,
+    myDriver: myDriver,
+    initialFormData: formData,
+  });
+
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [newLanguage, setNewLanguage] = useState("");
   const [selectedLicenseImages, setSelectedLicenseImages] = useState<File[]>(
     [],
   );
@@ -81,11 +84,23 @@ export default function ProfilePage() {
 
   // Sync form as soon as driver profile is available
   useEffect(() => {
-    if (!myDriver) return;
-    setFormData({
-      name: user?.name || myDriver.name || "",
-      email: user?.email || myDriver.email || "",
-      phone: user?.phone || myDriver.phone || "",
+    console.log("[DRIVER-PROFILE] useEffect triggered:", {
+      hasMyDriver: !!myDriver,
+      hasUser: !!user,
+      myDriverId: myDriver?.id,
+      userName: user?.name,
+    });
+
+    if (!myDriver) {
+      console.log("[DRIVER-PROFILE] No driver data, skipping form sync");
+      return;
+    }
+
+    // Create form data from driver profile with proper fallbacks
+    const newFormData = {
+      name: myDriver.name || user?.name || "",
+      email: myDriver.email || user?.email || "",
+      phone: myDriver.phone || user?.phone || "",
       vehicleType: myDriver.vehicleType || "",
       vehicleName: myDriver.vehicleName || "",
       vehicleNumber: myDriver.vehicleNumber || "",
@@ -94,11 +109,11 @@ export default function ProfilePage() {
       driverLicenseImages: myDriver.driverLicenseImage || [],
       driverPhoto: myDriver.driverPhoto || "",
       yearsOfExperience: myDriver.totalRides || 0,
-      languages: Array.isArray(myDriver.languages)
-  ? myDriver.languages
-  : [],
       reviews: myDriver.totalRides,
-    });
+    };
+
+    console.log("[DRIVER-PROFILE] Syncing form with data:", newFormData);
+    setFormData(newFormData);
   }, [myDriver, user]);
 
   useEffect(() => {
@@ -120,7 +135,6 @@ export default function ProfilePage() {
       vehicleNumber: formData.vehicleNumber,
       seats: formData.seats,
       driverLicenseName: formData.driverLicenseName,
-      languages: formData.languages,
       avatar: selectedImage,
       driverPhoto: selectedDriverPhoto,
       driverLicenseImages: [
@@ -151,23 +165,6 @@ export default function ProfilePage() {
         name === "yearsOfExperience" || name === "seats"
           ? parseInt(value) || 0
           : value,
-    }));
-  };
-
-  const addLanguage = () => {
-    if (newLanguage && !formData.languages.includes(newLanguage)) {
-      setFormData((prev) => ({
-        ...prev,
-        languages: [...prev.languages, newLanguage],
-      }));
-      setNewLanguage("");
-    }
-  };
-
-  const removeLanguage = (lang: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      languages: prev.languages.filter((l) => l !== lang),
     }));
   };
 
@@ -640,107 +637,6 @@ export default function ProfilePage() {
             </div>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Languages */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Languages</CardTitle>
-          <CardDescription>Languages you speak fluently</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {formData.languages.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.languages.map((lang) => (
-                  <div
-                    key={lang}
-                    className="px-3 py-2 bg-primary/10 rounded-lg flex items-center gap-2"
-                  >
-                    <span className="text-sm font-medium text-foreground">
-                      {lang}
-                    </span>
-                    {isEditing && (
-                      <button
-                        onClick={() => removeLanguage(lang)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {isEditing && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newLanguage}
-                    onChange={(e) => setNewLanguage(e.target.value)}
-                    placeholder="Add a language"
-                    className="bg-muted border-border"
-                    onKeyPress={(e) => e.key === "Enter" && addLanguage()}
-                  />
-                  <Button onClick={addLanguage} variant="outline">
-                    Add
-                  </Button>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Suggested Languages:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      "English",
-                      "Hindi",
-                      "Marathi",
-                      "Gujarati",
-                      "Bengali",
-                      "Tamil",
-                      "Telugu",
-                      "Kannada",
-                      "Malayalam",
-                      "French",
-                      "Spanish",
-                      "German",
-                    ]
-                      .filter((lang) => !formData.languages.includes(lang))
-                      .map((lang) => (
-                        <Badge
-                          key={lang}
-                          variant="outline"
-                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                          onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              languages: [...prev.languages, lang],
-                            }));
-                          }}
-                        >
-                          + {lang}
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-
-        {isEditing && (
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSave}
-              className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Save size={18} />
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        )}
       </Card>
 
       {/* Account Settings */}

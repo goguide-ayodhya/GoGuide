@@ -65,6 +65,24 @@ function LoginPageContent(): JSX.Element {
         router.push("/");
       }
     } catch (err: any) {
+      // Handle PROFILE_INCOMPLETE for Google login
+      if (err.message === "PROFILE_INCOMPLETE") {
+        const role = err.fieldErrors?.role;
+        const step = err.fieldErrors?.profileStep || 1;
+        
+        console.log("[GOOGLE LOGIN] Profile incomplete - redirecting to complete profile", { role, step });
+        
+        if (role === "DRIVER") {
+          router.push(`/signup/goguide-driver?step=${step}`);
+        } else if (role === "GUIDE") {
+          router.push(`/guide/complete-profile?step=${step}`);
+        } else {
+          setError("Unable to determine your role. Please contact support.");
+          setLoading(false);
+        }
+        return;
+      }
+      
       setError(err.message || "Google login failed");
     } finally {
       setLoading(false);
@@ -111,17 +129,20 @@ function LoginPageContent(): JSX.Element {
       } catch (err: any) {
         const msg = err.message;
 
-        if (err.fieldErrors?.code === "PROFILE_INCOMPLETE") {
-          const role = err.fieldErrors.role;
-          console.log("Role aftr login:", role);
-
-          const step = err.fieldErrors.profileStep || 1;
-          console.log("Role aftr step:", step);
+        if (err.message === "PROFILE_INCOMPLETE") {
+          const role = err.fieldErrors?.role;
+          const step = err.fieldErrors?.profileStep || 1;
+          
+          console.log("[LOGIN] Profile incomplete - redirecting to complete profile", { role, step });
           
           if (role === "DRIVER") {
-            router.push(`/driver/complete-profile?step=${step}`);
-          } else {
+            router.push(`/signup/goguide-driver?step=3`);
+          } else if (role === "GUIDE") {
             router.push(`/guide/complete-profile?step=${step}`);
+          } else {
+            setError("Unable to determine your role. Please contact support.");
+            setLoading(false);
+            return;
           }
           return;
         }

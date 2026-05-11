@@ -14,7 +14,7 @@ const LookingForDriver = (props) => {
             <h3 className='text-xl sm:text-2xl font-semibold mb-4 sm:mb-5'>Looking for a Driver...</h3>
 
             <div className='flex gap-3 sm:gap-4 justify-between flex-col items-center'>
-                <img className='h-16 sm:h-20 md:h-24 w-auto animate-pulse' src="https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg" alt="Vehicle" />
+                <img className='h-16 sm:h-20 md:h-24 w-auto animate-pulse' src={`/assets/vehicle/${props.vehicleType === 'car' ? 'goCab' : props.vehicleType === 'moto' ? 'goMoto' : 'goAuto'}.webp`} alt="Vehicle" />
                 <div className='w-full mt-3 sm:mt-4 md:mt-5 space-y-0'>
                     <div className='flex items-center gap-3 sm:gap-5 p-3 sm:p-4 border-b-2'>
                         <i className="ri-map-pin-user-fill text-lg sm:text-xl"></i>

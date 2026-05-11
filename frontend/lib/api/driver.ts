@@ -14,11 +14,22 @@ const authHeaders = () => {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  
+  console.log("[DRIVER-API] Token check:", {
+    hasToken: !!token,
+    tokenLength: token?.length || 0,
+    tokenStart: token?.substring(0, 20) + "..." || "null",
+    localStorageToken: typeof window !== "undefined" ? localStorage.getItem("token")?.substring(0, 20) + "..." : "undefined"
+  });
+  
   if (token) {
     headers.Authorization = `Bearer ${token}`;
-    console.log("[DRIVER-API] Adding Authorization header, token length:", token.length);
+    console.log("[DRIVER-API] Authorization header added:", {
+      headerLength: headers.Authorization.length,
+      headerStart: headers.Authorization.substring(0, 30) + "..."
+    });
   } else {
-    console.warn("[DRIVER-API] No token found for request");
+    console.error("[DRIVER-API] CRITICAL: No token found for request - localStorage empty or invalid");
   }
   return headers;
 };
@@ -37,12 +48,19 @@ export const getDriverById = async (id: string) => {
 
 // Protected
 export const createDriverProfile = async (data: any) => {
+  console.log("[DRIVER-API] createDriverProfile called");
   const headers = authHeaders();
+
+  if (!headers.Authorization) {
+    console.error("[DRIVER-API] CRITICAL: No Authorization header in createDriverProfile");
+    throw new Error("Authentication required for driver profile creation");
+  }
 
   // ✅ HANDLE FORM DATA CORRECTLY
   if (data instanceof FormData) {
     delete headers["Content-Type"]; // VERY IMPORTANT
     console.log("[DRIVER-API] Sending driver create-profile FormData entries:", [...data.entries()]);
+    console.log("[DRIVER-API] Request headers:", Object.keys(headers));
 
     const res = await fetch(`${base_url}drivers/create-profile`, {
       method: "POST",
@@ -50,6 +68,7 @@ export const createDriverProfile = async (data: any) => {
       body: data,
     });
 
+    console.log("[DRIVER-API] createProfile response status:", res.status);
     return handleApiResponse(res);
   }
 
@@ -60,6 +79,7 @@ export const createDriverProfile = async (data: any) => {
     body: JSON.stringify(data),
   });
 
+  console.log("[DRIVER-API] createProfile response status:", res.status);
   return handleApiResponse(res);
 };
 
@@ -71,11 +91,18 @@ export const getMyDriverProfile = async () => {
 };
 
 export const updateDriverProfile = async (data: any) => {
+  console.log("[DRIVER-API] updateDriverProfile called");
   const headers = authHeaders();
+
+  if (!headers.Authorization) {
+    console.error("[DRIVER-API] CRITICAL: No Authorization header in updateDriverProfile");
+    throw new Error("Authentication required for driver profile update");
+  }
 
   if (data instanceof FormData) {
     delete headers["Content-Type"];
     console.log("[DRIVER-API] Sending driver update-profile FormData entries:", [...data.entries()]);
+    console.log("[DRIVER-API] Request headers:", Object.keys(headers));
 
     const res = await fetch(`${base_url}drivers/me/profile`, {
       method: "PUT",
@@ -83,6 +110,7 @@ export const updateDriverProfile = async (data: any) => {
       body: data,
     });
 
+    console.log("[DRIVER-API] updateProfile response status:", res.status);
     return handleApiResponse(res);
   }
 

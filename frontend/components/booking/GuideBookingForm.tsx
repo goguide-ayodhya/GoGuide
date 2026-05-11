@@ -46,7 +46,7 @@ export function GuideBookingForm({
   const [meetingPoint, setMeetingPoint] = useState("Hotel Lobby");
 
   const [dropoffLocation, setDropoffLocation] = useState(
-    "Ram Mandir Main Gate",
+    "Ram Mandir",
   );
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -171,7 +171,7 @@ export function GuideBookingForm({
       setEmail(data.email || "");
       setPhone(data.phone || "");
       setMeetingPoint(data.meetingPoint || "Hotel Lobby");
-      setDropoffLocation(data.dropoffLocation || "Ram Mandir Main Gate");
+      setDropoffLocation(data.dropoffLocation || "Ram Mandir");
       setGroupSize(data.groupSize || "1");
       setNotes(data.notes || "");
     }

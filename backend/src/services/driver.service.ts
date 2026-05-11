@@ -1,4 +1,5 @@
 import { Driver } from "../models/Driver";
+import { User } from "../models/User";
 import { BadRequest, NotFound } from "../utils/httpException";
 
 export class DriverService {
@@ -15,6 +16,14 @@ export class DriverService {
       userId,
     });
     console.log("[DRIVER-SERVICE] Driver profile created with ID:", driver._id);
+
+    // CRITICAL: Update User model to mark profile as complete
+    console.log("[DRIVER-SERVICE] Updating User model to mark profile as complete");
+    await User.findByIdAndUpdate(userId, {
+      isProfileComplete: true,
+      status: "ACTIVE",
+      profileStep: 5 // Final step completed
+    });
 
     return driver;
   }
@@ -62,12 +71,33 @@ export class DriverService {
   }
 
   async updateDriverProfile(userId: string, data: any) {
+    console.log("[DRIVER-SERVICE] Updating driver profile for user:", userId, "with data:", data);
     const driver = await Driver.findOneAndUpdate({ userId }, data, {
       new: true,
     });
     if (!driver) {
       throw new NotFound("Driver not found");
     }
+    
+    // CRITICAL: Check if all required fields are present to mark profile as complete
+    const isComplete = driver.driverName && 
+                      driver.vehicleType && 
+                      driver.vehicleName && 
+                      driver.vehicleNumber && 
+                      driver.seats && 
+                      driver.driverLicenseName &&
+                      driver.driverPhoto &&
+                      driver.driverLicense;
+
+    if (isComplete) {
+      console.log("[DRIVER-SERVICE] Profile is complete, updating User model");
+      await User.findByIdAndUpdate(userId, {
+        isProfileComplete: true,
+        status: "ACTIVE",
+        profileStep: 5 // Final step completed
+      });
+    }
+
     return driver;
   }
 

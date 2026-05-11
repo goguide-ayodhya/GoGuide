@@ -108,7 +108,7 @@ const normalizeUser = (data: any): User => ({
   isEmailVerified: data.isEmailVerified ?? false,
   isProfileComplete: data.isProfileComplete ?? false,
   status: data.status || undefined,
-  profileStep: 0
+  profileStep: data.profileStep ?? 0
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -274,23 +274,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const normalizedUser = normalizeUser(res.user);
       console.log("[AUTH] Login successful, saving to localStorage");
+      console.log("[AUTH] Token being stored:", res.token.substring(0, 20) + "...");
+      console.log("[AUTH] User profileStep:", normalizedUser.profileStep);
+      console.log("[AUTH] User isProfileComplete:", normalizedUser.isProfileComplete);
+      
       setUser(normalizedUser);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("token", res.token);
+      
+      // Verify token was stored correctly
+      const storedToken = localStorage.getItem("token");
+      console.log("[AUTH] Token verification after storage:", {
+        stored: !!storedToken,
+        matches: storedToken === res.token,
+        storedStart: storedToken?.substring(0, 20) + "..."
+      });
+      
       console.log("[AUTH] User and token saved to localStorage");
 
       return res.user;
     } catch (error: unknown) {
-      if (error instanceof ApiError && error.fieldErrors?.code === "PROFILE_INCOMPLETE") {
-        console.warn("[AUTH] Profile incomplete during login, but saving token so user can complete it.");
-        const incompleteUser = error.fieldErrors.user;
-        const incompleteToken = error.fieldErrors.token;
-        if (incompleteUser && incompleteToken) {
-          const normalizedUser = normalizeUser(incompleteUser);
-          setUser(normalizedUser);
-          localStorage.setItem("user", JSON.stringify(normalizedUser));
-          localStorage.setItem("token", incompleteToken);
-        }
+      if (error instanceof ApiError && error.message === "PROFILE_INCOMPLETE") {
+        console.warn("[AUTH] Profile incomplete during login, letting page handle redirect");
       } else {
         console.error(
           "[AUTH] Login error:",

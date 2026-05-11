@@ -15,23 +15,26 @@ import p_02 from "./partners/p_02.png";
 import p_03 from "./partners/p_03.png";
 import p_04 from "./partners/p_04.jpeg";
 
-import digambarJainMandir from "./destinations/DigambarJainMandir.jpeg";
-import hanumanGarhi from "./destinations/HanumanGarhi.jpeg";
-import hanumanGufa from "./destinations/HanumanGufa.jpeg";
-import kanakBhawan from "./destinations/KanakBhawan.jpeg";
-import lataMangeshkar from "./destinations/LataMangeshkar.jpeg";
-import maniParvatAyodhya from "./destinations/ManiParvatAyodhya.jpeg";
-import shwetambarMandir from "./destinations/ShwetambarMandir.jpeg";
-import sitaKiRasoi from "./destinations/SitaKiRasoi.jpeg";
-import sriRamLalaSadan from "./destinations/SriRamLalaSadan.jpeg";
-import suryaKundLaserShow from "./destinations/SuryaKundLaserShow.jpeg";
-import swamiNarayanChhapiya from "./destinations/SwamiNarayanChhapiya.jpeg";
-import dashrathMahal from "./destinations/dashrathMahal.png";
-import valmikiBhawan from "./destinations/ValmikiBhawan.jpeg";
-import ramMandir from "./destinations/RamMandir.jpeg";
+import digambarJainMandir from "./destinations/DigambarJainMandir.webp";
+import hanumanGarhi from "./destinations/HanumanGarhi.webp";
+import hanumanGufa from "./destinations/HanumanGufa.webp";
+import kanakBhawan from "./destinations/KanakBhawan.webp";
+import maniParvatAyodhya from "./destinations/ManiParvatAyodhya.webp";
+import shwetambarMandir from "./destinations/ShwetambarMandir.webp";
+import sitaKiRasoi from "./destinations/SitaKiRasoi.webp";
+import sriRamLalaSadan from "./destinations/SriRamLalaSadan.webp";
+import suryaKundLaserShow from "./destinations/SuryaKundLaserShow.webp";
+import swamiNarayanChhapiya from "./destinations/SwamiNarayanChhapiya.webp";
+import dashrathMahal from "./destinations/dashrathMahal.webp";
+import valmikiBhawan from "./destinations/ValmikiBhawan.webp";
+import ramMandir from "./destinations/RamMandir.webp";
 
 import adityaSahu from "./team/adityaSahu.png";
 import rahulSrivastava from "./team/rahulSrivastava.png";
+
+import goCab from "./vehicle/goCab.webp";
+import goMoto from "./vehicle/goMoto.webp";
+import goAuto from "./vehicle/goAuto.webp";
 
 export const assets = {
   bgHero,
@@ -54,7 +57,6 @@ export const assets = {
   hanumanGarhi,
   hanumanGufa,
   kanakBhawan,
-  lataMangeshkar,
   maniParvatAyodhya,
   shwetambarMandir,
   sitaKiRasoi,
@@ -67,4 +69,8 @@ export const assets = {
 
   adityaSahu,
   rahulSrivastava,
+
+  goCab,
+  goMoto,
+  goAuto,
 };

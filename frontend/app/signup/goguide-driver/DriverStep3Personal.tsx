@@ -14,11 +14,17 @@ interface DriverStep3PersonalProps {
   onChange: (field: string, value: string) => void;
 }
 
-export function DriverStep3Personal({ formData, errors, onChange }: DriverStep3PersonalProps) {
+export function DriverStep3Personal({
+  formData,
+  errors,
+  onChange,
+}: DriverStep3PersonalProps) {
   return (
     <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6">
       <div>
-        <h2 className="text-xl font-semibold text-slate-900">Personal details</h2>
+        <h2 className="text-xl font-semibold text-slate-900">
+          Personal details
+        </h2>
         <p className="text-sm text-slate-600">
           Confirm or update the name and contact details on your driver profile.
         </p>
@@ -36,7 +42,7 @@ export function DriverStep3Personal({ formData, errors, onChange }: DriverStep3P
           {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
         </div>
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="personalPhone">Phone Number</Label>
           <Input
             id="personalPhone"
@@ -44,10 +50,12 @@ export function DriverStep3Personal({ formData, errors, onChange }: DriverStep3P
             onChange={(event) => onChange("phone", event.target.value)}
             className={cn(errors.phone ? "border-red-500" : "bg-muted")}
           />
-          {errors.phone && <p className="text-sm text-red-600">{errors.phone}</p>}
-        </div>
+          {errors.phone && (
+            <p className="text-sm text-red-600">{errors.phone}</p>
+          )}
+        </div> */}
 
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label htmlFor="personalEmail">Email (Optional)</Label>
           <Input
             id="personalEmail"
@@ -57,7 +65,7 @@ export function DriverStep3Personal({ formData, errors, onChange }: DriverStep3P
             className={cn(errors.email ? "border-red-500" : "bg-muted")}
           />
           {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
-        </div>
+        </div> */}
       </div>
     </div>
   );
