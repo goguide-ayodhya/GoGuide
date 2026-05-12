@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { X, Navigation, Phone, Share2 } from "lucide-react";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
 import { useActiveRide } from "@/contexts/ActiveRideContext";
-import { LoadScript, GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 
 interface LiveTrackingPopupProps {
@@ -16,35 +17,32 @@ interface LiveTrackingPopupProps {
 export default function LiveTrackingPopup({ ride, onClose, isOpen }: LiveTrackingPopupProps) {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [eta, setEta] = useState("5 min");
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
   const { socket } = useContext(SocketContext);
   const { activeRide } = useActiveRide();
+  const { isLoaded, loadError } = useGoogleMaps();
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   // Define handleLocationUpdate at component level
   const handleLocationUpdate = useCallback((data: any) => {
-    console.log("[LIVE TRACKING] Raw socket data received:", data);
-    console.log("[LIVE TRACKING] Expected ride ID:", activeRide?._id, "Received ride ID:", data.rideId);
+    console.log("[LIVE TRACKING] Location update received:", data);
     
-    if (data.rideId === activeRide?._id) {
-      console.log("[LIVE TRACKING] Ride ID match - updating location");
-      console.log("[LIVE TRACKING] Setting driver location:", {
-        lat: data.lat,
-        lng: data.lng,
-      });
+    // Use ride prop first, fallback to activeRide from context
+    const currentRideId = ride?._id || ride?.id || activeRide?._id || activeRide?.id;
+    const receivedRideId = data.rideId;
+    
+    console.log("[LIVE TRACKING] Current ride ID:", currentRideId, "Received:", receivedRideId);
+    
+    if (receivedRideId === currentRideId) {
+      console.log("[LIVE TRACKING] Updating driver location:", { lat: data.lat, lng: data.lng });
       setDriverLocation({
-        lat: data.lat,
-        lng: data.lng,
+        lat: Number(data.lat),
+        lng: Number(data.lng),
       });
       setEta(data.eta || "5 min");
-      console.log("[LIVE TRACKING] Location updated successfully:", {
-        lat: data.lat,
-        lng: data.lng,
-      });
     } else {
-      console.log("[LIVE TRACKING] Ride ID mismatch, ignoring update");
+      console.log("[LIVE TRACKING] Ride ID mismatch - ignoring update");
     }
-  }, [activeRide]);
+  }, [ride, activeRide]);
 
   const mapContainerStyle = {
   width: "100%",
@@ -56,34 +54,74 @@ export default function LiveTrackingPopup({ ride, onClose, isOpen }: LiveTrackin
     lng: 75.7873, // Default to a reasonable location
   };
 
-  useEffect(() => {
-    console.log("[LIVE TRACKING] useEffect triggered");
-    console.log("[LIVE TRACKING] Socket available:", !!socket);
-    console.log("[LIVE TRACKING] Active ride from context:", activeRide);
-    console.log("[LIVE TRACKING] Popup open:", isOpen);
-    
-    if (!socket || !activeRide || !isOpen) {
-      console.log("[LIVE TRACKING] Early return - missing socket, active ride, or popup not open");
+useEffect(() => {
+  if (!socket) {
+    console.log("[LIVE TRACKING] No socket");
+    return;
+  }
+
+  if (!ride?._id) {
+    console.log("[LIVE TRACKING] No ride ID");
+    return;
+  }
+
+  if (!isOpen) {
+    console.log("[LIVE TRACKING] Popup closed");
+    return;
+  }
+
+  console.log(
+    "[LIVE TRACKING] Listening for ride:",
+    ride._id
+  );
+
+  const handleLocationUpdate = (data: any) => {
+    console.log(
+      "[TOURIST] LOCATION EVENT RECEIVED:",
+      data
+    );
+
+    const incomingRideId =
+      typeof data.rideId === "object"
+        ? data.rideId._id
+        : data.rideId;
+
+    if (String(incomingRideId) !== String(ride._id)) {
+      console.log("[LIVE TRACKING] Ride mismatch");
       return;
     }
 
-    console.log("[LIVE TRACKING] Setting up location listener for ride:", activeRide?._id);
-    console.log("[LIVE TRACKING] Socket ID:", socket.id);
-    console.log("[LIVE TRACKING] Socket connected:", socket.connected);
+    console.log(
+      "[LIVE TRACKING] Updating driver location"
+    );
 
-    
-    // Check if already listening
-    const existingListeners = socket.listeners('driver-location-update');
-    console.log("[LIVE TRACKING] Existing listeners:", existingListeners.length);
-    
-    socket.on("driver-location-update", handleLocationUpdate);
-    console.log("[LIVE TRACKING] Listener added successfully");
+    setDriverLocation({
+      lat: Number(data.lat),
+      lng: Number(data.lng),
+    });
 
-    return () => {
-      console.log("[LIVE TRACKING] Cleaning up listener");
-      socket.off("driver-location-update", handleLocationUpdate);
-    };
-  }, [socket, activeRide, isOpen, handleLocationUpdate]);
+    if (data.eta) {
+      setEta(data.eta);
+    }
+  };
+
+  socket.off(
+    "driver-location-update",
+    handleLocationUpdate
+  );
+
+  socket.on(
+    "driver-location-update",
+    handleLocationUpdate
+  );
+
+  return () => {
+    socket.off(
+      "driver-location-update",
+      handleLocationUpdate
+    );
+  };
+}, [socket, ride?._id, isOpen]);
 
   // Cleanup socket listener on unmount
   useEffect(() => {
@@ -94,18 +132,22 @@ export default function LiveTrackingPopup({ ride, onClose, isOpen }: LiveTrackin
     };
   }, [socket]);
 
-  // Debug: Always show current driver location state
   useEffect(() => {
-    console.log("[LIVE TRACKING] Driver location state updated:", driverLocation);
-    console.log("[LIVE TRACKING] Driver location type:", typeof driverLocation);
-    console.log("[LIVE TRACKING] Driver location lat:", driverLocation?.lat);
-    console.log("[LIVE TRACKING] Driver location lng:", driverLocation?.lng);
-  }, [driverLocation]);
+  if (
+    mapRef.current &&
+    driverLocation?.lat &&
+    driverLocation?.lng
+  ) {
+    mapRef.current.panTo({
+      lat: Number(driverLocation.lat),
+      lng: Number(driverLocation.lng),
+    });
+  }
+}, [driverLocation]);
 
   // Auto-center map when driver location changes
   useEffect(() => {
     if (driverLocation?.lat && driverLocation?.lng) {
-      console.log("[LIVE TRACKING] Auto-centering map to driver location:", driverLocation);
       // Map will auto-center when driverLocation prop changes
     }
   }, [driverLocation]);
@@ -139,176 +181,245 @@ export default function LiveTrackingPopup({ ride, onClose, isOpen }: LiveTrackin
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
   if (isOpen) {
+    // Prevent body scroll and touch events
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = "0";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.bottom = "0";
+    document.body.style.touchAction = "none";
+    document.body.style.webkitUserSelect = "none";
+    document.body.style.userSelect = "none";
+    document.body.style.pointerEvents = "none";
   } else {
-    document.body.style.overflow = "auto";
+    // Restore body scroll and touch events
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.bottom = "";
+    document.body.style.touchAction = "";
+    document.body.style.webkitUserSelect = "";
+    document.body.style.userSelect = "";
+    document.body.style.pointerEvents = "";
   }
 
   return () => {
-    document.body.style.overflow = "auto";
+    // Cleanup on unmount
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.bottom = "";
+    document.body.style.touchAction = "";
+    document.body.style.webkitUserSelect = "";
+    document.body.style.userSelect = "";
+    document.body.style.pointerEvents = "";
   };
 }, [isOpen]);
+
   if (!isOpen) return null;
 
 
   return (
-<div
-  className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4"
->
-  <div className="
-relative
-w-full
-max-w-4xl
-h-[90vh]
-bg-white
-rounded-3xl
-shadow-2xl
-flex
-flex-col
-overflow-hidden
-">       {/* Header */}
-{/* Header */}
-<div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-white z-10">
-            <div>
+    <div
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Only close if clicking the backdrop, not the modal content
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="relative w-full max-w-4xl h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-white z-10">
+          <div>
             <h2 className="text-lg font-semibold">Live Tracking</h2>
             <p className="text-sm text-gray-600">Your driver is on the way</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Google Map */}
-<div className="relative h-[45vh] min-h-[300px] flex-shrink-0">
-              {mapError ? (
+        <div className="relative h-[45vh] min-h-[300px] flex-shrink-0 bg-gray-100">
+          {/* Debug Panel */}
+          <div className="absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded z-20 max-w-xs">
+            <div>Socket: {socket ? "✅" : "❌"}</div>
+            <div>Ride ID: {ride?._id || activeRide?._id || "None"}</div>
+            <div>Driver Loc: {driverLocation ? `${driverLocation.lat.toFixed(4)}, ${driverLocation.lng.toFixed(4)}` : "None"}</div>
+            <div>ETA: {eta}</div>
+            {/* Test Button */}
+            <button 
+              onClick={() => {
+                console.log("[TEST] Simulating driver location update");
+                // Simulate driver location update for testing
+                const testData = {
+                  rideId: ride?._id || activeRide?._id,
+                  lat: 26.9124 + Math.random() * 0.01,
+                  lng: 75.7873 + Math.random() * 0.01,
+                  eta: `${Math.floor(Math.random() * 10 + 1)} min`
+                };
+                console.log("[TEST] Sending test data:", testData);
+                handleLocationUpdate(testData);
+              }}
+              className="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+            >
+              Test Driver Loc
+            </button>
+          </div>
+          
+          {loadError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-red-50">
               <div className="text-center">
                 <p className="text-red-600 font-medium">Map Error</p>
-                <p className="text-sm text-gray-600">{mapError}</p>
+                <p className="text-sm text-gray-600">Failed to load Google Maps</p>
               </div>
             </div>
+          ) : !isLoaded ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
           ) : (
-            <LoadScript 
-              googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-              libraries={['places']}
-              onLoad={() => {
-                console.log("[LIVE TRACKING] Google Maps loaded successfully");
-                setMapLoaded(true);
+            <GoogleMap
+              mapContainerStyle={{
+                width: "100%",
+                height: "100%",
               }}
-              onError={() => {
-                console.error("[LIVE TRACKING] Google Maps failed to load");
-                setMapError("Failed to load Google Maps");
+              center={driverLocation || defaultCenter}
+              zoom={15}
+              onLoad={(map) => {
+                mapRef.current = map;
+                console.log("[LIVE TRACKING] Map loaded successfully");
+              }}
+              options={{
+                fullscreenControl: true,
+                streetViewControl: false,
+                mapTypeControl: false,
+                zoomControl: true,
+                gestureHandling: "greedy",
               }}
             >
-             <GoogleMap
-  mapContainerStyle={mapContainerStyle}
-  center={driverLocation || defaultCenter}
-  zoom={15}
-  options={{
-    fullscreenControl: true,
-    streetViewControl: false,
-    mapTypeControl: false,
-    zoomControl: true,
-    gestureHandling: "greedy",
-  }}
->
-  {driverLocation?.lat && driverLocation?.lng && (
-    <Marker
-      position={{
-        lat: Number(driverLocation.lat),
-        lng: Number(driverLocation.lng),
-      }}
-      icon={{
-        url: "https://cdn-icons-png.flaticon.com/512/744/744465.png",
-        scaledSize: new google.maps.Size(40, 40),
-      }}
-    />
-  )}
-</GoogleMap>
-            </LoadScript>
+              {/* Driver Marker */}
+              {driverLocation && driverLocation.lat && driverLocation.lng && (
+                <Marker
+                  position={{
+                    lat: Number(driverLocation.lat),
+                    lng: Number(driverLocation.lng),
+                  }}
+                  icon={{
+                    url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+                    scaledSize: new google.maps.Size(45, 45),
+                  }}
+                  title="Driver Location"
+                />
+              )}
+              
+              {/* Fallback Marker for Testing */}
+              {!driverLocation && (
+                <Marker
+                  position={defaultCenter}
+                  icon={{
+                    url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+                    scaledSize: new google.maps.Size(45, 45),
+                  }}
+                  title="Default Location (No Driver Data)"
+                />
+              )}
+            </GoogleMap>
           )}
           
           {/* ETA Badge */}
-          <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
+          <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold z-10 shadow-lg">
             ETA: {eta}
           </div>
         </div>
 
-        {/* Driver Info */}
-<div className="flex-1 overflow-y-auto no-scrollbar">
+        {/* Content Area - Scrollable */}
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          {/* Driver Info */}
+          <div className="bg-white p-4 border-b">
             <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-              <span className="text-lg font-semibold">
-                {ride?.driver?.userId?.fullname?.firstname?.[0] || "D"}
-              </span>
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">
-                {ride?.driver?.userId?.fullname?.firstname && ride?.driver?.userId?.fullname?.lastname
-                  ? `${ride.driver.userId.fullname.firstname} ${ride.driver.userId.fullname.lastname}`
-                  : ride?.driver?.driverName || "Driver"}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {ride?.driver?.vehicleName || ride?.driver?.vehicleType || "Vehicle"} • {ride?.driver?.vehicleNumber || "No plate"}
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">OTP</div>
-              <div className="text-lg font-bold text-green-600">{ride?.otp || "****"}</div>
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-semibold">
+                  {ride?.driver?.userId?.fullname?.firstname?.[0] || "D"}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold truncate">
+                  {ride?.driver?.userId?.fullname?.firstname && ride?.driver?.userId?.fullname?.lastname
+                    ? `${ride.driver.userId.fullname.firstname} ${ride.driver.userId.fullname.lastname}`
+                    : ride?.driver?.driverName || "Driver"}
+                </h3>
+                <p className="text-sm text-gray-600 truncate">
+                  {ride?.driver?.vehicleName || ride?.driver?.vehicleType || "Vehicle"} • {ride?.driver?.vehicleNumber || "No plate"}
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-sm text-gray-500">OTP</div>
+                <div className="text-lg font-bold text-green-600">{ride?.otp || "****"}</div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Ride Details */}
-<div className="p-4 space-y-3">
+          {/* Ride Details */}
+          <div className="bg-white p-4 space-y-3">
             <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-green-600 rounded-full mt-2"></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Pickup</p>
-              <p className="text-sm text-gray-600">{ride?.pickup || "Loading..."}</p>
+              <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Pickup</p>
+                <p className="text-sm text-gray-600 break-words">{ride?.pickup || "Loading..."}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 bg-red-600 rounded-full mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Destination</p>
+                <p className="text-sm text-gray-600 break-words">{ride?.destination || "Loading..."}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm font-medium">Fare:</div>
+              <div className="text-sm font-semibold">₹{ride?.fare || 0}</div>
             </div>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="w-2 h-2 bg-red-600 rounded-full mt-2"></div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">Destination</p>
-              <p className="text-sm text-gray-600">{ride?.destination || "Loading..."}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-sm font-medium">Fare:</div>
-            <div className="text-sm font-semibold">₹{ride?.fare || 0}</div>
-          </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="p-4 border-t grid grid-cols-3 gap-3">
-          <button
-            onClick={handleCallDriver}
-            className="flex flex-col items-center gap-1 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100"
-          >
-            <Phone size={16} />
-            <span className="text-xs">Call</span>
-          </button>
-          <button
-            onClick={handleShareLocation}
-            className="flex flex-col items-center gap-1 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
-          >
-            <Share2 size={16} />
-            <span className="text-xs">Share</span>
-          </button>
-          <button
-            onClick={handleNavigate}
-            className="flex flex-col items-center gap-1 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100"
-          >
-            <Navigation size={16} />
-            <span className="text-xs">Navigate</span>
-          </button>
+          {/* Action Buttons */}
+          <div className="bg-white p-4 border-t grid grid-cols-3 gap-3">
+            <button
+              onClick={handleCallDriver}
+              className="flex flex-col items-center gap-1 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+            >
+              <Phone size={16} />
+              <span className="text-xs">Call</span>
+            </button>
+            <button
+              onClick={handleShareLocation}
+              className="flex flex-col items-center gap-1 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Share2 size={16} />
+              <span className="text-xs">Share</span>
+            </button>
+            <button
+              onClick={handleNavigate}
+              className="flex flex-col items-center gap-1 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Navigation size={16} />
+              <span className="text-xs">Navigate</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

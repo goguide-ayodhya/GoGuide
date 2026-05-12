@@ -32,22 +32,54 @@ const CaptainHome = () => {
         const updateLocation = () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-
+                    console.log("[DRIVER] GPS location:", position.coords.latitude, position.coords.longitude);
+                    
                     socket.emit('update-location-captain', {
                         userId: captainId,
                         location: {
                             ltd: position.coords.latitude,
                             lng: position.coords.longitude
                         }
-                    })
-                })
+                    });
+                }, (error) => {
+                    console.error("[DRIVER] GPS error:", error);
+                });
+            } else {
+                console.error("[DRIVER] Geolocation not supported");
             }
         }
 
-        const locationInterval = setInterval(updateLocation, 10000)
-        updateLocation()
+        // Start continuous GPS tracking
+        const watchId = navigator.geolocation.watchPosition(
+            position => {
+                console.log("[DRIVER] Real-time GPS:", position.coords.latitude, position.coords.longitude);
+                
+                socket.emit('update-location-captain', {
+                    userId: captainId,
+                    location: {
+                        ltd: position.coords.latitude,
+                        lng: position.coords.longitude
+                    }
+                });
+            },
+            error => {
+                console.error("[DRIVER] Watch GPS error:", error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
 
-        // return () => clearInterval(locationInterval)
+        // Fallback periodic update if watch fails
+        const locationInterval = setInterval(updateLocation, 10000);
+        updateLocation();
+
+        return () => {
+            navigator.geolocation.clearWatch(watchId);
+            clearInterval(locationInterval);
+        };
     }, [])
 
     socket.on('new-ride', (data) => {

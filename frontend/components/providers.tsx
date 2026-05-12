@@ -15,6 +15,7 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { FCMNotificationProvider } from "@/contexts/FCMNotificationContext";
 import SocketProvider from "@/contexts/cabs/SocketContext";
 import { ActiveRideProvider } from "@/contexts/ActiveRideContext";
+import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
@@ -29,15 +30,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 <PaymentProvider>
                   <EarningsProvider>
                     <SocketProvider>
-                      <ReviewProvider>
-                        <GuideProvider>
-                          <PackageProvider>
-                            <ActiveRideProvider>
-                              {children}
-                            </ActiveRideProvider>
-                          </PackageProvider>
-                        </GuideProvider>
-                      </ReviewProvider>
+                      <GoogleMapsProvider>
+                        <ReviewProvider>
+                          <GuideProvider>
+                            <PackageProvider>
+                              <ActiveRideProvider>
+                                {children}
+                              </ActiveRideProvider>
+                            </PackageProvider>
+                          </GuideProvider>
+                        </ReviewProvider>
+                      </GoogleMapsProvider>
                     </SocketProvider>
                   </EarningsProvider>
                 </PaymentProvider>
