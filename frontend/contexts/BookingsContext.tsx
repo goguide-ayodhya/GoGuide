@@ -9,6 +9,7 @@ import {
   rejectBookingApi,
   completeBookingApi,
 } from "@/lib/api/bookings";
+import { getUserRides } from "@/lib/api/rides";
 import {
   createContext,
   useContext,

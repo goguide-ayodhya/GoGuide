@@ -44,7 +44,7 @@ const ConfirmRide = (props) => {
                         props.setConfirmRidePanel(false)
                         props.createRide()
                     }} 
-                    className='w-full mt-4 sm:mt-5 md:mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold p-2.5 sm:p-3 rounded-lg transition'
+                    className='w-full mt-4 sm:mt-5 md:mt-6 bg-secondary hover:secondary/80 text-white font-semibold p-2.5 sm:p-3 rounded-lg transition'
                 >
                     Confirm Ride
                 </button>

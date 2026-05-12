@@ -45,7 +45,6 @@ export default function Home() {
     { name: "Valmiki Bhawan", image: assets.valmikiBhawan },
     { name: "Dashrath Mahal", image: assets.dashrathMahal },
     { name: "Kanak Bhawan", image: assets.kanakBhawan },
-    { name: "Lata Mangeshkar Chowk", image: assets.lataMangeshkar },
     { name: "Digambar Jain Mandir Mandir", image: assets.digambarJainMandir },
     { name: "Mani Parvat", image: assets.maniParvatAyodhya },
     { name: "Shwetambar Mandir", image: assets.shwetambarMandir },

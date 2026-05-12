@@ -61,3 +61,57 @@ export const createRide = async (rideData: RideData) => {
     throw error;
   }
 };
+
+export const getPendingRides = async () => {
+  try {
+    const response = await fetch(`${base_url}rides/pending-rides`, {
+      method: "GET",
+      headers: { ...authHeaders() },
+    });
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error("Error fetching pending rides:", error);
+    throw error;
+  }
+};
+
+export const confirmRide = async (rideId: string) => {
+  try {
+    const response = await fetch(`${base_url}rides/confirm`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId }),
+    });
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error("Error confirming ride:", error);
+    throw error;
+  }
+};
+
+export const startRide = async (rideId: string, otp: string) => {
+  try {
+    const response = await fetch(`${base_url}rides/start-ride?rideId=${rideId}&otp=${otp}`, {
+      method: "GET",
+      headers: { ...authHeaders() },
+    });
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error("Error starting ride:", error);
+    throw error;
+  }
+};
+
+export const endRide = async (rideId: string) => {
+  try {
+    const response = await fetch(`${base_url}rides/end-ride`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId }),
+    });
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error("Error ending ride:", error);
+    throw error;
+  }
+};

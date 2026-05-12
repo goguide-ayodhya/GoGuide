@@ -17,6 +17,7 @@ import {
   completeBookingApi,
   rejectBookingApi,
 } from "@/lib/api/bookings";
+import { getPendingRides, confirmRide } from "@/lib/api/rides";
 import { BookingStatus, useBooking } from "@/contexts/BookingsContext";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
@@ -26,6 +27,7 @@ import {
   getBookingPaymentsApi,
 } from "@/lib/api/payments";
 import { getPaymentStatusLabel } from "@/lib/payment-status";
+import { useEffect } from "react";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -50,6 +52,65 @@ export default function BookingsPage() {
   const { bookings, setBookings, loading, error, refreshBookings } =
     useBooking();
 
+  const loadPendingRides = async () => {
+    try {
+      console.log("[DRIVER BOOKINGS] Loading pending rides from database");
+      const pendingRides = await getPendingRides();
+      
+      // Convert ride data to booking format
+      const rideBookings = pendingRides.map((rideData: any) => ({
+        bookingId: rideData._id,
+        _id: rideData._id,
+        id: rideData._id,
+        guideId: "",
+        driverId: "",
+        touristName: rideData.user?.fullname?.firstname || rideData.user?.name || "Unknown",
+        email: rideData.user?.email || "",
+        phone: rideData.user?.phone || "",
+        groupSize: rideData.groupSize || 1,
+        participants: rideData.groupSize || 1,
+        bookingDate: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        date: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        startTime: rideData.startTime || "09:00",
+        bookingType: "DRIVER" as const,
+        tourType: rideData.tourType || "Cab Ride",
+        meetingPoint: rideData.pickup || "",
+        location: rideData.pickup || "",
+        dropoffLocation: rideData.destination || "",
+        totalPrice: rideData.fare || 0,
+        totalAmount: rideData.fare || 0,
+        status: "PENDING" as const,
+        paymentStatus: "PENDING" as const,
+        paymentType: "COD" as const,
+        paidAmount: 0,
+        remainingAmount: rideData.fare || 0,
+        discount: 0,
+        finalPrice: rideData.fare || 0,
+        originalPrice: rideData.fare || 0,
+        guideEarning: 0,
+        adminCommission: 0,
+        cancellationReason: "",
+        cancelledBy: undefined,
+        createdAt: new Date(rideData.createdAt).toISOString(),
+        notes: rideData.notes || "",
+        paymentMethod: "cod",
+        avatar: rideData.user?.avatar || rideData.user?.profileImage || "",
+        reviewed: false,
+        hours: rideData.hours || 1,
+      }));
+
+      setBookings((prev) => {
+        const existingIds = new Set(prev.map((b: Booking) => b.id));
+        const newBookings = rideBookings.filter((b: Booking) => !existingIds.has(b.id));
+        return [...newBookings, ...prev];
+      });
+
+      console.log(`[DRIVER BOOKINGS] Loaded ${rideBookings.length} pending rides from database`);
+    } catch (error) {
+      console.error("[DRIVER BOOKINGS] Error loading pending rides:", error);
+    }
+  };
+
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsModalOpen(true);
@@ -60,8 +121,16 @@ export default function BookingsPage() {
     newStatus: BookingStatus,
   ) => {
     try {
+      const booking = bookings.find(b => b.id === bookingId);
+      
       if (newStatus === "ACCEPTED") {
-        await acceptBookingApi(bookingId);
+        if (booking?.bookingType === "DRIVER") {
+          console.log(`[DRIVER BOOKINGS] Accepting CAB ride ${bookingId}`);
+          await confirmRide(bookingId);
+          console.log(`[DRIVER BOOKINGS] Successfully accepted CAB ride ${bookingId}`);
+        } else {
+          await acceptBookingApi(bookingId);
+        }
       } else if (newStatus === "REJECTED") {
         await rejectBookingApi(bookingId);
       } else if (newStatus === "COMPLETED") {
@@ -72,8 +141,9 @@ export default function BookingsPage() {
         prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b)),
       );
       await refreshBookings();
+      await loadPendingRides();
     } catch (error) {
-      console.error("Failed to update booking status", error);
+      console.error("[DRIVER BOOKINGS] Failed to update booking status", error);
     }
   };
 
@@ -120,6 +190,11 @@ export default function BookingsPage() {
     // Refresh bookings to get updated status
     await refreshBookings();
   };
+
+  // Load pending rides on component mount
+  useEffect(() => {
+    loadPendingRides();
+  }, []);
 
   if (loading) {
     return (

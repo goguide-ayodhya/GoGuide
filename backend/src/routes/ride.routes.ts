@@ -44,6 +44,10 @@ router.post('/end-ride',
     rideController.endRide
 );
 
-
+router.get('/pending-rides',
+    authenticate,
+    authorize(['DRIVER']),
+    rideController.getPendingRides
+);
 
 export default router;

@@ -6,6 +6,7 @@ import { DriverAvailabilityToggle } from "@/app/driver/components/driver-availab
 import { DriverStatusCard } from "@/app/driver/components/driver-status-card";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
 import { acceptBookingApi, rejectBookingApi } from "@/lib/api/bookings";
+import { getPendingRides, confirmRide } from "@/lib/api/rides";
 import {
   getDriverEarnings,
   getDriverWeeklyEarnings,
@@ -45,6 +46,7 @@ import {
   CheckCircle,
   Users,
   Star,
+  IndianRupee,
 } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
 import Link from "next/link";
@@ -54,6 +56,8 @@ import { useEarnings } from "@/contexts/EarningContext";
 import { useReview } from "@/contexts/ReviewContext";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveRide } from "@/contexts/ActiveRideContext";
+import DriverAssignedSheet from "@/components/cabs/DriverAssignedSheet";
 
 export default function DashboardPage() {
   const { myDriver } = useDriver();
@@ -64,9 +68,11 @@ export default function DashboardPage() {
   const { reviews, getDriverReview } = useReview();
   const { socket } = useContext(SocketContext);
   const { user } = useAuth();
+  const { activeRide, clearActiveRide, setActiveRide } = useActiveRide();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showActiveRideSheet, setShowActiveRideSheet] = useState(false);
 
   const recentBookings = bookings.slice(0, 5);
   const pendingCount = bookings.filter((b) => b.status === "PENDING").length;
@@ -92,21 +98,104 @@ export default function DashboardPage() {
     setIsModalOpen(true);
   };
 
+  const loadPendingRides = async () => {
+    try {
+      console.log("[DRIVER] Loading pending rides from database");
+      const pendingRides = await getPendingRides();
+      
+      // Convert ride data to booking format
+      const rideBookings = pendingRides.map((rideData: any) => ({
+        bookingId: rideData._id,
+        _id: rideData._id,
+        id: rideData._id,
+        guideId: "",
+        driverId: user?.id || "",
+        touristName: rideData.user?.fullname?.firstname || rideData.user?.name || "Unknown",
+        email: rideData.user?.email || "",
+        phone: rideData.user?.phone || "",
+        groupSize: rideData.groupSize || 1,
+        participants: rideData.groupSize || 1,
+        bookingDate: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        date: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        startTime: rideData.startTime || "09:00",
+        bookingType: "DRIVER" as const,
+        tourType: rideData.tourType || "City Tour",
+        meetingPoint: rideData.pickup || "",
+        location: rideData.pickup || "",
+        dropoffLocation: rideData.destination || "",
+        totalPrice: rideData.fare || 0,
+        totalAmount: rideData.fare || 0,
+        status: "PENDING" as const,
+        paymentStatus: "PENDING" as const,
+        paymentType: "COD" as const,
+        paidAmount: 0,
+        remainingAmount: rideData.fare || 0,
+        discount: 0,
+        finalPrice: rideData.fare || 0,
+        originalPrice: rideData.fare || 0,
+        guideEarning: 0,
+        adminCommission: 0,
+        cancellationReason: "",
+        cancelledBy: undefined,
+        createdAt: new Date(rideData.createdAt).toISOString(),
+        notes: rideData.notes || "",
+        paymentMethod: "cod",
+        avatar: rideData.user?.avatar || rideData.user?.profileImage || "",
+        reviewed: false,
+        hours: rideData.hours || 1,
+      }));
+
+      setBookings((prev) => {
+        const existingIds = new Set(prev.map(b => b.id));
+        const newBookings = rideBookings.filter((b: { id: string; }) => !existingIds.has(b.id));
+        return [...newBookings, ...prev];
+      });
+
+      console.log(`[DRIVER] Loaded ${rideBookings.length} pending rides from database`);
+    } catch (error) {
+      console.error("[DRIVER] Error loading pending rides:", error);
+    }
+  };
+
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
       if (newStatus === "ACCEPTED") {
-        await acceptBookingApi(bookingId);
+        console.log(`[DRIVER] Accepting ride ${bookingId}`);
+        const rideData = await confirmRide(bookingId);
+        console.log(`[DRIVER] Successfully accepted ride ${bookingId}`);
+        
+        // Remove from pending bookings and show active ride sheet
+        setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+        setShowActiveRideSheet(true);
+        
+        // Set active ride in context
+        if (rideData) {
+          // Convert to active ride format
+          const activeRideData = {
+            _id: rideData._id,
+            id: rideData._id,
+            user: rideData.user,
+            driver: rideData.driver,
+            pickup: rideData.pickup,
+            destination: rideData.destination,
+            fare: rideData.fare,
+            status: rideData.status,
+            otp: rideData.otp,
+            createdAt: rideData.createdAt,
+            updatedAt: rideData.updatedAt,
+          };
+          // This will be handled by the ActiveRideContext via socket events
+        }
       } else if (newStatus === "REJECTED") {
         await rejectBookingApi(bookingId);
+        setBookings((prev) =>
+          prev.map((b) =>
+            b.id === bookingId ? { ...b, status: newStatus as any } : b,
+          ),
+        );
       }
-
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.id === bookingId ? { ...b, status: newStatus as any } : b,
-        ),
-      );
     } catch (err) {
-      console.log("Status update failed", err);
+      console.error("[DRIVER] Status update failed:", err);
     }
   };
 
@@ -136,6 +225,8 @@ export default function DashboardPage() {
     if (myDriver?.id) {
       getDriverReview(myDriver.id);
     }
+    // Load pending rides from database
+    loadPendingRides();
   }, [myDriver?.id]);
 
   // Socket integration for new ride requests
@@ -203,8 +294,31 @@ export default function DashboardPage() {
 
     socket.on("new-ride", handleNewRide);
 
+    // Handle ride accepted by another driver
+    const handleRideAccepted = (data: any) => {
+      console.log("[DRIVER] Ride accepted by another driver:", data);
+      // Remove the accepted ride from the bookings list
+      setBookings((prev) => prev.filter((b) => b.id !== data.rideId));
+    };
+
+    // Handle ride accepted by this driver
+    const handleRideAcceptedByMe = (data: any) => {
+      console.log("[DRIVER] I accepted the ride:", data);
+      // Remove from pending bookings and show active ride
+      setBookings((prev) => prev.filter((b) => b.id !== data.rideId));
+      setShowActiveRideSheet(true);
+      
+      // ActiveRideContext will handle setting the active ride data
+      // No need to manually set here since context handles it
+    };
+
+    socket.on("ride-accepted", handleRideAccepted);
+    socket.on("ride-accepted-driver", handleRideAcceptedByMe);
+
     return () => {
       socket.off("new-ride", handleNewRide);
+      socket.off("ride-accepted", handleRideAccepted);
+      socket.off("ride-accepted-driver", handleRideAcceptedByMe);
     };
   }, [socket, user?.id, setBookings]);
 
@@ -262,11 +376,12 @@ export default function DashboardPage() {
                           {booking.tourType}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-primary">
-                          ${booking.totalPrice}
-                        </p>
-                      </div>
+                    <div className="text-right flex items-center justify-end gap-1 whitespace-nowrap">
+  <IndianRupee className="w-3 h-3 shrink-0" />
+  <p className="text-sm font-medium">
+    {booking.totalPrice}
+  </p>
+</div>
                     </div>
 
                     <div className="flex gap-4 text-sm text-muted-foreground">
@@ -315,24 +430,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Earnings"
-          value={`$${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
-          icon={DollarSign}
+          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          icon={IndianRupee}
           description="This month"
-          trend={{ value: 12, label: "vs last month", positive: true }}
         />
         <StatsCard
           title="Upcoming Rides"
           value={bookings.filter((b) => b.status === "ACCEPTED").length ?? 0}
           icon={Calendar}
           description="Next 30 days"
-          trend={{ value: 8, label: "vs last month", positive: true }}
         />
         <StatsCard
           title="Average Rating"
           value={myDriver?.averageRating?.toFixed(1) ?? 0}
           icon={Star}
           description="Based on reviews"
-          trend={{ value: 2, label: "since last month", positive: true }}
         />
         <StatsCard
           title="Total Rides"
@@ -340,79 +452,6 @@ export default function DashboardPage() {
           icon={TrendingUp}
           description="All time"
         />
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Monthly Earnings Chart */}
-        <Card className="lg:col-span-2 bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Monthly Earnings</CardTitle>
-            <CardDescription>
-              Revenue trend over the last 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData || []}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="oklch(0.25 0.03 240)"
-                />
-                <XAxis dataKey="month" stroke="oklch(0.65 0 0)" />
-                <YAxis stroke="oklch(0.65 0 0)" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "oklch(0.15 0.02 240)",
-                    border: "1px solid oklch(0.25 0.03 240)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Bar
-                  dataKey="revenue"
-                  fill="oklch(0.65 0.2 262)"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Booking Status Pie Chart */}
-        <Card className="bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Ride Status</CardTitle>
-            <CardDescription>Distribution of rides</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "oklch(0.15 0.02 240)",
-                    border: "1px solid oklch(0.25 0.03 240)",
-                    borderRadius: "8px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Weekly Earnings & Recent Rides */}
@@ -500,7 +539,7 @@ export default function DashboardPage() {
                       {booking.status}
                     </span>
                     <p className="text-sm font-semibold text-foreground mt-2">
-                      ${booking.totalPrice}
+                      ₹{booking.totalPrice}
                     </p>
                   </div>
                 </div>
@@ -568,6 +607,21 @@ export default function DashboardPage() {
         onStatusChange={handleStatusChange}
         onCashCollected={handleCashCollected}
       />
+
+      {/* Active Ride Sheet */}
+      {showActiveRideSheet && (
+        <DriverAssignedSheet
+          ride={activeRide}
+          onClose={() => {
+            setShowActiveRideSheet(false);
+            // Clear active ride when closing
+            if (clearActiveRide) {
+              clearActiveRide();
+            }
+          }}
+          isDriver={true}
+        />
+      )}
     </div>
   );
 }
