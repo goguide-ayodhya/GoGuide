@@ -50,14 +50,6 @@ export const SettingsProvider = ({ children }: any) => {
     }
   };
 
-  // const changePassword = async (data: any) => {
-  //   try {
-  //     await changePasswordApi(data);
-  //   } catch (err) {
-  //     console.log("Change password error", err);
-  //   }
-  // };
-
   return (
     <SettingsContext.Provider
       value={{

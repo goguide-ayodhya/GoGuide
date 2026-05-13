@@ -58,15 +58,18 @@ export const createRide = async (req: AuthRequest, res: Response) => {
 
         // Send ride request only to nearby drivers within 5km radius
         const nearbyDrivers = [];
+        const pickupLocation = typeof ride.pickup === 'string' ? JSON.parse(ride.pickup) : ride.pickup;
+        const destinationLocation = typeof ride.destination === 'string' ? JSON.parse(ride.destination) : ride.destination;
+        
         for (const driver of activeDrivers) {
             const driverUser = driver.userId as any;
-            if (driverUser.currentLocation && ride.pickup) {
+            if (driverUser.currentLocation && pickupLocation) {
                 // Direct coordinate access - no parsing needed
                 const distance = calculateDistance(
                     driverUser.currentLocation.lat,
                     driverUser.currentLocation.lng,
-                    ride.pickup.lat,
-                    ride.pickup.lng
+                    pickupLocation.lat,
+                    pickupLocation.lng
                 );
                 
                 if (distance <= 5) { // 5km radius
@@ -89,8 +92,8 @@ export const createRide = async (req: AuthRequest, res: Response) => {
                         distance: driverUser.currentLocation ? calculateDistance(
                             driverUser.currentLocation.lat,
                             driverUser.currentLocation.lng,
-                            ride.pickup.lat,
-                            ride.pickup.lng
+                            pickupLocation.lat,
+                            pickupLocation.lng
                         ) : null
                     }
                 });
@@ -310,12 +313,12 @@ export const getPendingRides = async (req: AuthRequest, res: Response) => {
             
             // 3. Within 5km radius if driver has location
             if (driverLocation && ride.pickup) {
-                // Direct coordinate access - no parsing needed
+                const pickupCoords = JSON.parse(ride.pickup);
                 const distance = calculateDistance(
                     driverLocation.lat,
                     driverLocation.lng,
-                    ride.pickup.lat,
-                    ride.pickup.lng
+                    pickupCoords.lat,
+                    pickupCoords.lng
                 );
                 if (distance > 5) return false; // Outside 5km radius
             }
