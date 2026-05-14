@@ -8,13 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Guide } from "@/contexts/GuideContext";
 import { Badge } from "@/components/ui/badge";
+import { PriceBreakdown } from "@/components/booking/PriceBreakdown";
 import {
   CheckCircle,
   MapPin,
   Clock,
   Users,
-  DollarSign,
-  IndianRupee,
 } from "lucide-react";
 import { useBooking } from "@/contexts/BookingsContext";
 import { useGuide } from "@/contexts/GuideContext";
@@ -32,7 +31,13 @@ function BookingConfirmationContent() {
 
   const bookingId = searchParams.get("bookingId");
   const guideId = currentBooking?.guideId || currentBooking?.driverId;
-  const isDriver = currentBooking?.bookingType === "DRIVER" || currentBooking?.tourType?.toLowerCase().includes("cab") || currentBooking?.tourType?.toLowerCase().includes("driver");
+  const isDriver =
+    currentBooking?.bookingType === "DRIVER" ||
+    currentBooking?.tourType?.toLowerCase().includes("cab") ||
+    currentBooking?.tourType?.toLowerCase().includes("driver");
+  const isGuide =
+    currentBooking?.bookingType === "GUIDE" ||
+    currentBooking?.tourType?.toLowerCase().includes("guide");
 
   useEffect(() => {
     if (!currentBooking || !bookingId) {
@@ -139,102 +144,66 @@ function BookingConfirmationContent() {
               </Badge>
             </div>
 
-            <div className="grid gap-6">
-              {/* Guide/Driver Info */}
-              <Card className="border border-slate-200 p-6">
-                <p className="mb-4 text-sm uppercase tracking-[0.24em] text-orange-600">
-                  {isDriver ? "Your Driver" : "Your Guide"}
-                </p>
-                <div className="flex gap-4">
-                  <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-slate-100 flex-shrink-0">
-                    <Image
-                      src={guide?.userId?.avatar || guide?.avatar || assets.guideImage}
-                      alt={guide?.userId?.name || guide?.name || "Provider Image"}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-950">
-                      {guide?.userId?.name || guide?.name}
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      {isDriver ? (guide?.vehicleType || "Driver") : (guide?.specialities?.join(", ") || "Tour Guide")}
+            {/* Tour Details */}
+            <Card className="w-full border border-slate-200 p-6">
+              <p className="mb-4 text-sm uppercase tracking-[0.24em] text-orange-600">
+                Tour Details
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <p className="text-xs text-slate-500">Date & Time</p>
+                    <p className="font-semibold text-slate-900">
+                      {bookingDate}
                     </p>
-                    <div className="mt-2 flex gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        ⭐ {(guide?.rating || 0).toFixed(1)}
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        {guide?.experience || 0}+ yrs
-                      </Badge>
-                    </div>
                   </div>
                 </div>
-              </Card>
-
-              {/* Tour Details */}
-              <Card className="w-full border border-slate-200 p-6">
-                <p className="mb-4 text-sm uppercase tracking-[0.24em] text-orange-600">
-                  Tour Details
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <p className="text-xs text-slate-500">Date & Time</p>
-                      <p className="font-semibold text-slate-900">
-                        {bookingDate}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-orange-500" />
-                    <div>
-                      <p className="text-xs text-slate-500">Participants</p>
-                      <p className="font-semibold text-slate-900">
-                        {currentBooking.participants || 1} person(s)
-                        Start time: {currentBooking.startTime}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <p className="text-xs text-slate-500">Participants</p>
+                    <p className="font-semibold text-slate-900">
+                      {currentBooking.participants || 1} person(s) Start time:{" "}
+                      {currentBooking.startTime}
+                    </p>
                   </div>
                 </div>
-              </Card>
+              </div>
+            </Card>
 
-              {/* Location Info */}
+            {/* Location Info */}
+            <Card className="border border-slate-200 p-6 md:col-span-2 mt-8">
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
+                    Meeting Location
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-950">
+                    {currentBooking.meetingPoint}
+                  </p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
+                    DropOff Location
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-950">
+                    {currentBooking.dropoffLocation}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Additional Notes */}
+            {currentBooking.notes && (
               <Card className="border border-slate-200 p-6 md:col-span-2">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-orange-500 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
-                      Meeting Location
-                    </p>
-                    <p className="mt-1 font-semibold text-slate-950">
-                      {currentBooking.meetingPoint}
-                    </p>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm uppercase tracking-[0.24em] text-slate-500">
-                      DropOff Location
-                    </p>
-                    <p className="mt-1 font-semibold text-slate-950">
-                      {currentBooking.dropoffLocation}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500 mb-2">
+                  Special Requests
+                </p>
+                <p className="text-slate-800 italic">{currentBooking.notes}</p>
               </Card>
-              {/* Additional Notes */}
-              {currentBooking.notes && (
-                <Card className="border border-slate-200 p-6 md:col-span-2">
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-500 mb-2">
-                    Special Requests
-                  </p>
-                  <p className="text-slate-800 italic">
-                    {currentBooking.notes}
-                  </p>
-                </Card>
-              )}
-            </div>
+            )}
           </section>
 
           {/* Price Breakdown */}
@@ -242,28 +211,19 @@ function BookingConfirmationContent() {
             <h2 className="mb-6 text-2xl font-semibold text-slate-950">
               Price Breakdown
             </h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                <div className="flex items-center gap-2">
-                  <IndianRupee className="h-5 w-5 text-orange-500" />
-                  <span className="text-slate-700">
-                    {guide?.name || "Guide"}
-                  </span>
-                </div>
-                <span className="font-semibold text-slate-950">
-                  ₹{currentBooking.totalPrice || guide?.price || 0}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg bg-orange-50 p-4">
-                <span className="font-semibold text-slate-950">
-                  Total Amount
-                </span>
-                <span className="text-2xl font-bold text-orange-600">
-                  ₹{currentBooking.totalPrice || guide?.price || 0}
-                </span>
-              </div>
-            </div>
+            <PriceBreakdown
+              items={[
+                {
+                  label: `${isDriver ? "Driver" : "Guide"} Price`,
+                  amount: currentBooking.originalPrice || currentBooking.totalPrice || 0,
+                },
+                ...(currentBooking.discount ? [{ label: "Discount", amount: -currentBooking.discount }] : []),
+                ...((currentBooking as any).gstAmount ? [{ label: "GST", amount: (currentBooking as any).gstAmount }] : []),
+              ]}
+              total={currentBooking.finalPrice || currentBooking.totalPrice || 0}
+              paymentStatus={currentBooking.paymentStatus}
+              remainingAmount={currentBooking.remainingAmount}
+            />
           </section>
 
           {/* Action Buttons */}

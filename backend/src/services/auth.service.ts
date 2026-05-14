@@ -332,12 +332,27 @@ export class AuthService {
       }
 
       if (!user.isProfileComplete) {
-        console.log("[AUTH-SERVICE] Profile incomplete for Google user:", user._id, "profileStep:", user.profileStep);
-        throw new BadRequest("PROFILE_INCOMPLETE", {
-          role: user.role,
-          profileStep: user.profileStep || 1,
-        });
-      }
+  const token = this.generateToken(
+    user._id.toString(),
+    user.email || ""
+  );
+
+  return {
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      phone: user.phone,
+      isEmailVerified: user.isEmailVerified,
+      isProfileComplete: false,
+      profileStep: user.profileStep || 1,
+      avatar: user.avatar,
+    },
+    token,
+    profileIncomplete: true,
+  };
+}
 
       if (!user.status || user.status !== "ACTIVE") {
         console.log("[AUTH-SERVICE] Account inactive for Google user:", user._id, "status:", user.status);

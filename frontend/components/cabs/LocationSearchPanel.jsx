@@ -1,7 +1,7 @@
 import React from 'react'
 import { LocationEdit } from 'lucide-react'
 
-const LocationSearchPanel = ({ suggestions, setVehiclePanel, setPanelOpen, setPickup, setDestination, activeField }) => {
+const LocationSearchPanel = ({ suggestions, setVehiclePanel, setPanelOpen, setPickup, setDestination, activeField, onUseCurrentLocation, isUsingCurrentLocation }) => {
 
     const handleSuggestionClick = (suggestion) => {
         if (activeField === 'pickup') {
@@ -14,6 +14,20 @@ const LocationSearchPanel = ({ suggestions, setVehiclePanel, setPanelOpen, setPi
 
     return (
         <div className="w-full px-2 sm:px-4 pt-4">
+            <div className="flex items-center justify-between mb-4 gap-3">
+                <div>
+                    <h3 className="text-base font-semibold text-gray-900">Choose location</h3>
+                    <p className="text-sm text-gray-500">Tap a suggestion or use your current location.</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={onUseCurrentLocation}
+                    disabled={isUsingCurrentLocation}
+                    className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {isUsingCurrentLocation ? 'Locating…' : 'Current location'}
+                </button>
+            </div>
             {/* Display fetched suggestions */}
             <div className="space-y-2">
                 {suggestions.length > 0 ? (

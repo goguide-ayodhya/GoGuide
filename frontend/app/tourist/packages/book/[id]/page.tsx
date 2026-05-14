@@ -288,7 +288,7 @@ export default function PackageBookingPage() {
                             Duration
                           </p>
                           <p className="mt-1 text-sm font-semibold text-slate-900">
-                            {pkg.duration} days
+                            {pkg.duration} {pkg.durationType === "days" ? "days" : "hrs"}
                           </p>
                         </div>
 

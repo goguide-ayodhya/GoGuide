@@ -10,6 +10,13 @@ router.get('/get-coordinates',
     mapController.getCoordinates
 );
 
+router.get('/get-address-from-coordinates',
+    query('lat').isFloat({ min: -90, max: 90 }),
+    query('lng').isFloat({ min: -180, max: 180 }),
+    authenticate,
+    mapController.getAddressFromCoordinates
+);
+
 router.get('/get-distance-time',
     query('origin').isString().isLength({ min: 3 }),
     query('destination').isString().isLength({ min: 3 }),

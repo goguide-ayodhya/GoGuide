@@ -19,9 +19,10 @@ import { SocketContext } from "@/contexts/cabs/SocketContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveRide } from "@/contexts/ActiveRideContext";
 
-import { getSuggestions, type Suggestion } from "@/lib/api/maps";
+import { getSuggestions, getAddressFromCoordinates, type Suggestion } from "@/lib/api/maps";
 import { getFare, createRide as createRideApi } from "@/lib/api/rides";
 import { type Fare, VehicleType } from "@/types/ride";
+import Map from "@/components/cabs/Map";
 
 const RideForm = () => {
   const router = useRouter();
@@ -50,6 +51,7 @@ const RideForm = () => {
   });
   const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
   const [ride, setRide] = useState<any>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   const { socket } = useContext(SocketContext);
   const { user } = useAuth();
@@ -164,6 +166,47 @@ const RideForm = () => {
     }
   };
 
+  const handleUseCurrentLocation = async () => {
+    if (!activeField) return;
+
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      console.warn("Geolocation is not supported by this browser.");
+      return;
+    }
+
+    setLoadingLocation(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      const result = await getAddressFromCoordinates(latitude, longitude);
+      const address = result?.address || "";
+
+      if (!address) {
+        throw new Error("Unable to determine your current address.");
+      }
+
+      if (activeField === "pickup") {
+        setPickup(address);
+        setPickupSuggestions([]);
+      } else {
+        setDestination(address);
+        setDestinationSuggestions([]);
+      }
+
+      setPanelOpen(false);
+    } catch (error) {
+      console.error("Failed to use current location:", error);
+    } finally {
+      setLoadingLocation(false);
+    }
+  };
+
   const handleSelectVehicle = (type: VehicleType) => {
     setVehicleType(type);
     setVehiclePanel(false);
@@ -172,8 +215,8 @@ const RideForm = () => {
 
   return (
     <div className="h-screen relative overflow-hidden">
-    
       <div className="h-screen w-full">
+        <Map />
       </div>
         <div className="fixed inset-x-0 bottom-0 z-10 pointer-events-none">
         <div
@@ -255,6 +298,8 @@ const RideForm = () => {
                     setPickup={setPickup}
                     setDestination={setDestination}
                     activeField={activeField}
+                    onUseCurrentLocation={handleUseCurrentLocation}
+                    isUsingCurrentLocation={loadingLocation}
                   />
                 </motion.div>
               )}

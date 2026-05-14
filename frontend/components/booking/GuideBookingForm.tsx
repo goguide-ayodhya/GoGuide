@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
+import { PriceBreakdown } from "./PriceBreakdown";
 import { Calendar as CalendarIcon, Clock, MapPin, Zap } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -58,6 +59,12 @@ export function GuideBookingForm({
   const [open, setOpen] = useState(false);
 
   const totalPrice = price;
+  const gstAmount = Math.round(totalPrice - totalPrice / 1.05);
+  const finalPrice = Math.round(totalPrice + gstAmount);
+  const priceItems = [
+    { label: "Base Price", amount: Math.round(totalPrice) },
+    { label: "GST (5%)", amount: gstAmount },
+  ];
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -383,23 +390,12 @@ export function GuideBookingForm({
       </FormField>
 
       {/* Price Summary */}
-      <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4 space-y-2">
-        <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">
-          Price Breakdown
-        </h4>
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Base Price</span>
-          <span>₹{Math.round(totalPrice)}</span>
-        </div>
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>GST (5%)</span>
-          <span>₹{Math.round(totalPrice - totalPrice / 1.05)}</span>
-        </div>
-        <div className="flex justify-between pt-2 border-t border-secondary/20 font-semibold text-foreground">
-          <span>Total</span>
-          <span className="text-secondary text-lg">
-            ₹{totalPrice + Math.round(totalPrice - totalPrice / 1.05)}
-          </span>
+      <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4">
+        <div className="space-y-3">
+          <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">
+            Price Breakdown
+          </h4>
+          <PriceBreakdown items={priceItems} total={finalPrice} />
         </div>
       </div>
       {/* )} */}

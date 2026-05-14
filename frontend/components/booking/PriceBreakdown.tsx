@@ -15,27 +15,23 @@ export function PriceBreakdown({
 
   return (
     <div className="space-y-3">
-      {items.map((item, idx) => {
-        const isGst = String(item.label).toLowerCase().includes("gst");
-        return (
-          <div
-            key={idx}
-            className={`${isGst ? "hidden md:flex" : "flex"} justify-between text-sm`}
+      {items.map((item, idx) => (
+        <div key={idx} className="flex justify-between items-center text-sm">
+          <span className="text-slate-600">{item.label}</span>
+          <span
+            className={`font-medium ${item.amount < 0 ? "text-red-600" : "text-slate-900"}`}
           >
-            <span className="text-muted-foreground">{item.label}</span>
-            <span className="text-foreground font-medium">
-              {item.amount < 0 ? "-" : ""}₹{Math.abs(item.amount).toLocaleString("en-IN")}
-            </span>
-          </div>
-        );
-      })}
+            {item.amount < 0 ? "-" : ""}₹{Math.abs(item.amount).toLocaleString("en-IN")}
+          </span>
+        </div>
+      ))}
 
       <div className="border-t pt-3 flex justify-between font-semibold">
-        <span className="text-foreground">
+        <span className="text-slate-900">
           {isPartial ? "Remaining Amount" : "Total Amount"}
         </span>
 
-        <span className="text-secondary text-lg">
+        <span className="text-slate-950 text-lg">
           ₹{(isPartial ? (remainingAmount ?? 0) : (total ?? 0)).toLocaleString("en-IN")}
         </span>
       </div>

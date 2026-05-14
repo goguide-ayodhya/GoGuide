@@ -35,4 +35,19 @@ export const getSuggestions = async (input: string) => {
   }
 };
 
+export const getAddressFromCoordinates = async (lat: number, lng: number) => {
+  try {
+    const response = await fetch(
+      `${base_url}maps/get-address-from-coordinates?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`,
+      {
+        headers: authHeaders(),
+      },
+    );
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error('Error fetching address from coordinates:', error);
+    throw error;
+  }
+};
+
 export type Suggestion = string;

@@ -5,7 +5,6 @@ import { useBooking } from "@/contexts/BookingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
-import { PriceBreakdown } from "./PriceBreakdown";
 import { Card } from "@/components/ui/card";
 import {
   Calendar as CalendarIcon,
@@ -21,7 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn, CURRENCY } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface PackageBookingFormProps {
   packagePrice?: number;
@@ -296,14 +295,30 @@ export function PackageBookingForm({
                 placeholder={`1 - ${maxGroupSize} people`}
                 value={groupSize}
                 onChange={(e) => {
-                  let value = Number(e.target.value);
+                  const rawValue = e.target.value;
+
+                  if (rawValue === "") {
+                    setGroupSize("");
+                    return;
+                  }
+
+                  let value = parseInt(rawValue, 10);
+
+                  if (isNaN(value)) return;
 
                   if (value < 1) value = 1;
+
                   if (value > maxGroupSize) {
                     value = maxGroupSize;
+
                     setErrors((prev) => ({
                       ...prev,
                       groupSize: `Max allowed is ${maxGroupSize}`,
+                    }));
+                  } else {
+                    setErrors((prev) => ({
+                      ...prev,
+                      groupSize: "",
                     }));
                   }
 

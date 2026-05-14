@@ -24,6 +24,27 @@ export const getAddressCoordinate = async (address: string) => {
   }
 };
 
+export const getAddressFromCoordinates = async (lat: number, lng: number) => {
+  const apiKey = process.env.GOOGLE_MAPS_API;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+
+  try {
+    const response = await axios.get(url);
+    if (response.data.status === "OK" && response.data.results.length > 0) {
+      return {
+        address: response.data.results[0].formatted_address,
+        lat,
+        lng,
+      };
+    }
+
+    throw new Error("Unable to resolve address from coordinates");
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+};
+
 export const getDistanceTime = async (origin: string, destination: string) => {
   if (!origin || !destination) {
     throw new Error("Origin and destination are required");

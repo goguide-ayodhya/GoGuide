@@ -1,5 +1,7 @@
+import { assets } from "@/public/assets/assets";
+import Image from "next/image";
 import Link from "next/link";
-import { Facebook, Instagram } from "lucide-react";
+import { FaWhatsapp, FaInstagram, FaFacebook } from "react-icons/fa";
 
 export function Footer() {
   return (
@@ -112,7 +114,7 @@ export function Footer() {
                 target="_blank"
                 className="hover:text-slate-900 transition-colors"
               >
-                <Facebook className="w-5 h-5" />
+                <FaFacebook className="w-5 h-5" />
               </a>
             </li>
 
@@ -122,7 +124,7 @@ export function Footer() {
                 target="_blank"
                 className="hover:text-slate-900 transition-colors"
               >
-                <Instagram className="w-5 h-5" />
+                <FaInstagram className="w-5 h-5" />
               </a>
             </li>
 
@@ -132,14 +134,38 @@ export function Footer() {
                 target="_blank"
                 className="hover:text-green-600 transition-colors"
               >
-                WhatsApp
+                <FaWhatsapp className="w-5 h-5" />
               </a>
             </li>
           </ul>
         </div>
 
         <div className="mt-8 border-t border-slate-100 pt-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500">
+          {/* Portfolio */}
+          <div className="pt-4 sm:pt-0">
+            <a
+              href="https://abuzar-hindi.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3"
+            >
+              <Image
+                src={assets.abuzar}
+                alt="Abuzar Hindi"
+                className="w-9 h-9 rounded-full object-cover border border-gray-200"
+              />
+
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-xs text-gray-600">Developed by</span>
+
+                <span className="text-sm font-semibold text-gray-700 group-hover:text-indigo-600 transition-colors underline underline-offset-2">
+                  Abuzar Hindi
+                </span>
+              </div>
+            </a>
+          </div>
           <p>&copy; 2026 GoGuide | Ayodhya | All rights reserved.</p>
+
           <div className="mt-3 md:mt-0">
             Crafted with care •{" "}
             <span className="font-medium text-slate-700">GoGuide</span>

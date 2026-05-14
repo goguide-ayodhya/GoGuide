@@ -351,6 +351,8 @@ export const loginWithGoogle = async (payload: { idToken: string }) => {
   });
 
   const json = await parseResponse(res);
+  console.log("GOOGLE RESPONSE:", json);
+  
   if (!res.ok) {
     throwAuthAwareError(
       json.message || "Google login failed",

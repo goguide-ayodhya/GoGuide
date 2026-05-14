@@ -20,7 +20,6 @@ import { assets } from "@/public/assets/assets";
 import { poppins, manrope } from "@/lib/fonts";
 import Image from "next/image";
 import FAQSection from "@/components/home/FAQs";
-import TeamSection from "@/components/home/Team";
 
 export default function Home() {
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function Home() {
     { name: "Valmiki Bhawan", image: assets.valmikiBhawan },
     { name: "Dashrath Mahal", image: assets.dashrathMahal },
     { name: "Kanak Bhawan", image: assets.kanakBhawan },
-    { name: "Digambar Jain Mandir Mandir", image: assets.digambarJainMandir },
+    { name: "Digambar Jain Mandir", image: assets.digambarJainMandir },
     { name: "Mani Parvat", image: assets.maniParvatAyodhya },
     { name: "Shwetambar Mandir", image: assets.shwetambarMandir },
     { name: "Sita Ki Rasoi", image: assets.sitaKiRasoi },

@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { Header } from "@/components/common/Header";
 import { sendSupportMessageApi } from "@/lib/api/settings";
+import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
 
 export default function ContactPage() {
   const [message, setMessage] = useState("");
@@ -128,27 +129,75 @@ export default function ContactPage() {
             </button>
           </div>
 
-          {/* Social Media */}
-          <div className="text-center space-y-4">
-            <p className="font-semibold text-foreground">Follow Us</p>
+          {/* Portfolio */}
+          <div className="mt-10 pt-8 flex flex-col items-center text-center">
+            <Image
+              src={assets.abuzar}
+              alt="Abuzar Hindi"
+              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
+            />
 
-            <div className="flex justify-center gap-6">
-              <a href="#" className="hover:text-primary transition">
-                <Instagram />
-              </a>
-              <a href="#" className="hover:text-primary transition">
-                <Facebook />
-              </a>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">
+              Abuzar Hindi
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500 max-w-md">
+              Designed & developed with care for GoGuide. Crafting modern,
+              scalable and user-focused web experiences.
+            </p>
+
+            <a
+              href="https://abuzar-hindi.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              View Portfolio
+            </a>
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col items-center mt-8 border-t border-slate-100 pt-6">
+            <h3 className="font-semibold text-slate-900 mb-3">Follow Us</h3>
+            <ul className="flex gap-4">
+              <li>
+                <a
+                  href="https://facebook.com/goguideofficial"
+                  target="_blank"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  <FaFacebook className="w-5 h-5" />
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://instagram.com/goguideofficial"
+                  target="_blank"
+                  className="hover:text-slate-900 transition-colors"
+                >
+                  <FaInstagram className="w-5 h-5" />
+                </a>
+              </li>
+
+              <li>
+                <a
+                  href="https://wa.me/918881993735?text=Hello%20GoGuide%20Team!"
+                  target="_blank"
+                  className="hover:text-green-600 transition-colors"
+                >
+                  <FaWhatsapp className="w-5 h-5" />
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-8 border-t border-slate-100 pt-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500">
+            <p>&copy; 2026 GoGuide | Ayodhya | All rights reserved.</p>
+            <div className="mt-3 md:mt-0">
+              Crafted with care •{" "}
+              <span className="font-medium text-slate-700">GoGuide</span>
             </div>
-          </div>
-
-          {/* Footer Note */}
-          <div className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} GoGuide. All rights reserved.
-          </div>
-          {/* Extra Info */}
-          <div className="text-center text-sm text-muted-foreground">
-            Support Hours: 9:00 AM – 9:00 PM (Mon - Sun)
           </div>
         </div>
       </div>

@@ -27,13 +27,20 @@ export function useGuideAuthGuard() {
       }
 
       // Check profile completion - only redirect if explicitly trying to access guide areas
-      if (!user.isProfileComplete) {
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith("/guide")) {
-          router.push("/signup/goguide-guide");
-          return;
-        }
-      }
+      if (!user) {
+  router.push("/signup/goguide-guide");
+  return;
+}
+
+if (
+  user.role === "GUIDE" &&
+  !user.isProfileComplete
+) {
+  router.push(
+    `/guide/complete-profile?step=${user.profileStep || 1}`
+  );
+  return;
+}
     }
   }, [user, loading, isLoggedIn, router]);
 

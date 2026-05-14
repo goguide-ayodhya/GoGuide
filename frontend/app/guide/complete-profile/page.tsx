@@ -35,17 +35,12 @@ const STEPS = [
   { id: 4, name: "Experience", label: "Step 4" },
 ];
 
-interface Certificate {
-  name: string;
-  image: File | null;
-}
-
 function CompleteProfilePageContent() {
   const { refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const stepParam = searchParams.get("step");
+  const stepParam = searchParams.get("step"); 
   const { user } = useAuth();
   const { myGuide, loading: guideLoading } = useGuide();
   const [currentStep, setCurrentStep] = useState(1);
@@ -365,14 +360,14 @@ function CompleteProfilePageContent() {
 
     if (stepParam) {
       const parsed = parseInt(stepParam, 10);
-      if (!isNaN(parsed) && parsed > targetStep) {
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 4) {
         targetStep = parsed;
       }
     }
 
-    if (targetStep > 1) {
+    // if (targetStep > 1) {
       setCurrentStep(targetStep);
-    }
+    // }
 
     setInitialStepSet(true);
   }, [
@@ -386,7 +381,9 @@ function CompleteProfilePageContent() {
   ]);
 
   if (!user) {
-    return null;
+    return <div>
+      Usr is not found
+    </div>;
   }
 
   return (

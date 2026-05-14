@@ -9,7 +9,6 @@ import {
   rejectBookingApi,
   completeBookingApi,
 } from "@/lib/api/bookings";
-import { getUserRides } from "@/lib/api/rides";
 import {
   createContext,
   useContext,
@@ -55,6 +54,7 @@ export interface Booking {
   paidAmount?: number;
   remainingAmount?: number;
   discount?: number;
+  gstAmount?: number;
   finalPrice?: number;
   originalPrice?: number;
   guideEarning?: number;

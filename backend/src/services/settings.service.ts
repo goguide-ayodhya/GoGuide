@@ -38,7 +38,7 @@ export class SettingsService {
     text: string;
   }) {
     await resend.emails.send({
-      from: "GoGuide <onboarding@resend.dev>",
+      from: "GoGuide <support@goguide.in>",
       to,
       subject,
       html: `<p>${text}</p>`,

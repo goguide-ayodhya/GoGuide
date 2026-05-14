@@ -729,7 +729,7 @@ function DriverSignupFlowContent() {
             Driver Onboarding
           </h1>
           <p className="text-slate-600">
-            {progressValue}% complete • {STEPS.length} easy steps
+            {STEPS.length} easy steps
           </p>
         </div>
 
@@ -791,7 +791,7 @@ function DriverSignupFlowContent() {
             )}
 
             {currentStep === 1 && !isLoggedIn && (
-              <div className="mb-6">
+              <div className="mb-6 flex flex-col">
                 <GoogleLogin
                   theme="filled_blue"
                   size="large"
@@ -803,7 +803,7 @@ function DriverSignupFlowContent() {
                   }
                 />
                 <p className="text-center text-sm text-muted-foreground mt-2">
-                  Or continue with email and password.
+                  Or continue with email and password. <a className="text-primary" href="/login">Sign in</a>
                 </p>
               </div>
             )}

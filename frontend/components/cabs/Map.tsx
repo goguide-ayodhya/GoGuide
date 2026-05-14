@@ -14,15 +14,16 @@ L.Icon.Default.mergeOptions({
 });
 
 export default function Map() {
-  const position: [number, number] = [26.85, 80.94];
+const position: [number, number] = [26.7996, 82.2042];
 
   return (
     <MapContainer
-      center={[26.85, 80.94] as [number, number]}
+      center={position}
       zoom={13}
-      style={{ height: "400px", width: "100%" }}
+      style={{ height: "100%", width: "100%" }}
+        className="z-0"
+
     >
-      {" "}
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Marker position={position}>
         <Popup>Driver here</Popup>

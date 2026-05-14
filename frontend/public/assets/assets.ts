@@ -31,6 +31,7 @@ import ramMandir from "./destinations/RamMandir.webp";
 
 import adityaSahu from "./team/adityaSahu.png";
 import rahulSrivastava from "./team/rahulSrivastava.png";
+import abuzar from "./abuzar.jpg"; 
 
 import goCab from "./vehicle/goCab.webp";
 import goMoto from "./vehicle/goMoto.webp";
@@ -69,7 +70,8 @@ export const assets = {
 
   adityaSahu,
   rahulSrivastava,
-
+  abuzar,
+  
   goCab,
   goMoto,
   goAuto,

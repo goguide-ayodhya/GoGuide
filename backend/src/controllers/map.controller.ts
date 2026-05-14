@@ -18,6 +18,23 @@ export const getCoordinates = async (req: Request, res: Response, next: NextFunc
     }
 };
 
+export const getAddressFromCoordinates = async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+
+    try {
+        const addressData = await mapService.getAddressFromCoordinates(lat, lng);
+        return res.status(200).json(addressData);
+    } catch (error) {
+        return res.status(404).json({ message: 'Address not found' });
+    }
+};
+
 export const getDistanceTime = async (req: Request, res: Response, next: NextFunction) => {
 
     try {
