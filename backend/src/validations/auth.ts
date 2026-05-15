@@ -2,12 +2,22 @@ import { z } from "zod";
 
 export const loginSchema = z.object({
   identifier: z.string().trim().min(3, "Email or phone is required"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
 });
 
 export const signupSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(3, "Phone number is required"),
   role: z.enum(["GUIDE", "TOURIST", "DRIVER"]).default("TOURIST"),
@@ -75,39 +85,6 @@ export const signupSchema = z.object({
   driverLicenseImage: z.string().optional(),
 });
 
-// .refine((data) => {
-//   if (data.role === "DRIVER") {
-//     return data.vehicleType && data.vehicleType.trim() !== "";
-//   }
-//   return true;
-// }, {
-//   message: "Vehicle type is required for drivers",
-//   path: ["vehicleType"],
-// }).refine((data) => {
-//   if (data.role === "DRIVER") {
-//     return data.vehicleName && data.vehicleName.trim() !== "";
-//   }
-//   return true;
-// }, {
-//   message: "Vehicle name is required for drivers",
-//   path: ["vehicleName"],
-// }).refine((data) => {
-//   if (data.role === "DRIVER") {
-//     return data.vehicleNumber && data.vehicleNumber.trim() !== "";
-//   }
-//   return true;
-// }, {
-//   message: "Vehicle number is required for drivers",
-//   path: ["vehicleNumber"],
-// }).refine((data) => {
-//   if (data.role === "DRIVER") {
-//     return data.seats && data.seats > 0;
-//   }
-//   return true;
-// }, {
-//   message: "Number of seats is required for drivers",
-//   path: ["seats"],
-// });
 
 export const changePasswordSchema = z
   .object({

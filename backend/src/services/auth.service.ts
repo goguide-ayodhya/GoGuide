@@ -35,9 +35,9 @@ export class AuthService {
       throw new Unauthorized("Invalid email/phone or password");
     }
 
-    console.log("[AUTH-SERVICE] User found:", { 
-      id: user._id, 
-      role: user.role, 
+    console.log("[AUTH-SERVICE] User found:", {
+      id: user._id,
+      role: user.role,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       isProfileComplete: user.isProfileComplete,
@@ -54,7 +54,7 @@ export class AuthService {
     if (user.role === "DRIVER") {
       console.log("[AUTH-SERVICE] Checking Driver document for user:", user._id);
       const driverProfile = await Driver.findOne({ userId: user._id });
-      
+
       if (!driverProfile) {
         console.log("[AUTH-SERVICE] CRITICAL: Driver document missing for user:", user._id, "Creating fallback profile");
         await Driver.create({
@@ -76,6 +76,8 @@ export class AuthService {
       }
     }
 
+    const token = this.generateToken(user._id.toString(), user.email || "");
+
     if (user.role === "GUIDE" || user.role === "DRIVER") {
       if (!user.isEmailVerified) {
         console.log("[AUTH-SERVICE] Email not verified for user:", user._id);
@@ -84,10 +86,11 @@ export class AuthService {
 
       if (!user.isProfileComplete) {
         console.log("[AUTH-SERVICE] Profile incomplete for user:", user._id, "profileStep:", user.profileStep);
-        throw new BadRequest("PROFILE_INCOMPLETE", {
-          role: user.role,
-          profileStep: user.profileStep || 1,
-        });
+        return {
+          user,
+          token,
+          profileIncomplete: !user.isProfileComplete
+        }
       }
 
       if (!user.status || user.status !== "ACTIVE") {
@@ -99,8 +102,6 @@ export class AuthService {
     await User.findByIdAndUpdate(user._id, {
       lastLoginAt: new Date(),
     });
-
-    const token = this.generateToken(user._id.toString(), user.email || "");
 
     return {
       user: {
@@ -117,11 +118,11 @@ export class AuthService {
   }
 
   async signup(input: SignupInput) {
-    console.log("[AUTH-SERVICE] Signup attempt:", { 
-      email: input.email, 
-      phone: input.phone, 
-      name: input.name, 
-      role: input.role 
+    console.log("[AUTH-SERVICE] Signup attempt:", {
+      email: input.email,
+      phone: input.phone,
+      name: input.name,
+      role: input.role
     });
 
     // Require both email and phone and enforce uniqueness
@@ -150,8 +151,8 @@ export class AuthService {
       status: input.role === "TOURIST" ? "ACTIVE" : "INACTIVE",
     });
 
-    console.log("[AUTH-SERVICE] User created:", { 
-      id: user._id, 
+    console.log("[AUTH-SERVICE] User created:", {
+      id: user._id,
       role: user.role,
       email: user.email,
       phone: user.phone
@@ -272,9 +273,9 @@ export class AuthService {
       throw new NotFound("Google account not linked. Please sign up first.");
     }
 
-    console.log("[AUTH-SERVICE] Found user for Google login:", { 
-      id: user._id, 
-      role: user.role, 
+    console.log("[AUTH-SERVICE] Found user for Google login:", {
+      id: user._id,
+      role: user.role,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       isProfileComplete: user.isProfileComplete
@@ -303,7 +304,7 @@ export class AuthService {
     if (user.role === "DRIVER") {
       console.log("[AUTH-SERVICE] Checking Driver document for Google login user:", user._id);
       const driverProfile = await Driver.findOne({ userId: user._id });
-      
+
       if (!driverProfile) {
         console.log("[AUTH-SERVICE] CRITICAL: Driver document missing for Google user:", user._id, "Creating fallback profile");
         await Driver.create({
@@ -332,27 +333,27 @@ export class AuthService {
       }
 
       if (!user.isProfileComplete) {
-  const token = this.generateToken(
-    user._id.toString(),
-    user.email || ""
-  );
+        const token = this.generateToken(
+          user._id.toString(),
+          user.email || ""
+        );
 
-  return {
-    user: {
-      id: user._id.toString(),
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      phone: user.phone,
-      isEmailVerified: user.isEmailVerified,
-      isProfileComplete: false,
-      profileStep: user.profileStep || 1,
-      avatar: user.avatar,
-    },
-    token,
-    profileIncomplete: true,
-  };
-}
+        return {
+          user: {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            phone: user.phone,
+            isEmailVerified: user.isEmailVerified,
+            isProfileComplete: false,
+            profileStep: user.profileStep || 1,
+            avatar: user.avatar,
+          },
+          token,
+          profileIncomplete: true,
+        };
+      }
 
       if (!user.status || user.status !== "ACTIVE") {
         console.log("[AUTH-SERVICE] Account inactive for Google user:", user._id, "status:", user.status);
@@ -391,10 +392,10 @@ export class AuthService {
     }
 
     if (user) {
-      console.log("[AUTH-SERVICE] Existing user found for Google signup:", { 
-        id: user._id, 
-        role: user.role, 
-        email: user.email 
+      console.log("[AUTH-SERVICE] Existing user found for Google signup:", {
+        id: user._id,
+        role: user.role,
+        email: user.email
       });
 
       if (user.role !== role) {
@@ -438,8 +439,8 @@ export class AuthService {
         isProfileComplete: role === "TOURIST" ? true : false,
       });
 
-      console.log("[AUTH-SERVICE] New user created for Google signup:", { 
-        id: user._id, 
+      console.log("[AUTH-SERVICE] New user created for Google signup:", {
+        id: user._id,
         role: user.role,
         email: user.email
       });

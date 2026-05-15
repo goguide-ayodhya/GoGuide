@@ -1,6 +1,7 @@
 "use client";
 
 import { JSX, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
@@ -35,6 +36,8 @@ function LoginPageContent(): JSX.Element {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const handleGoogleResponse = async (
     credentialResponse: CredentialResponse,
@@ -77,9 +80,9 @@ function LoginPageContent(): JSX.Element {
       if (err.message === "PROFILE_INCOMPLETE") {
         const role = err.fieldErrors?.role;
         const step = err.fieldErrors?.profileStep || 1;
-        
+
         console.log("[GOOGLE LOGIN] Profile incomplete - redirecting to complete profile", { role, step });
-        
+
         if (role === "DRIVER") {
           router.push(`/signup/goguide-driver?step=${step}`);
         } else if (role === "GUIDE") {
@@ -90,7 +93,7 @@ function LoginPageContent(): JSX.Element {
         }
         return;
       }
-      
+
       setError(err.message || "Google login failed");
     } finally {
       setLoading(false);
@@ -140,9 +143,9 @@ function LoginPageContent(): JSX.Element {
         if (err.message === "PROFILE_INCOMPLETE") {
           const role = err.fieldErrors?.role;
           const step = err.fieldErrors?.profileStep || 1;
-          
+
           console.log("[LOGIN] Profile incomplete - redirecting to complete profile", { role, step });
-          
+
           if (role === "DRIVER") {
             router.push(`/signup/goguide-driver?step=3`);
           } else if (role === "GUIDE") {
@@ -269,14 +272,25 @@ function LoginPageContent(): JSX.Element {
                     <label className="text-sm font-medium text-foreground">
                       Password
                     </label>
-                    <Input
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="bg-muted"
-                      disabled={loading}
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="bg-muted pr-10"
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
@@ -350,15 +364,26 @@ function LoginPageContent(): JSX.Element {
                     <label className="text-sm font-medium text-foreground">
                       New Password
                     </label>
-                    <Input
-                      type="password"
-                      placeholder="Enter new password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="bg-muted"
-                      disabled={loading}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Enter new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="bg-muted pr-10 cursor-pointer"
+                        disabled={loading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

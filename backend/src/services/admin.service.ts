@@ -61,7 +61,9 @@ export class UserService {
     // Get payment summary
     const { Payment } = await import("../models/Payment");
     const payments = await Payment.find({ userId });
-    const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalPaid = payments
+      .filter((p) => p.status === "COMPLETED")
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
     const pendingPayments = payments.filter(p => p.status === "PENDING").length;
 
     // Get guide verification status if applicable
