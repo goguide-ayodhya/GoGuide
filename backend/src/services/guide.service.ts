@@ -1,7 +1,9 @@
+import { sendEmail } from "../config/email.config";
 import { Guide } from "../models/Guide";
 import { Review } from "../models/Review";
 import { User } from "../models/User";
 import { NotFound, BadRequest } from "../utils/httpException";
+import { generateStatusEmail } from "../utils/emailTemplates";
 
 export class GuideService {
   async getAllGuides(filters?: { speciality?: string; minRating?: number }) {
@@ -139,6 +141,25 @@ export class GuideService {
       await User.findByIdAndUpdate(guide.userId, { status: "ACTIVE" });
     }
 
+    const user: any = guide.userId;
+
+    if (user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Guide Profile Verified - GoGuide",
+        html: generateStatusEmail({
+          title: "Congratulations! Your account is verified",
+          titleColor: "#16a34a", // Green
+          messageParagraphs: [
+            "Your guide profile has been successfully verified by the GoGuide team.",
+            "Travelers can now trust your verified profile and book tours with confidence."
+          ],
+          actionText: "Login Your Account",
+          actionUrl: "goguide.in/login",
+          actionColor: "#000000ff" // Orange
+        }),
+      });
+    }
     return guide;
   }
 
@@ -155,7 +176,26 @@ export class GuideService {
       await User.findByIdAndUpdate(guide.userId, { status: "INACTIVE" });
     }
 
-    if (!guide) throw new NotFound("Guide not found");
+    const user: any = guide.userId;
+
+    if (user && user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: "Guide Profile Rejected - GoGuide",
+        html: generateStatusEmail({
+          title: "Profile Verification Rejected",
+          titleColor: "#ef4444", // Red
+          messageParagraphs: [
+            "We regret to inform you that your guide profile has been rejected by the GoGuide team.",
+            "Please review your profile details and ensure all information and documents are accurate and up-to-date.",
+            "You can update your profile and submit it again for verification."
+          ],
+          actionText: "Review Profile",
+          actionUrl: "goguide.in/login",
+          actionColor: "#ef4444"
+        }),
+      });
+    }
 
     return guide;
   }

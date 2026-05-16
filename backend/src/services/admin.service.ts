@@ -1,6 +1,8 @@
 import { User } from "../models/User";
 import { NotFound, BadRequest } from "../utils/httpException";
 import { NotificationService } from "./notification.service";
+import { sendEmail } from "../config/email.config";
+import { generateStatusEmail } from "../utils/emailTemplates";
 
 export class UserService {
   async getAllUsers(filters?: { role?: string; status?: string; search?: string }) {
@@ -129,6 +131,26 @@ export class UserService {
       console.warn("Notification send failed (non-blocking):", error);
     }
 
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Account Blocked - GoGuide",
+          html: generateStatusEmail({
+            title: "Account Blocked",
+            titleColor: "#ef4444",
+            messageParagraphs: [
+              "We regret to inform you that your GoGuide account has been blocked.",
+              `Reason: ${reason || "Violation of terms and policies."}`,
+              "If you believe this is a mistake, please contact our support team."
+            ]
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
+    }
+
     return user;
   }
 
@@ -160,6 +182,28 @@ export class UserService {
       );
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Account Activated - GoGuide",
+          html: generateStatusEmail({
+            title: "Account Activated",
+            titleColor: "#16a34a",
+            messageParagraphs: [
+              "Great news! Your GoGuide account has been successfully activated.",
+              "You can now log in and access all features."
+            ],
+            actionText: "Login Now",
+            actionUrl: "goguide.in/login",
+            actionColor: "#16a34a"
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
     }
 
     return user;
@@ -205,6 +249,28 @@ export class UserService {
       console.warn("Notification send failed (non-blocking):", error);
     }
 
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Profile Verified - GoGuide",
+          html: generateStatusEmail({
+            title: "Profile Verified",
+            titleColor: "#16a34a",
+            messageParagraphs: [
+              `Congratulations! Your ${user.role.toLowerCase()} profile has been verified by the GoGuide team.`,
+              "You are now visible to travelers and can start receiving bookings."
+            ],
+            actionText: "Go to Dashboard",
+            actionUrl: "goguide.in/login",
+            actionColor: "#16a34a"
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
+    }
+
     return user;
   }
 
@@ -248,6 +314,25 @@ export class UserService {
       console.warn("Notification send failed (non-blocking):", error);
     }
 
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Profile Unverified - GoGuide",
+          html: generateStatusEmail({
+            title: "Profile Unverified",
+            titleColor: "#ef4444",
+            messageParagraphs: [
+              `We're sorry, but your ${user.role.toLowerCase()} profile has been unverified by the GoGuide team.`,
+              "Please review your profile and contact support for more details on how to resolve this."
+            ]
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
+    }
+
     return user;
   }
 
@@ -280,6 +365,25 @@ export class UserService {
       );
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Account Deleted - GoGuide",
+          html: generateStatusEmail({
+            title: "Account Deleted",
+            titleColor: "#ef4444",
+            messageParagraphs: [
+              "Your GoGuide account has been deleted.",
+              "If this was a mistake or you wish to recover your account, please contact support immediately."
+            ]
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
     }
 
     return { message: "User deleted" };
@@ -319,6 +423,30 @@ export class UserService {
       );
     } catch (error) {
       console.warn("Notification send failed (non-blocking):", error);
+    }
+
+    if (user.email) {
+      try {
+        let durationText = "";
+        if (duration === "2_days") durationText = " for 2 days";
+        if (duration === "1_week") durationText = " for 1 week";
+
+        await sendEmail({
+          to: user.email,
+          subject: "Account Suspended - GoGuide",
+          html: generateStatusEmail({
+            title: "Account Suspended",
+            titleColor: "#ef4444",
+            messageParagraphs: [
+              `Your GoGuide account has been suspended${durationText}.`,
+              "During this time, you will not be able to access your account or receive bookings.",
+              "Please contact support for more details."
+            ]
+          })
+        });
+      } catch (e) {
+        console.warn("Email send failed (non-blocking):", e);
+      }
     }
 
     return user;

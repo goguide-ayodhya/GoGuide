@@ -564,62 +564,62 @@ export class AuthService {
 
     await User.updateOne({ _id: user._id }, { otp: hashedOtp, otpExpiresAt });
 
-    await sendEmail(
-      user.email!,
-      "Verify Your Email Address - GoGuide",
-      `
-  <div style="
-    max-width: 500px;
-    margin: auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    text-align: center;
-  ">
-    
-    <h2 style="margin-bottom: 10px;">GoGuide</h2>
+    await sendEmail({
+      to: user.email!,
+      subject: "Verify Your Email Address - GoGuide",
+      html: `
+        <div style="
+          max-width: 500px;
+          margin: auto;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+          background-color: #f5f5f5;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          text-align: center;
+        ">
+          
+          <h2 style="margin-bottom: 10px;">GoGuide</h2>
 
-    <p style="margin: 10px 0;">
-      Hi ${user.name || "User"},
-    </p>
+          <p style="margin: 10px 0;">
+            Hi ${user.name || "User"},
+          </p>
 
-    <p style="margin: 10px 0; font-size: 14px;">
-      Thank you for joining GoGuide!  
-      Please use the OTP below to verify your email.
-    </p>
+          <p style="margin: 10px 0; font-size: 14px;">
+            Thank you for joining GoGuide!  
+            Please use the OTP below to verify your email.
+          </p>
 
-    <div style="
-      margin: 20px auto;
-      padding: 12px 20px;
-      font-size: 26px;
-      font-weight: bold;
-      letter-spacing: 4px;
-      border: 1px solid #ccc;
-      background-color: #ffffff;
-      display: inline-block;
-      border-radius: 4px;
-    ">
-      ${otp}
-    </div>
+          <div style="
+            margin: 20px auto;
+            padding: 12px 20px;
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            border: 1px solid #ccc;
+            background-color: #ffffff;
+            display: inline-block;
+            border-radius: 4px;
+          ">
+            ${otp}
+          </div>
 
-    <p style="font-size: 13px; color: #555;">
-      This OTP is valid for 10 minutes.
-    </p>
+          <p style="font-size: 13px; color: #555;">
+            This OTP is valid for 10 minutes.
+          </p>
 
-    <p style="font-size: 12px; color: #888; margin-top: 15px;">
-      Do not share this OTP with anyone.
-      If you didn’t request this, you can ignore this email.
-    </p>
+          <p style="font-size: 12px; color: #888; margin-top: 15px;">
+            Do not share this OTP with anyone.
+            If you didn’t request this, you can ignore this email.
+          </p>
 
-    <p style="margin-top: 20px; font-size: 13px;">
-      — Team GoGuide
-    </p>
+          <p style="margin-top: 20px; font-size: 13px;">
+            — Team GoGuide
+          </p>
 
-  </div>
-  `,
-    );
+        </div>
+        `,
+    });
 
     return { message: "OTP sent successfully to your email" };
   }
@@ -674,10 +674,10 @@ export class AuthService {
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    await sendEmail(
-      user.email!,
-      "Password Reset OTP - GoGuide",
-      `
+    await sendEmail({
+      to: user.email!,
+      subject: "Password Reset OTP - GoGuide",
+      html: `
   <div style="
     max-width: 500px;
     margin: auto;
@@ -727,7 +727,7 @@ export class AuthService {
 
   </div>
   `,
-    );
+    });
 
     return { message: "Password reset OTP sent to your email" };
   }
