@@ -693,7 +693,24 @@ export default function GuidesPage() {
                               <AlertDialogContent
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                ...
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Verify {user.role === "GUIDE" ? "Guide" : "Driver"}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to verify this {user.role === "GUIDE" ? "guide" : "driver"}?
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleUserAction("verify", user.id)
+                                    }
+                                  >
+                                    Verify
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
                           )}
