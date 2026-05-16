@@ -154,6 +154,62 @@ const getVerificationBadge = (status: string) => {
   );
 };
 
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  if (!value) return null;
+
+  return (
+    <div>
+      <p className="text-muted-foreground text-xs mb-1">
+        {label}
+      </p>
+
+      <div className="font-medium">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BadgeList({
+  label,
+  items,
+  variant = "secondary",
+}: {
+  label: string;
+  items: any[];
+  variant?: "default" | "secondary" | "outline";
+}) {
+  if (!items?.length) return null;
+
+  return (
+    <div>
+      <p className="text-muted-foreground text-xs mb-1">
+        {label}
+      </p>
+
+      <div className="flex flex-wrap gap-1">
+        {items.map((item, index) => (
+          <Badge
+            key={index}
+            variant={variant}
+            className="text-[10px]"
+          >
+            {typeof item === "string"
+              ? item
+              : item?.name || item?.title || "Item"}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function GuidesPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -618,8 +674,8 @@ export default function GuidesPage() {
                       <td className="py-3 text-sm text-foreground">
                         {user.role === "GUIDE" || user.role === "DRIVER"
                           ? getVerificationBadge(
-                              user.verificationStatus || "NOT_APPLIED",
-                            )
+                            user.verificationStatus || "NOT_APPLIED",
+                          )
                           : "-"}
                       </td>
                       {/* <td className="py-3 text-sm text-foreground">
@@ -873,7 +929,7 @@ export default function GuidesPage() {
               <div className="space-y-4 text-sm">
                 <div className="flex items-center gap-4">
                   {selectedUserDetails.avatar ||
-                  providerDetails?.driverPhoto ? (
+                    providerDetails?.driverPhoto ? (
                     <img
                       src={
                         selectedUserDetails.avatar ||
@@ -933,7 +989,7 @@ export default function GuidesPage() {
                       <p className="font-medium mt-1">
                         {getVerificationBadge(
                           selectedUserDetails.guideVerificationStatus ||
-                            "NOT_APPLIED",
+                          "NOT_APPLIED",
                         )}
                       </p>
                     </div>
@@ -956,256 +1012,180 @@ export default function GuidesPage() {
                     </p>
                   </div>
                 )}
+
                 {selectedUserDetails.providerDetails && (
-                  <div className="space-y-4 pt-4 border-t border-border mt-4">
+                  <div className="space-y-6 pt-4 border-t border-border mt-4">
                     <h4 className="font-semibold text-base text-foreground">
-                      Provider Details
+                      {selectedUserDetails.role === "GUIDE"
+                        ? "Guide Details"
+                        : "Driver Details"}
                     </h4>
 
-                    {selectedUserDetails.providerDetails.languages &&
-                      selectedUserDetails.providerDetails.languages.length >
-                        0 && (
-                        <div>
-                          <p className="text-muted-foreground text-xs mb-1">
-                            Languages
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {selectedUserDetails.providerDetails.languages.map(
-                              (lang: string) => (
-                                <Badge
-                                  key={lang}
-                                  variant="secondary"
-                                  className="text-[10px]"
-                                >
-                                  {lang}
-                                </Badge>
-                              ),
-                            )}
-                          </div>
+                    {selectedUserDetails.role === "GUIDE" && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <DetailItem
+                          label="Price"
+                          value={
+                            providerDetails?.price
+                              ? `₹${providerDetails.price}`
+                              : "N/A"
+                          }
+                        />
+
+                        <DetailItem
+                          label="Duration"
+                          value={providerDetails?.duration || "N/A"}
+                        />
+
+                        <DetailItem
+                          label="Years Of Experience"
+                          value={providerDetails?.yearsOfExperience || 0}
+                        />
+
+                        <DetailItem
+                          label="Average Rating"
+                          value={providerDetails?.averageRating || 0}
+                        />
+
+                        <DetailItem
+                          label="Total Reviews"
+                          value={providerDetails?.totalReviews || 0}
+                        />
+
+                        <DetailItem
+                          label="Availability"
+                          value={
+                            providerDetails?.isAvailable ? "Available" : "Offline"
+                          }
+                        />
+
+                        <div className="sm:col-span-2">
+                          <BadgeList
+                            label="Languages"
+                            items={providerDetails?.languages}
+                            variant="secondary"
+                          />
                         </div>
-                      )}
 
-                    {selectedUserDetails.providerDetails.specialities &&
-                      selectedUserDetails.providerDetails.specialities.length >
-                        0 && (
-                        <div>
-                          <p className="text-muted-foreground text-xs mb-1">
-                            Specialities
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {selectedUserDetails.providerDetails.specialities.map(
-                              (spec: string) => (
-                                <Badge
-                                  key={spec}
-                                  variant="outline"
-                                  className="text-[10px]"
-                                >
-                                  {spec}
-                                </Badge>
-                              ),
-                            )}
-                          </div>
+                        <div className="sm:col-span-2">
+                          <BadgeList
+                            label="Specialities"
+                            items={providerDetails?.specialities}
+                            variant="outline"
+                          />
                         </div>
-                      )}
 
-                    {selectedUserDetails.providerDetails.vehicleNumber && (
-                      <div>
-                        <p className="text-muted-foreground text-xs mb-1">
-                          Vehicle Number
-                        </p>
-
-                        <p className="font-medium">
-                          {providerDetails?.vehicleNumber}
-                        </p>
-                      </div>
-                    )}
-                    {selectedUserDetails.providerDetails.certificates &&
-                      selectedUserDetails.providerDetails.certificates.length >
-                        0 && (
-                        <div>
-                          <p className="text-muted-foreground text-xs mb-1">
-                            Certificates
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            {selectedUserDetails.providerDetails.certificates.map(
-                              (cert: any, i: number) => (
-                                <div
-                                  key={i}
-                                  className="text-sm bg-muted p-2 rounded-md flex justify-between items-center"
-                                >
-                                  <span>
-                                    {cert.image || cert.url ? (
-                                      <a
-                                        href={cert.image || cert.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-primary font-medium hover:underline flex items-center gap-1"
-                                      >
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          width="14"
-                                          height="14"
-                                          viewBox="0 0 24 24"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="2"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        >
-                                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                                          <polyline points="14 2 14 8 20 8" />
-                                        </svg>
-                                        {cert.name || "View Certificate"}
-                                      </a>
-                                    ) : (
-                                      cert.name || "Certificate"
-                                    )}
-                                    <span className="text-muted-foreground ml-1">
-                                      {cert.issuer
-                                        ? `(Issued by ${cert.issuer})`
-                                        : ""}
-                                    </span>
-                                  </span>
-                                  {cert.year && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {cert.year}
-                                    </span>
-                                  )}
-                                </div>
-                              ),
-                            )}
-                          </div>
+                        <div className="sm:col-span-2">
+                          <BadgeList
+                            label="Locations"
+                            items={providerDetails?.locations}
+                            variant="secondary"
+                          />
                         </div>
-                      )}
 
-                    {selectedUserDetails.role === "DRIVER" && (
-                      <div className="space-y-6 border-t pt-4">
-                        <h4 className="font-semibold text-base text-foreground">
-                          Driver Details
-                        </h4>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          {providerDetails?.vehicleType ||
-                          providerDetails?.vehicleName ? (
-                            <div>
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Vehicle
-                              </p>
-                              <p className="font-medium">
-                                {[
-                                  providerDetails?.vehicleType,
-                                  providerDetails?.vehicleName,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" - ") || "-"}
-                              </p>
-                            </div>
-                          ) : null}
-
-                          {providerDetails?.vehicleNumber && (
-                            <div>
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Vehicle Number
-                              </p>
-                              <p className="font-medium">
-                                {providerDetails.vehicleNumber}
-                              </p>
-                            </div>
-                          )}
-
-                          {providerDetails?.seats != null && (
-                            <div>
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Seats
-                              </p>
-                              <p className="font-medium">
-                                {providerDetails.seats}
-                              </p>
-                            </div>
-                          )}
-
-                          {providerDetails?.languages?.length > 0 && (
-                            <div className="sm:col-span-2">
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Languages
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {providerDetails.languages.map(
-                                  (lang: string) => (
-                                    <Badge
-                                      key={lang}
-                                      variant="secondary"
-                                      className="text-[10px]"
-                                    >
-                                      {lang}
-                                    </Badge>
-                                  ),
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          <div>
-                            <p className="text-muted-foreground text-xs mb-1">
-                              Availability
+                        {providerDetails?.certificates?.length > 0 && (
+                          <div className="sm:col-span-2">
+                            <p className="text-muted-foreground text-xs mb-2">
+                              Certificates
                             </p>
-                            <p className="font-medium">
-                              {providerDetails?.isAvailable
-                                ? "Available"
-                                : "Offline"}
-                            </p>
-                          </div>
-
-                          {providerDetails?.averageRating != null && (
-                            <div>
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Average Rating
-                              </p>
-                              <p className="font-medium">
-                                {providerDetails.averageRating}
-                              </p>
-                            </div>
-                          )}
-
-                          {providerDetails?.totalRides != null && (
-                            <div>
-                              <p className="text-muted-foreground text-xs mb-1">
-                                Total Rides
-                              </p>
-                              <p className="font-medium">
-                                {providerDetails.totalRides}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        {driverLicenseImages.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-muted-foreground text-xs mb-1">
-                              License Information
-                            </p>
-                            {providerDetails?.driverLicenseName && (
-                              <p className="font-medium">
-                                {providerDetails.driverLicenseName}
-                              </p>
-                            )}
                             <div className="flex flex-col gap-2">
-                              {driverLicenseImages.map(
-                                (
-                                  image: string | Blob | undefined,
-                                  idx: number,
-                                ) => (
+                              {providerDetails.certificates.map(
+                                (cert: any, index: number) => (
                                   <a
-                                    key={`${image}-${idx}`}
-                                    href={String(image)}
+                                    key={index}
+                                    href={cert.image || cert.url}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-sm bg-muted p-2 rounded-md flex items-center justify-between hover:bg-muted/80 transition"
+                                    className="flex items-center justify-between rounded-lg border bg-muted p-3 hover:bg-muted/80 transition"
                                   >
-                                    <span className="text-primary font-medium">
+                                    <div>
+                                      <p className="font-medium text-sm">
+                                        {cert.name || "Certificate"}
+                                      </p>
+                                      {cert.issuer && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Issued by {cert.issuer}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-primary font-medium">
+                                      Open
+                                    </div>
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedUserDetails.role === "DRIVER" && (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <DetailItem
+                          label="Vehicle"
+                          value={[
+                            providerDetails?.vehicleType,
+                            providerDetails?.vehicleName,
+                          ]
+                            .filter(Boolean)
+                            .join(" - ")}
+                        />
+
+                        <DetailItem
+                          label="Vehicle Number"
+                          value={providerDetails?.vehicleNumber}
+                        />
+
+                        <DetailItem
+                          label="Seats"
+                          value={providerDetails?.seats}
+                        />
+
+                        <DetailItem
+                          label="Availability"
+                          value={
+                            providerDetails?.isAvailable ? "Available" : "Offline"
+                          }
+                        />
+
+                        <DetailItem
+                          label="Average Rating"
+                          value={providerDetails?.averageRating || 0}
+                        />
+
+                        <DetailItem
+                          label="Total Rides"
+                          value={providerDetails?.totalRides || 0}
+                        />
+
+                        <div className="sm:col-span-2">
+                          <BadgeList
+                            label="Languages"
+                            items={providerDetails?.languages}
+                            variant="secondary"
+                          />
+                        </div>
+
+                        {driverLicenseImages?.length > 0 && (
+                          <div className="sm:col-span-2 space-y-2">
+                            <DetailItem
+                              label="License Name"
+                              value={providerDetails?.driverLicenseName}
+                            />
+                            <div className="flex flex-col gap-2">
+                              {driverLicenseImages.map(
+                                (image: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={image}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center justify-between rounded-lg border bg-muted p-3 hover:bg-muted/80 transition"
+                                  >
+                                    <span className="font-medium text-primary text-sm">
                                       View License {idx + 1}
                                     </span>
-
                                     <span className="text-xs text-muted-foreground">
                                       Open
                                     </span>
@@ -1217,39 +1197,31 @@ export default function GuidesPage() {
                         )}
 
                         {providerDetails?.vehiclePhoto && (
-                          <div className="space-y-2">
-                            <p className="text-muted-foreground text-xs mb-1">
+                          <div className="sm:col-span-2 space-y-2">
+                            <p className="text-muted-foreground text-xs">
                               Vehicle Photo
                             </p>
                             <img
                               src={providerDetails.vehiclePhoto}
-                              alt="Vehicle Photo"
-                              className="w-full max-w-xs rounded-xl object-cover border"
+                              alt="Vehicle"
+                              className="w-full max-w-xs rounded-xl border object-cover"
                             />
                           </div>
                         )}
 
                         {providerDetails?.currentLocation?.lat != null &&
-                          providerDetails?.currentLocation?.lng != null && (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <div>
-                                <p className="text-muted-foreground text-xs mb-1">
-                                  Current Latitude
-                                </p>
-                                <p className="font-medium">
-                                  {providerDetails.currentLocation.lat}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground text-xs mb-1">
-                                  Current Longitude
-                                </p>
-                                <p className="font-medium">
-                                  {providerDetails.currentLocation.lng}
-                                </p>
-                              </div>
-                            </div>
-                          )}
+                        providerDetails?.currentLocation?.lng != null && (
+                          <>
+                            <DetailItem
+                              label="Current Latitude"
+                              value={providerDetails.currentLocation.lat}
+                            />
+                            <DetailItem
+                              label="Current Longitude"
+                              value={providerDetails.currentLocation.lng}
+                            />
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
