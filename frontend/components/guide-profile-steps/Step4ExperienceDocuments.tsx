@@ -47,7 +47,8 @@ export function Step4ExperienceDocuments({
 }: Step4ExperienceDocumentsProps) {
   const [currentLanguage, setCurrentLanguage] = React.useState("");
   const [certificateNameInput, setCertificateNameInput] = React.useState("");
-  const [certificateImageInput, setCertificateImageInput] = React.useState<File | null>(null);
+  const [certificateImageInput, setCertificateImageInput] =
+    React.useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addLanguage = (lang: string) => {
@@ -83,16 +84,38 @@ export function Step4ExperienceDocuments({
     onCertificatesChange(certificates.filter((_, i) => i !== index));
   };
 
-  const handleCertificateImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCertificateImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
+
     if (file) {
       if (!file.type.startsWith("image/")) {
         return;
       }
+
       if (file.size > 5 * 1024 * 1024) {
         return;
       }
-      setCertificateImageInput(file);
+
+      if (!certificateNameInput.trim()) {
+        return;
+      }
+
+      const newCert: Certificate = {
+        name: certificateNameInput,
+        image: file,
+        preview: URL.createObjectURL(file),
+      };
+
+      onCertificatesChange([...certificates, newCert]);
+
+      setCertificateNameInput("");
+      setCertificateImageInput(null);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -146,7 +169,7 @@ export function Step4ExperienceDocuments({
                   <SelectItem key={lang} value={lang}>
                     {lang}
                   </SelectItem>
-                )
+                ),
               )}
             </SelectContent>
           </Select>
@@ -192,7 +215,9 @@ export function Step4ExperienceDocuments({
 
       {/* Certificates */}
       <div className="space-y-3">
-        <Label className="text-base font-medium">Certifications & Achievements</Label>
+        <Label className="text-base font-medium">
+          Certifications & Achievements
+        </Label>
         <p className="text-sm text-slate-500">
           Add certificates or credentials (optional but recommended)
         </p>
@@ -241,7 +266,7 @@ export function Step4ExperienceDocuments({
               )}
             </div>
           </div>
-
+          {/* 
           <Button
             type="button"
             onClick={addCertificate}
@@ -250,7 +275,7 @@ export function Step4ExperienceDocuments({
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Certificate
-          </Button>
+          </Button> */}
         </div>
 
         {/* Display Added Certificates */}

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
   Bar,
@@ -44,8 +45,10 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
+  ShieldCheck,
+  Clock3,
   Users,
-  Badge,
+  Sparkles,
   Star,
 } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
@@ -169,42 +172,41 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <div className="w-full flex space-between items-center">
+        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground flex items-center gap-3">
             {myGuide?.name}
             {myGuide?.verificationStatus === "VERIFIED" ? (
-              <Badge className="bg-green-100 text-green-800 border-green-200">VERIFIED</Badge>
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                VERIFIED
+              </Badge>
             ) : (
               <Badge>UNVERIFIED</Badge>
             )}
           </h1>
-          {/* Status Cards */}
-          <div className="absolute right-2">
-            <GuideAvailabilityToggle />
-          </div>
+          <GuideAvailabilityToggle />
         </div>
 
-        {/* Account Restriction Banner */}
-        <AccountRestrictionBanner
-          isEmailVerified={user?.isEmailVerified}
-          isProfileComplete={user?.isProfileComplete}
-          accountStatus={user?.status}
-          email={user?.email}
-        />
-
         <p className="text-muted-foreground text-sm mt-2">
-          Dear, Best of Luck from{" "}
-          <b className="text-secondary">GoGuide</b> Team{" "}
+          Dear, Best of Luck from <b className="text-secondary">GoGuide</b>{" "}
+          Team{" "}
         </p>
       </div>
 
-      {/* Not Available Alert */}
-      {myGuide && !myGuide.isAvailable && (
-        <Alert className="border-amber-500/50 bg-amber-500/10">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-700">
-            You are currently not accepting new bookings. Toggle your
-            availability status to start receiving new booking requests.
+      {/* Verification Status Alert */}
+      {myGuide?.verificationStatus !== "VERIFIED" && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <Clock3 className="h-4 w-4 text-orange-600" />
+
+          <AlertDescription className="text-orange-800">
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold">
+                Your ID verification is under review
+              </p>
+
+              <p className="text-sm">
+                Our team is reviewing your documents. You will be verified soon.
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}
