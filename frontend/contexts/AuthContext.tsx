@@ -32,6 +32,7 @@ export interface User {
   isEmailVerified?: boolean;
   isProfileComplete?: boolean;
   status?: string;
+  hasPassword: boolean;
 }
 
 export type SignupData = {
@@ -75,7 +76,10 @@ interface AuthContextType {
   login: (data: LoginData) => Promise<User>;
   signup: (data: SignupData) => Promise<User>;
   loginWithGoogle: (idToken: string) => Promise<User>;
-  signupWithGoogle: (idToken: string, role: "GUIDE" | "TOURIST" | "DRIVER") => Promise<User>;
+  signupWithGoogle: (
+    idToken: string,
+    role: "GUIDE" | "TOURIST" | "DRIVER",
+  ) => Promise<User>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => void;
   refreshUser: () => Promise<User | null>;
@@ -108,7 +112,8 @@ const normalizeUser = (data: any): User => ({
   isEmailVerified: data.isEmailVerified ?? false,
   isProfileComplete: data.isProfileComplete ?? false,
   status: data.status || undefined,
-  profileStep: data.profileStep ?? 0
+  profileStep: data.profileStep ?? 0,
+  hasPassword: data.hasPassword ?? data.authProvider === "LOCAL",
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -168,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const freshUser = await getMe();
         const normalizedUser = normalizeUser(freshUser);
-        
+
         // Check if stored role matches backend role
         if (storedSignupRole && storedSignupRole !== normalizedUser.role) {
           console.warn("[AUTH] Role mismatch detected, clearing signup state");
@@ -176,19 +181,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem("signupProgress");
           localStorage.removeItem("driver-signup-draft");
           localStorage.removeItem("guide-signup-draft");
-          
+
           // Show toast notification for role mismatch
-          if (typeof window !== 'undefined' && window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('showToast', {
-              detail: {
-                title: "Session Expired",
-                description: "Previous signup session belongs to another account. Please continue with current account.",
-                variant: "warning"
-              }
-            }));
+          if (typeof window !== "undefined" && window.dispatchEvent) {
+            window.dispatchEvent(
+              new CustomEvent("showToast", {
+                detail: {
+                  title: "Session Expired",
+                  description:
+                    "Previous signup session belongs to another account. Please continue with current account.",
+                  variant: "warning",
+                },
+              }),
+            );
           }
         }
-        
+
         setUser(normalizedUser);
         localStorage.setItem("user", JSON.stringify(normalizedUser));
       } catch (error: unknown) {
@@ -201,25 +209,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             "[AUTH] Token invalid or expired, clearing all auth state",
             error,
           );
-          
+
           // Handle specific account status messages
           let title = "Session Expired";
           let description = "Your session has expired. Please log in again.";
           let variant = "destructive" as const;
-          
+
           if (error instanceof ApiError) {
             if (error.message.includes("blocked")) {
               title = "Account Blocked";
-              description = "Your account has been blocked. Please contact support.";
+              description =
+                "Your account has been blocked. Please contact support.";
             } else if (error.message.includes("suspended")) {
               title = "Account Suspended";
-              description = "Your account has been suspended. Please contact support.";
+              description =
+                "Your account has been suspended. Please contact support.";
             } else if (error.message.includes("deleted")) {
               title = "Account Deleted";
-              description = "Your account has been deleted. Contact support if this is a mistake.";
+              description =
+                "Your account has been deleted. Contact support if this is a mistake.";
             }
           }
-          
+
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           localStorage.removeItem("signupRole");
@@ -227,16 +238,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem("driver-signup-draft");
           localStorage.removeItem("guide-signup-draft");
           setUser(null);
-          
+
           // Show appropriate toast message
-          if (typeof window !== 'undefined' && window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('showToast', {
-              detail: {
-                title,
-                description,
-                variant
-              }
-            }));
+          if (typeof window !== "undefined" && window.dispatchEvent) {
+            window.dispatchEvent(
+              new CustomEvent("showToast", {
+                detail: {
+                  title,
+                  description,
+                  variant,
+                },
+              }),
+            );
           }
         } else {
           console.warn(
@@ -293,28 +306,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const normalizedUser = normalizeUser(res.user);
       console.log("[AUTH] Login successful, saving to localStorage");
-      console.log("[AUTH] Token being stored:", res.token.substring(0, 20) + "...");
+      console.log(
+        "[AUTH] Token being stored:",
+        res.token.substring(0, 20) + "...",
+      );
       console.log("[AUTH] User profileStep:", normalizedUser.profileStep);
-      console.log("[AUTH] User isProfileComplete:", normalizedUser.isProfileComplete);
-      
+      console.log(
+        "[AUTH] User isProfileComplete:",
+        normalizedUser.isProfileComplete,
+      );
+
       setUser(normalizedUser);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("token", res.token);
-      
+
       // Verify token was stored correctly
       const storedToken = localStorage.getItem("token");
       console.log("[AUTH] Token verification after storage:", {
         stored: !!storedToken,
         matches: storedToken === res.token,
-        storedStart: storedToken?.substring(0, 20) + "..."
+        storedStart: storedToken?.substring(0, 20) + "...",
       });
-      
+
       console.log("[AUTH] User and token saved to localStorage");
 
       return res.user;
     } catch (error: unknown) {
       if (error instanceof ApiError && error.message === "PROFILE_INCOMPLETE") {
-        console.warn("[AUTH] Profile incomplete during login, letting page handle redirect");
+        console.warn(
+          "[AUTH] Profile incomplete during login, letting page handle redirect",
+        );
       } else {
         console.error(
           "[AUTH] Login error:",
@@ -345,7 +366,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signupWithGoogle = async (idToken: string, role: "GUIDE" | "TOURIST" | "DRIVER") => {
+  const signupWithGoogle = async (
+    idToken: string,
+    role: "GUIDE" | "TOURIST" | "DRIVER",
+  ) => {
     try {
       setLoading(true);
       const res = await signupWithGoogleApi({ idToken, role });

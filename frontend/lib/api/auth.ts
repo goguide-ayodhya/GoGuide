@@ -281,6 +281,38 @@ export const changePassword = async (data: {
   return json.data;
 };
 
+// Create Password (for users who signed up via OAuth)
+export const createPassword = async (data: {
+  newPassword: string;
+  confirmPassword: string;
+}) => {
+  const res = await fetch(`${base_url}auth/create-password`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    // Handle validation errors
+    if (json.errors) {
+      const errorMessages = Object.values(json.errors).join(", ");
+      throwAuthAwareError(
+        errorMessages || json.message,
+        json.errors,
+        res.status,
+      );
+    }
+    throwAuthAwareError(
+      json.message || "Create password failed",
+      undefined,
+      res.status,
+    );
+  }
+
+  return json.data;
+};
+
 // Send OTP API
 export const sendOtpApi = async (data: { email: string }) => {
   const res = await fetch(`${base_url}auth/send-otp`, {

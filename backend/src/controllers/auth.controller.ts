@@ -192,6 +192,25 @@ export class AuthController {
     });
   }
 
+  async createPassword(req: AuthRequest, res: Response) {
+    const userId = req.userId;
+    if (!userId) {
+      throw new Unauthorized("User not authenticated");
+    }
+
+    const result = await authService.createPassword(
+      userId,
+      req.body.newPassword,
+      req.body.confirmPassword,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Password created successfully",
+      data: result,
+    });
+  }
+
   async sendOtp(req: AuthRequest, res: Response) {
     try {
       const result = await authService.sendOtp(req.body.email);

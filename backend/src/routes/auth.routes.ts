@@ -8,6 +8,7 @@ import {
   googleLoginSchema,
   googleSignupSchema,
   changePasswordSchema,
+  createPasswordSchema,
   sendOtpSchema,
   verifyOtpSchema,
   forgotPasswordSchema,
@@ -93,6 +94,15 @@ router.post(
   validate(changePasswordSchema),
   (req, res, next) => {
     authController.changePassword(req, res).catch(next);
+  },
+);
+
+router.post(
+  "/create-password",
+  authenticate,
+  validate(createPasswordSchema),
+  (req, res, next) => {
+    authController.createPassword(req, res).catch(next);
   },
 );
 

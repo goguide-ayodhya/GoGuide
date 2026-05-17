@@ -1,126 +1,136 @@
 import { Schema, model, Document } from "mongoose";
 
 export interface IUser extends Document {
-    email?: string;
-    password: string;
-    name: string;
-    phone: string;
-    googleId?: string;
-    authProvider?: "LOCAL" | "GOOGLE";
-    bio?: string;
-    avatar: string;
-    driverPhoto?: string;
+  email?: string;
+  password: string;
+  name: string;
+  phone: string;
+  googleId?: string;
+  authProvider?: "LOCAL" | "GOOGLE";
+  bio?: string;
+  avatar: string;
+  driverPhoto?: string;
 
-    role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
-    status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETED";
-    blockReason?: string;
-    blockedAt?: Date;
-    suspendUntil?: Date;
-    lastLoginAt?: Date;
-    isDeleted?: boolean;
+  role: "GUIDE" | "TOURIST" | "ADMIN" | "DRIVER";
+  status: "ACTIVE" | "INACTIVE" | "BLOCKED" | "SUSPENDED" | "DELETED";
+  blockReason?: string;
+  blockedAt?: Date;
+  suspendUntil?: Date;
+  lastLoginAt?: Date;
+  isDeleted?: boolean;
 
-    socketId: string;
+  socketId: string;
 
-    isEmailVerified: boolean;
-    isProfileComplete?: boolean; // for GUIDE/DRIVER - profile completion step
+  isEmailVerified: boolean;
+  isProfileComplete?: boolean; // for GUIDE/DRIVER - profile completion step
 
-    profileStep?: number;
+  profileStep?: number;
 
-    otp?: string;
-    otpExpiresAt?: Date;
-    resetPasswordToken?: string;
-    resetPasswordExpires?: Date;
-    fcmToken?: string;
-    fcmTokenUpdatedAt?: Date;
-    cancellationCount?: number;
-    createdAt: Date;
-    updatedAt: Date;
+  otp?: string;
+  otpExpiresAt?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
+  fcmToken?: string;
+  fcmTokenUpdatedAt?: Date;
+  cancellationCount?: number;
+  createdAt: Date;
+  updatedAt: Date;
+
+  hasPassword: boolean;
 }
 
 const UserSchema = new Schema<IUser>(
-    {
-        email: {
-            type: String,
-            unique: true,
-            lowercase: true,
-            sparse: true, // Allow null/undefined values for unique index
-        },
-        password: {
-            type: String,
-            required: true,
-        },
-        name: {
-            type: String,
-            required: true,
-        },
-        phone: {
-            type: String,
-            required: true,
-            unique: true,
-        },
-        googleId: {
-            type: String,
-            unique: true,
-            sparse: true,
-        },
-        authProvider: {
-            type: String,
-            enum: ["LOCAL", "GOOGLE"],
-            default: "LOCAL",
-        },
-        avatar: String, // avatar as profileImage
-        driverPhoto: {
-            type: String,
-        },
-        bio: String,
-        role: {
-            type: String,
-            enum: ["GUIDE", "TOURIST", "ADMIN", "DRIVER"],
-        },
-        isDeleted: {
-            type: Boolean,
-            default: false,
-        },
-
-        socketId: { type: String },
-
-        status: {
-            type: String,
-            enum: ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED", "DELETED"],
-            default: "INACTIVE",
-        },
-        blockReason: { type: String },
-        blockedAt: { type: Date },
-        suspendUntil: { type: Date },
-        isEmailVerified: {
-            type: Boolean,
-            default: false,
-        },
-        isProfileComplete: {
-            type: Boolean,
-            default: false, // GUIDE/DRIVER must complete profile to become ACTIVE
-        },
-
-        profileStep: {
-            type: Number,
-            default: 1,
-        },
-
-        otp: String,
-        otpExpiresAt: Date,
-        resetPasswordToken: String,
-        resetPasswordExpires: Date,
-        lastLoginAt: {
-            type: Date,
-        },
-        fcmToken: String,
-        fcmTokenUpdatedAt: Date,
-        cancellationCount: {
-            type: Number,
-            default: 0,
-        },
+  {
+    email: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      sparse: true, // Allow null/undefined values for unique index
     },
-    { timestamps: true },
+    password: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ["LOCAL", "GOOGLE"],
+      default: "LOCAL",
+    },
+    avatar: String, // avatar as profileImage
+    driverPhoto: {
+      type: String,
+    },
+    bio: String,
+    role: {
+      type: String,
+      enum: ["GUIDE", "TOURIST", "ADMIN", "DRIVER"],
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+
+    socketId: { type: String },
+
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "BLOCKED", "SUSPENDED", "DELETED"],
+      default: "INACTIVE",
+    },
+    blockReason: { type: String },
+    blockedAt: { type: Date },
+    suspendUntil: { type: Date },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isProfileComplete: {
+      type: Boolean,
+      default: false, // GUIDE/DRIVER must complete profile to become ACTIVE
+    },
+
+    profileStep: {
+      type: Number,
+      default: 1,
+    },
+
+    otp: String,
+    otpExpiresAt: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    lastLoginAt: {
+      type: Date,
+    },
+
+    hasPassword: {
+      type: Boolean,
+      default: function () {
+        return this.authProvider === "LOCAL";
+      },
+    },
+    
+    fcmToken: String,
+    fcmTokenUpdatedAt: Date,
+    cancellationCount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { timestamps: true },
 );
 
 export const User = model<IUser>("User", UserSchema);

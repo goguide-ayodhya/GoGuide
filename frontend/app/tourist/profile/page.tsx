@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile } from "@/lib/api/settings";
-import { changePassword, sendOtp, verifyEmail } from "@/lib/api/auth";
+import { changePassword, createPassword, sendOtp, verifyEmail } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const isGoogleUser = !user?.hasPassword;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -172,6 +173,87 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleCreatePassword = async () => {
+    if (
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[A-Z]/.test(passwordData.newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one uppercase letter",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/[0-9]/.test(passwordData.newPassword)) {
+      toast({
+        title: "Error",
+        description: "Password must contain at least one number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await createPassword({
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      });
+
+      toast({
+        title: "Success",
+        description: "Password created successfully",
+      });
+
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswordChange(false);
+      
+      // Update user to reflect that they now have a password
+      updateUser({ ...user, hasPassword: true });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create password",
         variant: "destructive",
       });
     } finally {
@@ -375,30 +457,32 @@ export default function ProfilePage() {
                   onClick={() => setShowPasswordChange(true)}
                 >
                   <Lock size={18} />
-                  Change Password
+                  {isGoogleUser ? "Create Password" : "Change Password"}
                 </Button>
               ) : (
                 <div className="space-y-4">
+                  {!isGoogleUser && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground block mb-2">
+                        Current Password
+                      </label>
+                      <Input
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) =>
+                          setPasswordData((prev) => ({
+                            ...prev,
+                            currentPassword: e.target.value,
+                          }))
+                        }
+                        className="bg-muted border-border"
+                        placeholder="Enter current password"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-foreground block mb-2">
-                      Current Password
-                    </label>
-                    <Input
-                      type="password"
-                      value={passwordData.currentPassword}
-                      onChange={(e) =>
-                        setPasswordData((prev) => ({
-                          ...prev,
-                          currentPassword: e.target.value,
-                        }))
-                      }
-                      className="bg-muted border-border"
-                      placeholder="Enter current password"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-2">
-                      New Password
+                      {isGoogleUser ? "Password" : "New Password"}
                     </label>
                     <Input
                       type="password"
@@ -410,12 +494,12 @@ export default function ProfilePage() {
                         }))
                       }
                       className="bg-muted border-border"
-                      placeholder="Enter new password"
+                      placeholder={isGoogleUser ? "Enter password" : "Enter new password"}
                     />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-foreground block mb-2">
-                      Confirm New Password
+                      Confirm {isGoogleUser ? "Password" : "New Password"}
                     </label>
                     <Input
                       type="password"
@@ -427,17 +511,17 @@ export default function ProfilePage() {
                         }))
                       }
                       className="bg-muted border-border"
-                      placeholder="Confirm new password"
+                      placeholder="Confirm password"
                     />
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      onClick={handleChangePassword}
+                      onClick={isGoogleUser ? handleCreatePassword : handleChangePassword}
                       className="gap-2 bg-primary cursor-pointer hover:bg-primary/90 text-primary-foreground"
                       disabled={passwordLoading}
                     >
                       <Save size={18} />
-                      {passwordLoading ? "Changing..." : "Change Password"}
+                      {passwordLoading ? (isGoogleUser ? "Creating..." : "Changing...") : (isGoogleUser ? "Create Password" : "Change Password")}
                     </Button>
                     <Button
                       variant="outline"

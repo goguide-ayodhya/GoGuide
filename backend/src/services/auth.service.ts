@@ -23,7 +23,9 @@ import { logger } from "../utils/logger";
 export class AuthService {
   // --------------------- Authentication ---------------------
   async login(input: LoginInput) {
-    console.log("[AUTH-SERVICE] Login attempt:", { identifier: input.identifier });
+    console.log("[AUTH-SERVICE] Login attempt:", {
+      identifier: input.identifier,
+    });
     const identifier = input.identifier.trim().toLowerCase();
     const isEmail = identifier.includes("@");
     const user = await User.findOne(
@@ -41,7 +43,7 @@ export class AuthService {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
       isProfileComplete: user.isProfileComplete,
-      profileStep: user.profileStep
+      profileStep: user.profileStep,
     });
 
     const isPasswordValid = await bcrypt.compare(input.password, user.password);
@@ -52,11 +54,18 @@ export class AuthService {
 
     // CRITICAL: Ensure Driver document exists for DRIVER users
     if (user.role === "DRIVER") {
-      console.log("[AUTH-SERVICE] Checking Driver document for user:", user._id);
+      console.log(
+        "[AUTH-SERVICE] Checking Driver document for user:",
+        user._id,
+      );
       const driverProfile = await Driver.findOne({ userId: user._id });
 
       if (!driverProfile) {
-        console.log("[AUTH-SERVICE] CRITICAL: Driver document missing for user:", user._id, "Creating fallback profile");
+        console.log(
+          "[AUTH-SERVICE] CRITICAL: Driver document missing for user:",
+          user._id,
+          "Creating fallback profile",
+        );
         await Driver.create({
           userId: user._id,
           vehicleType: "",
@@ -70,7 +79,10 @@ export class AuthService {
           totalRides: 0,
           driverName: user.name,
         });
-        console.log("[AUTH-SERVICE] Fallback Driver profile created for user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Fallback Driver profile created for user:",
+          user._id,
+        );
       } else {
         console.log("[AUTH-SERVICE] Driver profile exists:", driverProfile._id);
       }
@@ -85,16 +97,26 @@ export class AuthService {
       }
 
       if (!user.isProfileComplete) {
-        console.log("[AUTH-SERVICE] Profile incomplete for user:", user._id, "profileStep:", user.profileStep);
+        console.log(
+          "[AUTH-SERVICE] Profile incomplete for user:",
+          user._id,
+          "profileStep:",
+          user.profileStep,
+        );
         return {
           user,
           token,
-          profileIncomplete: !user.isProfileComplete
-        }
+          profileIncomplete: !user.isProfileComplete,
+        };
       }
 
       if (!user.status || user.status !== "ACTIVE") {
-        console.log("[AUTH-SERVICE] Account inactive for user:", user._id, "status:", user.status);
+        console.log(
+          "[AUTH-SERVICE] Account inactive for user:",
+          user._id,
+          "status:",
+          user.status,
+        );
         throw new BadRequest("ACCOUNT_INACTIVE");
       }
     }
@@ -122,7 +144,7 @@ export class AuthService {
       email: input.email,
       phone: input.phone,
       name: input.name,
-      role: input.role
+      role: input.role,
     });
 
     // Require both email and phone and enforce uniqueness
@@ -155,7 +177,7 @@ export class AuthService {
       id: user._id,
       role: user.role,
       email: user.email,
-      phone: user.phone
+      phone: user.phone,
     });
 
     if (input.role === "GUIDE") {
@@ -193,10 +215,19 @@ export class AuthService {
           totalRides: 0,
           driverName: input.name,
         });
-        console.log("[AUTH-SERVICE] Driver profile created successfully:", driverProfile._id);
+        console.log(
+          "[AUTH-SERVICE] Driver profile created successfully:",
+          driverProfile._id,
+        );
       } catch (driverError) {
-        console.error("[AUTH-SERVICE] Failed to create Driver profile:", driverError);
-        const errorMessage = driverError instanceof Error ? driverError.message : String(driverError);
+        console.error(
+          "[AUTH-SERVICE] Failed to create Driver profile:",
+          driverError,
+        );
+        const errorMessage =
+          driverError instanceof Error
+            ? driverError.message
+            : String(driverError);
         throw new Error(`Failed to create driver profile: ${errorMessage}`);
       }
     }
@@ -261,7 +292,11 @@ export class AuthService {
     const { email, googleId, name, avatar } =
       await this.verifyGoogleToken(idToken);
 
-    console.log("[AUTH-SERVICE] Google token verified:", { email, googleId, name });
+    console.log("[AUTH-SERVICE] Google token verified:", {
+      email,
+      googleId,
+      name,
+    });
 
     let user = await User.findOne({ googleId });
     if (!user) {
@@ -278,7 +313,7 @@ export class AuthService {
       role: user.role,
       email: user.email,
       isEmailVerified: user.isEmailVerified,
-      isProfileComplete: user.isProfileComplete
+      isProfileComplete: user.isProfileComplete,
     });
 
     if (!user.googleId) {
@@ -302,11 +337,18 @@ export class AuthService {
 
     // CRITICAL: Ensure Driver document exists for DRIVER users
     if (user.role === "DRIVER") {
-      console.log("[AUTH-SERVICE] Checking Driver document for Google login user:", user._id);
+      console.log(
+        "[AUTH-SERVICE] Checking Driver document for Google login user:",
+        user._id,
+      );
       const driverProfile = await Driver.findOne({ userId: user._id });
 
       if (!driverProfile) {
-        console.log("[AUTH-SERVICE] CRITICAL: Driver document missing for Google user:", user._id, "Creating fallback profile");
+        console.log(
+          "[AUTH-SERVICE] CRITICAL: Driver document missing for Google user:",
+          user._id,
+          "Creating fallback profile",
+        );
         await Driver.create({
           userId: user._id,
           vehicleType: "",
@@ -320,23 +362,29 @@ export class AuthService {
           totalRides: 0,
           driverName: user.name,
         });
-        console.log("[AUTH-SERVICE] Fallback Driver profile created for Google user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Fallback Driver profile created for Google user:",
+          user._id,
+        );
       } else {
-        console.log("[AUTH-SERVICE] Driver profile exists for Google user:", driverProfile._id);
+        console.log(
+          "[AUTH-SERVICE] Driver profile exists for Google user:",
+          driverProfile._id,
+        );
       }
     }
 
     if (user.role === "GUIDE" || user.role === "DRIVER") {
       if (!user.isEmailVerified) {
-        console.log("[AUTH-SERVICE] Email not verified for Google user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Email not verified for Google user:",
+          user._id,
+        );
         throw new BadRequest("EMAIL_NOT_VERIFIED", { role: user.role });
       }
 
       if (!user.isProfileComplete) {
-        const token = this.generateToken(
-          user._id.toString(),
-          user.email || ""
-        );
+        const token = this.generateToken(user._id.toString(), user.email || "");
 
         return {
           user: {
@@ -356,7 +404,12 @@ export class AuthService {
       }
 
       if (!user.status || user.status !== "ACTIVE") {
-        console.log("[AUTH-SERVICE] Account inactive for Google user:", user._id, "status:", user.status);
+        console.log(
+          "[AUTH-SERVICE] Account inactive for Google user:",
+          user._id,
+          "status:",
+          user.status,
+        );
         throw new BadRequest("ACCOUNT_INACTIVE");
       }
     }
@@ -384,7 +437,12 @@ export class AuthService {
     const { email, googleId, name, avatar } =
       await this.verifyGoogleToken(idToken);
 
-    console.log("[AUTH-SERVICE] Google token verified for signup:", { email, googleId, name, role });
+    console.log("[AUTH-SERVICE] Google token verified for signup:", {
+      email,
+      googleId,
+      name,
+      role,
+    });
 
     let user = await User.findOne({ googleId });
     if (!user) {
@@ -395,11 +453,14 @@ export class AuthService {
       console.log("[AUTH-SERVICE] Existing user found for Google signup:", {
         id: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
       });
 
       if (user.role !== role) {
-        console.log("[AUTH-SERVICE] Role mismatch for existing user:", { existing: user.role, requested: role });
+        console.log("[AUTH-SERVICE] Role mismatch for existing user:", {
+          existing: user.role,
+          requested: role,
+        });
         throw new Conflict("Email is already registered with a different role");
       }
 
@@ -419,7 +480,10 @@ export class AuthService {
       }
 
       await user.save();
-      console.log("[AUTH-SERVICE] Existing user updated for Google signup:", user._id);
+      console.log(
+        "[AUTH-SERVICE] Existing user updated for Google signup:",
+        user._id,
+      );
     } else {
       console.log("[AUTH-SERVICE] Creating new user for Google signup...");
       const randomPassword = `${Math.random().toString(36).slice(2)}${Date.now()}`;
@@ -442,11 +506,14 @@ export class AuthService {
       console.log("[AUTH-SERVICE] New user created for Google signup:", {
         id: user._id,
         role: user.role,
-        email: user.email
+        email: user.email,
       });
 
       if (role === "GUIDE") {
-        console.log("[AUTH-SERVICE] Creating Guide profile for Google signup user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Creating Guide profile for Google signup user:",
+          user._id,
+        );
         await Guide.create({
           userId: user._id,
           specialities: [],
@@ -461,11 +528,17 @@ export class AuthService {
           averageRating: 0,
           totalReviews: 0,
         });
-        console.log("[AUTH-SERVICE] Guide profile created for Google signup user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Guide profile created for Google signup user:",
+          user._id,
+        );
       }
 
       if (role === "DRIVER") {
-        console.log("[AUTH-SERVICE] Creating Driver profile for Google signup user:", user._id);
+        console.log(
+          "[AUTH-SERVICE] Creating Driver profile for Google signup user:",
+          user._id,
+        );
         try {
           const driverProfile = await Driver.create({
             userId: user._id,
@@ -479,10 +552,19 @@ export class AuthService {
             totalRides: 0,
             driverName: user.name,
           });
-          console.log("[AUTH-SERVICE] Driver profile created for Google signup user:", driverProfile._id);
+          console.log(
+            "[AUTH-SERVICE] Driver profile created for Google signup user:",
+            driverProfile._id,
+          );
         } catch (driverError) {
-          console.error("[AUTH-SERVICE] Failed to create Driver profile for Google signup:", driverError);
-          const errorMessage = driverError instanceof Error ? driverError.message : String(driverError);
+          console.error(
+            "[AUTH-SERVICE] Failed to create Driver profile for Google signup:",
+            driverError,
+          );
+          const errorMessage =
+            driverError instanceof Error
+              ? driverError.message
+              : String(driverError);
           throw new Error(`Failed to create driver profile: ${errorMessage}`);
         }
       }
@@ -546,6 +628,29 @@ export class AuthService {
 
     await user.save();
     await this.logoutAll(userId);
+
+    return true;
+  }
+
+  async createPassword(
+    userId: string,
+    newPassword: string,
+    confirmPassword: string,
+  ) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFound("User not Found");
+    }
+
+    // Check if user already has a password
+    if (user.hasPassword) {
+      throw new BadRequest("User already has a password set");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    await user.save();
 
     return true;
   }
