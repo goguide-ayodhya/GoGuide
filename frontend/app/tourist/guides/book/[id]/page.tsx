@@ -126,12 +126,12 @@ export default function GuideBookingPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="min-w-0">
                         <p className="text-sm uppercase tracking-[0.3em] text-orange-600">
                           Guide profile
                         </p>
-                        <h1 className="mt-2 text-3xl font-semibold text-slate-950">
+                        <h1  className="mt-2 text-3xl font-semibold text-slate-950 break-words">
                           {guide.userId?.name || guide.name || "Guide"}
                         </h1>
                       </div>
@@ -143,7 +143,7 @@ export default function GuideBookingPage() {
                     <h2 className="text-lg font-semibold text-slate-950">
                       About this guide
                     </h2>
-                    <p className="text-slate-600 leading-7">
+                    <p className="text-slate-600 leading-7 break-words">
                       {guide.bio ||
                         "Your guide will deliver an insightful, safe, and memorable experience with local knowledge and personalized service."}
                     </p>
@@ -221,7 +221,7 @@ export default function GuideBookingPage() {
                             variant="outline"
                             className="text-xs"
                           >
-                            <Map className="mt-1 h-3 w-3 text-orange-500" />
+                            <Map className="mt-1 h-3 w-3 text-orange-500 flex-wrap" />
 
                             {loc}
                           </Badge>
@@ -286,7 +286,13 @@ export default function GuideBookingPage() {
                       >
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-slate-900">
-                            {cert.name && !cert.name.match(/\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i) && !cert.name.startsWith("http") ? cert.name : `Certificate ${index + 1}`}
+                            {cert.name &&
+                            !cert.name.match(
+                              /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                            ) &&
+                            !cert.name.startsWith("http")
+                              ? cert.name
+                              : `Certificate ${index + 1}`}
                           </h4>
                           <Button
                             variant="outline"
