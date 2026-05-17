@@ -65,8 +65,10 @@ export default function Home() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      if (user?.role === "GUIDE" && user.isProfileComplete) router.push("/guide/dashboard");
-      if (user?.role === "DRIVER" && user.isProfileComplete) router.push("/driver/dashboard");
+      if (user?.role === "GUIDE" && user.isProfileComplete)
+        router.push("/guide/dashboard");
+      if (user?.role === "DRIVER" && user.isProfileComplete)
+        router.push("/driver/dashboard");
       if (user?.role === "TOURIST") router.push("/");
     }
   }, [user, loading, router, isLoggedIn]);
@@ -248,57 +250,64 @@ export default function Home() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-                {topRatedGuides.map((guide) => (
-                  <article
-                    key={guide.id}
-                    className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 overflow-hidden"
-                  >
-                    <div className="relative h-48 bg-slate-100">
-                      {guide.image ? (
-                        <Image
-                          src={guide.image}
-                          alt={guide.userId?.name || guide.name || "Guide"}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400">
-                          {" "}
-                          <Users className="h-12 w-12" />
-                        </div>
-                      )}
+                {topRatedGuides.map((guide) => {
+                  const reviewsCount = guide.totalReviews ?? 0;
+                  const displayRating = reviewsCount > 0 ? guide.rating : 5;
 
-                      <div className="absolute left-3 top-3 bg-white/80 text-slate-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                        {guide.verificationStatus === "VERIFIED"
-                          ? "Verified"
-                          : "Unverified"}
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-slate-900 truncate">
-                        {guide.userId?.name || guide.name || "Verified guide"}
-                      </h3>
-                      <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-0.5 text-amber-400">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${i < Math.round(guide.rating) ? "text-amber-400" : "text-slate-300"}`}
-                              />
-                            ))}
+                  return (
+                    <article
+                      key={guide.id}
+                      className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 overflow-hidden"
+                    >
+                      <div className="relative h-48 bg-slate-100">
+                        {guide.image ? (
+                          <Image
+                            src={guide.image}
+                            alt={guide.userId?.name || guide.name || "Guide"}
+                            fill
+                            className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            {" "}
+                            <Users className="h-12 w-12" />
                           </div>
-                          <span className="text-sm font-medium text-slate-700">
-                            {guide.rating.toFixed(1)}
+                        )}
+
+                        <div className="absolute left-3 top-3 bg-white/80 text-slate-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                          {guide.verificationStatus === "VERIFIED"
+                            ? "Verified"
+                            : "Unverified"}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-slate-900 truncate">
+                          {guide.userId?.name || guide.name || "Verified guide"}
+                        </h3>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-0.5 text-amber-400">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${i < Math.round(displayRating) ? "text-amber-400 fill-current" : "text-slate-300 fill-current"}`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-slate-700">
+                              {displayRating.toFixed(1)}
+                            </span>
+                          </div>
+                          <span className="text-sm text-slate-500">
+                            {reviewsCount === 0
+                              ? ""
+                              : `${reviewsCount} reviews`}
                           </span>
                         </div>
-                        <span className="text-sm text-slate-500">
-                          {guide.totalReviews || 0} reviews
-                        </span>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>

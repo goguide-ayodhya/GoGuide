@@ -15,6 +15,7 @@ import {
 import { X, Upload, Plus } from "lucide-react";
 import { LANGUAGES } from "@/lib/profile-utils";
 import Image from "next/image";
+import { toast } from "../ui/use-toast";
 
 interface Certificate {
   name: string;
@@ -72,6 +73,12 @@ export function Step4ExperienceDocuments({
           : undefined,
       };
       onCertificatesChange([...certificates, newCert]);
+
+      toast({
+        title: "Certificate Added",
+        description: `${certificateNameInput} has been added to your profile.`,
+      });
+
       setCertificateNameInput("");
       setCertificateImageInput(null);
       if (fileInputRef.current) {
@@ -89,36 +96,37 @@ export function Step4ExperienceDocuments({
   ) => {
     const file = e.target.files?.[0];
 
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        return;
-      }
+    if (!file) return;
 
-      if (file.size > 5 * 1024 * 1024) {
-        return;
-      }
-
-      if (!certificateNameInput.trim()) {
-        return;
-      }
-
-      const newCert: Certificate = {
-        name: certificateNameInput,
-        image: file,
-        preview: URL.createObjectURL(file),
-      };
-
-      onCertificatesChange([...certificates, newCert]);
-
-      setCertificateNameInput("");
-      setCertificateImageInput(null);
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Image",
+        description: "Please upload a valid image file.",
+      });
+      return;
     }
-  };
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File Too Large",
+        description: "Image size must be less than 5MB.",
+      });
+      return;
+    }
+
+    if (!certificateNameInput.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Certificate Name Required",
+        description: "Please enter certificate name first.",
+      });
+      return;
+    }
+
+    setCertificateImageInput(file);
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -266,7 +274,7 @@ export function Step4ExperienceDocuments({
               )}
             </div>
           </div>
-          {/* 
+
           <Button
             type="button"
             onClick={addCertificate}
@@ -275,7 +283,7 @@ export function Step4ExperienceDocuments({
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Certificate
-          </Button> */}
+          </Button>
         </div>
 
         {/* Display Added Certificates */}

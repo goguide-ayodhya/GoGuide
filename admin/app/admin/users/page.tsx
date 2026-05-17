@@ -67,6 +67,9 @@ type AdminUser = {
   lastLoginAt?: string;
   verificationStatus?: string;
   isAvailable?: boolean;
+  profileStep?: number | null;
+  isProfileComplete?: boolean;
+  createdAt: string;
 };
 
 const roleOptions: Array<{ key: "all" | AdminRole; label: string }> = [
@@ -96,24 +99,6 @@ const statusLabels: Record<string, string> = {
   BLOCKED: "Blocked",
   SUSPENDED: "Suspended",
   DELETED: "Deleted",
-};
-
-const getStatusBadge = (status: string) => {
-  const label = statusLabels[status] || status;
-  const colorClass =
-    status === "ACTIVE"
-      ? "bg-success/10 text-success border-success/20"
-      : status === "BLOCKED"
-        ? "bg-destructive/10 text-destructive border-destructive/20"
-        : status === "SUSPENDED"
-          ? "bg-warning/10 text-warning-foreground border-warning/20"
-          : "bg-muted text-muted-foreground border-border";
-
-  return (
-    <Badge className={`${colorClass} text-[10px] sm:text-xs`} variant="outline">
-      {label}
-    </Badge>
-  );
 };
 
 const getVerificationBadge = (status: string) => {
@@ -165,13 +150,9 @@ function DetailItem({
 
   return (
     <div>
-      <p className="text-muted-foreground text-xs mb-1">
-        {label}
-      </p>
+      <p className="text-muted-foreground text-xs mb-1">{label}</p>
 
-      <div className="font-medium">
-        {value}
-      </div>
+      <div className="font-medium">{value}</div>
     </div>
   );
 }
@@ -189,17 +170,11 @@ function BadgeList({
 
   return (
     <div>
-      <p className="text-muted-foreground text-xs mb-1">
-        {label}
-      </p>
+      <p className="text-muted-foreground text-xs mb-1">{label}</p>
 
       <div className="flex flex-wrap gap-1">
         {items.map((item, index) => (
-          <Badge
-            key={index}
-            variant={variant}
-            className="text-[10px]"
-          >
+          <Badge key={index} variant={variant} className="text-[10px]">
             {typeof item === "string"
               ? item
               : item?.name || item?.title || "Item"}
@@ -259,6 +234,8 @@ export default function GuidesPage() {
         verificationStatus:
           user.verificationStatus || user.guideVerificationStatus || undefined,
         isAvailable: user.isAvailable || undefined,
+        isProfileComplete: user.isProfileComplete ?? user.profileComplete ?? false,
+        profileStep: user.profileStep ?? user.profileCompletionStep ?? null,
         createdAt: user.createdAt || new Date().toISOString(),
       }));
 
@@ -605,7 +582,7 @@ export default function GuidesPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
-                      User ID
+                      P.Completed
                     </th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
                       Name
@@ -655,9 +632,17 @@ export default function GuidesPage() {
                     >
                       <td
                         className="py-3 text-sm font-medium text-foreground"
-                        title={user.id}
+                        title={
+                          user.isProfileComplete
+                            ? "Profile complete"
+                            : `Profile step: ${user.profileStep ?? "-"}`
+                        }
                       >
-                        {user.id.slice(0, 5)}...
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">
+                            {user.isProfileComplete ? "Yes" : user.profileStep ?? "-"}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 text-sm text-foreground">
                         {user.name.slice(0, 7)}...
@@ -674,19 +659,10 @@ export default function GuidesPage() {
                       <td className="py-3 text-sm text-foreground">
                         {user.role === "GUIDE" || user.role === "DRIVER"
                           ? getVerificationBadge(
-                            user.verificationStatus || "NOT_APPLIED",
-                          )
+                              user.verificationStatus || "NOT_APPLIED",
+                            )
                           : "-"}
                       </td>
-                      {/* <td className="py-3 text-sm text-foreground">
-                        {user.role === "GUIDE" || user.role === "DRIVER"
-                          ? user.isAvailable !== undefined
-                            ? user.isAvailable
-                              ? "Yes"
-                              : "No"
-                            : "-"
-                          : "-"}
-                      </td> */}
                       <td className="py-3 text-sm text-foreground">
                         {formatDate(user.lastLoginAt)}
                       </td>
@@ -751,10 +727,13 @@ export default function GuidesPage() {
                               >
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>
-                                    Verify {user.role === "GUIDE" ? "Guide" : "Driver"}
+                                    Verify{" "}
+                                    {user.role === "GUIDE" ? "Guide" : "Driver"}
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to verify this {user.role === "GUIDE" ? "guide" : "driver"}?
+                                    Are you sure you want to verify this{" "}
+                                    {user.role === "GUIDE" ? "guide" : "driver"}
+                                    ?
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -929,7 +908,7 @@ export default function GuidesPage() {
               <div className="space-y-4 text-sm">
                 <div className="flex items-center gap-4">
                   {selectedUserDetails.avatar ||
-                    providerDetails?.driverPhoto ? (
+                  providerDetails?.driverPhoto ? (
                     <img
                       src={
                         selectedUserDetails.avatar ||
@@ -989,7 +968,7 @@ export default function GuidesPage() {
                       <p className="font-medium mt-1">
                         {getVerificationBadge(
                           selectedUserDetails.guideVerificationStatus ||
-                          "NOT_APPLIED",
+                            "NOT_APPLIED",
                         )}
                       </p>
                     </div>
@@ -1055,7 +1034,9 @@ export default function GuidesPage() {
                         <DetailItem
                           label="Availability"
                           value={
-                            providerDetails?.isAvailable ? "Available" : "Offline"
+                            providerDetails?.isAvailable
+                              ? "Available"
+                              : "Offline"
                           }
                         />
 
@@ -1145,7 +1126,9 @@ export default function GuidesPage() {
                         <DetailItem
                           label="Availability"
                           value={
-                            providerDetails?.isAvailable ? "Available" : "Offline"
+                            providerDetails?.isAvailable
+                              ? "Available"
+                              : "Offline"
                           }
                         />
 
@@ -1210,18 +1193,18 @@ export default function GuidesPage() {
                         )}
 
                         {providerDetails?.currentLocation?.lat != null &&
-                        providerDetails?.currentLocation?.lng != null && (
-                          <>
-                            <DetailItem
-                              label="Current Latitude"
-                              value={providerDetails.currentLocation.lat}
-                            />
-                            <DetailItem
-                              label="Current Longitude"
-                              value={providerDetails.currentLocation.lng}
-                            />
-                          </>
-                        )}
+                          providerDetails?.currentLocation?.lng != null && (
+                            <>
+                              <DetailItem
+                                label="Current Latitude"
+                                value={providerDetails.currentLocation.lat}
+                              />
+                              <DetailItem
+                                label="Current Longitude"
+                                value={providerDetails.currentLocation.lng}
+                              />
+                            </>
+                          )}
                       </div>
                     )}
                   </div>

@@ -182,7 +182,7 @@ export default function PackagesPage() {
                 <div className="flex flex-col"></div>
               </div>
               <div className="grid grid-cols-4 gap-2">
-                {["all", "basic", "medium", "premium"].map((type) => (
+                {["all", "basic", "standard", "premium"].map((type) => (
                   <button
                     key={type}
                     onClick={() => setTypeFilter(type)}

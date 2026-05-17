@@ -2,7 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, IndianRupee, Truck, User, Percent, Star, Zap } from "lucide-react";
+import {
+  MapPin,
+  Clock,
+  IndianRupee,
+  Truck,
+  User,
+  Percent,
+  Star,
+  Zap,
+} from "lucide-react";
 import { Package } from "@/contexts/TourPackageContext";
 import { Button } from "@/components/ui/button";
 
@@ -18,7 +27,8 @@ const getPackageTypeStyles = (type?: string) => {
         hover: "hover:scale-105",
         badge: "bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950",
         badgeText: "✨ Premium",
-        button: "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-semibold",
+        button:
+          "bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-semibold",
         glow: "absolute inset-0 rounded-t-2xl bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none",
       };
     case "medium":
@@ -55,11 +65,19 @@ export function PackageCard({ pkg }: PackageCardProps) {
         <div className="aspect-video w-full bg-slate-100 overflow-hidden rounded-t-2xl">
           {pkg.mainImage || pkg.images?.[0] ? (
             <>
-              <img
-                src={pkg.mainImage || pkg.images?.[0]}
-                alt={pkg.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-              />
+              <a
+                href={pkg.mainImage || pkg.images?.[0]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full h-full"
+              >
+                <img
+                  src={pkg.mainImage || pkg.images?.[0]}
+                  alt={pkg.title}
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+              </a>
+
               <div className={styles.glow} />
             </>
           ) : (
@@ -72,9 +90,15 @@ export function PackageCard({ pkg }: PackageCardProps) {
         <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-2">
           {/* Discount - enhanced */}
           {pkg.discount ? (
-            <div className={`${isPremium ? "bg-white/95 rounded-full" : "bg-white/90 rounded-full"} px-3 py-1.5 flex items-center gap-2 text-sm font-semibold shadow-md`}>
-              <Percent className={`w-4 h-4 ${isPremium ? "text-amber-600" : "text-rose-500"}`} />
-              <span className={`${isPremium ? "text-amber-600" : "text-rose-600"}`}>
+            <div
+              className={`${isPremium ? "bg-white/95 rounded-full" : "bg-white/90 rounded-full"} px-3 py-1.5 flex items-center gap-2 text-sm font-semibold shadow-md`}
+            >
+              <Percent
+                className={`w-4 h-4 ${isPremium ? "text-amber-600" : "text-rose-500"}`}
+              />
+              <span
+                className={`${isPremium ? "text-amber-600" : "text-rose-600"}`}
+              >
                 {pkg.discount}% OFF
               </span>
             </div>
@@ -100,7 +124,9 @@ export function PackageCard({ pkg }: PackageCardProps) {
 
       {/* Package Type Badge - positioned at top of card content */}
       <div className="relative px-5 pt-4 pb-2">
-        <div className={`inline-block ${styles.badge} px-3 py-1 rounded-full text-xs font-bold mb-2`}>
+        <div
+          className={`inline-block ${styles.badge} px-3 py-1 rounded-full text-xs font-bold mb-2`}
+        >
           {styles.badgeText}
         </div>
       </div>
@@ -111,7 +137,9 @@ export function PackageCard({ pkg }: PackageCardProps) {
         </h3>
         <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
           <MapPin className="w-4 h-4 text-orange-600 flex-shrink-0" />
-          <span className="truncate">{pkg.locations?.[0] || "Locations not mentioned"}</span>
+          <span className="truncate">
+            {pkg.locations?.[0] || "Locations not mentioned"}....
+          </span>
         </div>
 
         <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
@@ -120,7 +148,9 @@ export function PackageCard({ pkg }: PackageCardProps) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className={`rounded-xl border ${isPremium ? "border-amber-200 bg-amber-50" : isMedium ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"} p-3 transition-colors`}>
+          <div
+            className={`rounded-xl border ${isPremium ? "border-amber-200 bg-amber-50" : isMedium ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"} p-3 transition-colors`}
+          >
             <p className="text-xs uppercase text-slate-600 font-semibold tracking-wide">
               Duration
             </p>
@@ -128,7 +158,9 @@ export function PackageCard({ pkg }: PackageCardProps) {
               {pkg.duration} {pkg.durationType === "days" ? "days" : "hrs"}
             </p>
           </div>
-          <div className={`rounded-xl border ${isPremium ? "border-amber-200 bg-amber-50" : isMedium ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"} p-3 transition-colors`}>
+          <div
+            className={`rounded-xl border ${isPremium ? "border-amber-200 bg-amber-50" : isMedium ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50"} p-3 transition-colors`}
+          >
             <p className="text-xs uppercase text-slate-600 font-semibold tracking-wide">
               Price
             </p>
@@ -140,7 +172,9 @@ export function PackageCard({ pkg }: PackageCardProps) {
                   <span className="line-through text-slate-400 text-xs">
                     {pkg.price.toLocaleString()}
                   </span>
-                  <span className={`${isPremium ? "text-amber-600" : "text-rose-600"}`}>
+                  <span
+                    className={`${isPremium ? "text-amber-600" : "text-rose-600"}`}
+                  >
                     {Math.round(
                       pkg.price * (1 - pkg.discount / 100),
                     ).toLocaleString()}

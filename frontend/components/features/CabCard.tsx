@@ -74,7 +74,6 @@ export function CabCard({ driver }: CabCardProps) {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Best rate</p>
-              <p className="mt-2 text-xl font-semibold text-slate-950">₹{driver.pricePerKm}/km</p>
             </div>
             <MapPin className="h-5 w-5 text-orange-500" />
           </div>

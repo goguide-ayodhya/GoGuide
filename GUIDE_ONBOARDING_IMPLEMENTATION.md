@@ -17,8 +17,6 @@ frontend/
 │       ├── complete-profile/page.tsx           # Multi-step profile completion
 │       └── dashboard/page.tsx                  # (Updated with auth guard + restrictions)
 ├── components/
-│   ├── guide/
-│   │   └── AccountRestrictionBanner.tsx        # Account status warning banner
 │   └── guide-profile-steps/
 │       ├── Step1Profile.tsx                    # Profile photo & bio
 │       ├── Step2Services.tsx                   # Specialities & locations
@@ -146,16 +144,6 @@ backend/
   - All clear → allow dashboard access
 - **Implementation**: Used in dashboard page
 
-### 5. **Dashboard Restrictions** ✅
-- **File**: `frontend/components/guide/AccountRestrictionBanner.tsx`
-- **Behavior**:
-  - Does NOT completely block dashboard
-  - Shows persistent banner with action items
-  - If email not verified: "Verify Email" button
-  - If profile incomplete: "Complete Profile" button
-  - If inactive (other reasons): Info message
-  - **Color Coding**: Amber/red alerts
-
 ### 6. **Profile Completion Calculation** ✅
 - **File**: `frontend/lib/profile-utils.ts`
 - **Fields Tracked** (9 total):
@@ -216,16 +204,6 @@ export function useGuideAuthGuard() {
   // Checks all conditions, redirects if needed
   // Returns: { user, loading, isLoggedIn }
 }
-```
-
-### AccountRestrictionBanner
-```typescript
-<AccountRestrictionBanner
-  isEmailVerified={user?.isEmailVerified}
-  isProfileComplete={user?.isProfileComplete}
-  accountStatus={user?.status}
-  email={user?.email}
-/>
 ```
 
 ### Step Components

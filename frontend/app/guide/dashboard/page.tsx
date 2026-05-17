@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useGuideAuthGuard } from "@/hooks/useGuideAuthGuard";
-import { AccountRestrictionBanner } from "@/components/guide/AccountRestrictionBanner";
 import { StatsCard } from "@/components/stats-card";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 import { BookingDetailsModal } from "@/components/booking-details-modal";
