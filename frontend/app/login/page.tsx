@@ -168,11 +168,16 @@ function LoginPageContent(): JSX.Element {
           setError("Please enter your email");
           return;
         }
+
+        setLoading(true)
+
         await forgotPassword(identifier);
         setSuccess("OTP sent to your email. Please check your inbox.");
         setMode("reset");
       } catch (err: any) {
         setError(err.message || "Failed to send OTP");
+      } finally {
+        setLoading(false);
       }
     } else if (mode === "reset") {
       // Reset password with OTP
@@ -181,6 +186,8 @@ function LoginPageContent(): JSX.Element {
           setError("Please fill in all fields");
           return;
         }
+        setLoading(true)
+        
         if (newPassword.length < 6) {
           setError("Password must be at least 6 characters");
           return;
