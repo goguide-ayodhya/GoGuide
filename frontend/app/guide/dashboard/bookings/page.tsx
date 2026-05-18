@@ -197,33 +197,33 @@ export default function BookingsPage() {
 
   const handleConfirmCancellation = async (reason: string) => {
     if (!bookingToCancelId) return;
-    
+
     setIsCancelLoading(true);
     try {
       await cancelBooking(bookingToCancelId, reason);
-      
+
       // Update local state
       setBookings((prev) =>
         prev.map((b) =>
           b.id === bookingToCancelId
-            ? { 
-                ...b, 
-                status: "CANCELLED" as BookingStatus,
-                cancellationReason: reason,
-                paymentStatus: "REJECTED" as Booking["paymentStatus"],
-              }
-            : b
-        ),
-      );
-      
-      setSelectedBooking((prev) =>
-        prev?.id === bookingToCancelId
-          ? {
-              ...prev,
+            ? {
+              ...b,
               status: "CANCELLED" as BookingStatus,
               cancellationReason: reason,
               paymentStatus: "REJECTED" as Booking["paymentStatus"],
             }
+            : b
+        ),
+      );
+
+      setSelectedBooking((prev) =>
+        prev?.id === bookingToCancelId
+          ? {
+            ...prev,
+            status: "CANCELLED" as BookingStatus,
+            cancellationReason: reason,
+            paymentStatus: "REJECTED" as Booking["paymentStatus"],
+          }
           : prev,
       );
 
@@ -384,11 +384,10 @@ export default function BookingsPage() {
                   setSelectedStatus(status);
                   setCurrentPage(1);
                 }}
-                className={`rounded-full capitalize transition-all ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "hover:bg-secondary"
-                }`}
+                className={`rounded-full capitalize transition-all ${isActive
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "hover:bg-secondary"
+                  }`}
               >
                 {status.toLowerCase()}
               </Button>
@@ -424,11 +423,10 @@ export default function BookingsPage() {
                   setSelectedPaymentStatus(status);
                   setCurrentPage(1);
                 }}
-                className={`rounded-full capitalize transition-all ${
-                  isActive
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md"
-                    : "hover:bg-secondary"
-                }`}
+                className={`rounded-full capitalize transition-all ${isActive
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md"
+                  : "hover:bg-secondary"
+                  }`}
               >
                 {status.toLowerCase()}
               </Button>
@@ -685,9 +683,23 @@ export default function BookingsPage() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span className="text-foreground">
-                                {new Date(
-                                  booking.startTime,
-                                ).toLocaleDateString()}
+                                {(() => {
+                                  const dateStr = booking.bookingDate
+                                    ? booking.bookingDate.split("T")[0]
+                                    : undefined;
+                                  const timeStr = booking.startTime || "00:00";
+                                  const dt = dateStr
+                                    ? new Date(`${dateStr}T${timeStr}`)
+                                    : new Date(timeStr);
+                                  try {
+                                    return dt.toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    });
+                                  } catch (e) {
+                                    return booking.startTime || "TBD";
+                                  }
+                                })()}
                               </span>
                             </div>
                           </td>
@@ -718,10 +730,10 @@ export default function BookingsPage() {
                                 getPaymentStatusLabel(booking) === "COMPLETED"
                                   ? "default"
                                   : getPaymentStatusLabel(booking) ===
-                                      "PENDING (COD)"
+                                    "PENDING (COD)"
                                     ? "secondary"
                                     : getPaymentStatusLabel(booking) ===
-                                        "PARTIAL"
+                                      "PARTIAL"
                                       ? "outline"
                                       : "destructive"
                               }
@@ -803,7 +815,7 @@ export default function BookingsPage() {
                                       )}
                                       {booking.paymentMethod === "COD" &&
                                         booking.paymentStatus !==
-                                          "COMPLETED" && (
+                                        "COMPLETED" && (
                                           <DropdownMenuItem
                                             disabled={
                                               statusLoadingId === booking.id
@@ -836,19 +848,19 @@ export default function BookingsPage() {
                                   )}
                                   {(booking.status === "PENDING" ||
                                     booking.status === "ACCEPTED") && (
-                                    <>
-                                      <div className="border-t border-slate-200 my-1" />
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleCancelBooking(booking.id)
-                                        }
-                                        className="text-red-600"
-                                      >
-                                        <XCircle className="h-4 w-4 mr-2" />
-                                        Cancel Booking
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
+                                      <>
+                                        <div className="border-t border-slate-200 my-1" />
+                                        <DropdownMenuItem
+                                          onClick={() =>
+                                            handleCancelBooking(booking.id)
+                                          }
+                                          className="text-red-600"
+                                        >
+                                          <XCircle className="h-4 w-4 mr-2" />
+                                          Cancel Booking
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -943,7 +955,7 @@ export default function BookingsPage() {
                             getPaymentStatusLabel(booking) === "COMPLETED"
                               ? "default"
                               : getPaymentStatusLabel(booking) ===
-                                  "PENDING (COD)"
+                                "PENDING (COD)"
                                 ? "secondary"
                                 : getPaymentStatusLabel(booking) === "PARTIAL"
                                   ? "outline"
