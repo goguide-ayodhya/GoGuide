@@ -28,8 +28,7 @@ import { Session } from "inspector/promises";
 import { PRICING_CONFIG } from "../config/pricing";
 
 function effectiveLineAmount(p: IPayment): number {
-  if (p.amountPaid != null && p.amountPaid > 0) return p.amountPaid;
-  return p.amount ?? 0;
+  return roundMoney(p.amount || 0);
 }
 
 function getProviderShareForPayment(p: any): number {
@@ -398,7 +397,7 @@ export class PaymentService {
       return { handled: true, failed: true, paymentId: payment._id.toString() };
     }
 
-    const expectedPaise = Math.round(effectiveLineAmount(payment) * 100);
+    const expectedPaise = Math.round(payment.amount * 100);
     if (Number(paymentEntity.amount) !== expectedPaise) {
       throw new BadRequest("Captured amount mismatch with expected amount");
     }
@@ -452,7 +451,6 @@ export class PaymentService {
       return legacy.populate("bookingId");
     }
 
-    const initialPaidAmount = roundMoney(booking.paidAmount ?? 0);
     const initialRemainingAmount = roundMoney(
       booking.remainingAmount ?? booking.finalPrice ?? booking.totalPrice,
     );
@@ -464,9 +462,6 @@ export class PaymentService {
       driverId: booking.driverId,
 
       amount: initialRemainingAmount,
-      // amountPaid: initialPaidAmount,
-      paidAmount: initialPaidAmount,
-      // remainingAmount: initialRemainingAmount,
 
       paymentKind: "INITIAL",
       status: "PENDING",
@@ -609,6 +604,19 @@ export class PaymentService {
     const finalPrice = booking.finalPrice ?? booking.totalPrice;
     const paidAmount = booking.paidAmount ?? 0;
 
+    console.log("💰 BOOKING PRICING CONTEXT:", {
+      bookingId,
+      originalPrice: booking.originalPrice,
+      totalPrice: booking.totalPrice,
+      finalPrice,
+      paidAmount,
+      discount: booking.discount,
+      gstAmount: booking.gstAmount,
+      paymentType: booking.paymentType,
+      paymentStatus: booking.paymentStatus,
+      remainingAmount: booking.remainingAmount,
+    });
+
     if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) {
       throw new BadRequest(
         "Invalid booking final price - payment mode may not be set correctly. Final price must be greater than 0.",
@@ -624,6 +632,13 @@ export class PaymentService {
     }
 
     const remaining = roundMoney(finalPrice - paidAmount);
+
+    console.log("💰 PAYMENT CALCULATION:", {
+      finalPrice,
+      paidAmount,
+      remaining,
+      paymentType: booking.paymentType,
+    });
 
     if (remaining <= 0) {
       throw new BadRequest("Nothing left to pay online");
@@ -643,20 +658,41 @@ export class PaymentService {
         paymentStage = "ADVANCE";
         paymentType = "ADVANCE";
         chargeAmount = Math.min(remaining, advanceAmountForPartial(finalPrice));
+        console.log("💰 PARTIAL PAYMENT - ADVANCE STAGE:", {
+          finalPrice,
+          advanceAmount: advanceAmountForPartial(finalPrice),
+          chargeAmount,
+        });
       } else {
         paymentStage = "FULL";
         paymentType = "REMAINING";
         chargeAmount = remaining;
+        console.log("💰 PARTIAL PAYMENT - REMAINING STAGE:", {
+          paidAmount,
+          remaining,
+          chargeAmount,
+        });
       }
     } else {
       paymentStage = "FULL";
       paymentType = "FULL";
       chargeAmount = remaining;
+      console.log("💰 FULL PAYMENT:", {
+        finalPrice,
+        chargeAmount,
+      });
     }
 
     if (opts?.paymentStage && booking.paymentType === "FULL") {
       paymentStage = "FULL";
     }
+
+    console.log("💰 FINAL CHARGE DETAILS:", {
+      paymentStage,
+      paymentType,
+      chargeAmount,
+      chargeAmountPaise: Math.round(chargeAmount * 100),
+    });
 
     if (chargeAmount <= 0) {
       console.log("Invalid chargeAmount <=0");
@@ -668,28 +704,55 @@ export class PaymentService {
       throw new BadRequest("Charge amount is not a valid number");
     }
 
+    // CRITICAL FIX: Invalidate ALL stale pending orders BEFORE searching to prevent reuse
+    // This ensures we never reuse a payment with an outdated amount
+    await this.invalidateStalePendingOrders(bookingId);
+
+    // Check for duplicate pending with razorpayOrderId and EXACT amount match
     const duplicatePending = await Payment.findOne({
       bookingId,
       status: "PENDING",
       paymentKind: "CHARGE",
-      // amountPaid: chargeAmount,
       paymentStage,
       razorpayOrderId: { $exists: true, $ne: null },
     });
 
     if (duplicatePending) {
-      const keyId = process.env.RAZORPAY_KEY_ID;
-      if (!keyId) {
-        throw new BadRequest("Razorpay is not configured");
+      // CRITICAL: Require EXACT amount match - no tolerance for differences
+      // This prevents reusing payments with stale amounts
+      const amountDiff = Math.abs(duplicatePending.amount - chargeAmount);
+      if (amountDiff > 0.001) {
+        // Amount changed even slightly - invalidate this payment
+        console.log("🔄 Amount mismatch detected, invalidating stale payment:", {
+          paymentId: duplicatePending._id,
+          oldAmount: duplicatePending.amount,
+          newAmount: chargeAmount,
+          difference: amountDiff,
+        });
+        await Payment.findByIdAndUpdate(duplicatePending._id, {
+          status: "FAILED",
+          failureReason: "Amount changed, invalidated",
+        });
+      } else {
+        // Exact match - safe to reuse
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        if (!keyId) {
+          throw new BadRequest("Razorpay is not configured");
+        }
+        console.log("♻️ Reusing existing Razorpay order with exact amount match:", {
+          paymentId: duplicatePending._id,
+          amount: chargeAmount,
+          orderId: duplicatePending.razorpayOrderId,
+        });
+        return {
+          payment: duplicatePending,
+          orderId: duplicatePending.razorpayOrderId,
+          amount: chargeAmount,
+          currency: "INR",
+          keyId,
+          paymentStage,
+        };
       }
-      return {
-        payment: duplicatePending,
-        orderId: duplicatePending.razorpayOrderId,
-        amount: chargeAmount,
-        currency: "INR",
-        keyId,
-        paymentStage,
-      };
     }
 
     // Try to reuse any existing PENDING payment for this booking matching the current amount and stage.
@@ -698,23 +761,43 @@ export class PaymentService {
       status: "PENDING",
       paymentKind: "CHARGE",
       paymentStage,
-      // amountPaid: chargeAmount,
     });
-    if (pending && pending.razorpayOrderId) {
-      const keyId = process.env.RAZORPAY_KEY_ID;
-      if (!keyId) throw new BadRequest("Razorpay is not configured");
-      return {
-        payment: pending,
-        orderId: pending.razorpayOrderId,
-        amount: chargeAmount,
-        currency: "INR",
-        keyId,
-        paymentStage,
-      };
-    }
 
-    // Invalidate stale pending orders first to keep single pending per booking
-    await this.invalidateStalePendingOrders(bookingId);
+    if (pending) {
+      // CRITICAL: Require EXACT amount match - no tolerance for differences
+      const amountDiff = Math.abs(pending.amount - chargeAmount);
+      if (amountDiff > 0.001) {
+        // Amount changed even slightly - invalidate this payment
+        console.log("🔄 Amount mismatch detected, invalidating stale payment:", {
+          paymentId: pending._id,
+          oldAmount: pending.amount,
+          newAmount: chargeAmount,
+          difference: amountDiff,
+        });
+        await Payment.findByIdAndUpdate(pending._id, {
+          status: "FAILED",
+          failureReason: "Amount changed, invalidated",
+        });
+        pending = null; // Force creation of new payment
+      } else if (pending.razorpayOrderId) {
+        // Exact match with existing Razorpay order - safe to reuse
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        if (!keyId) throw new BadRequest("Razorpay is not configured");
+        console.log("♻️ Reusing existing payment with Razorpay order:", {
+          paymentId: pending._id,
+          amount: chargeAmount,
+          orderId: pending.razorpayOrderId,
+        });
+        return {
+          payment: pending,
+          orderId: pending.razorpayOrderId,
+          amount: chargeAmount,
+          currency: "INR",
+          keyId,
+          paymentStage,
+        };
+      }
+    }
 
     // Attempt to claim an existing pending doc (without order id) to avoid duplicates
     if (pending && !pending.razorpayOrderId) {
@@ -723,9 +806,6 @@ export class PaymentService {
         {
           $set: {
             amount: chargeAmount,
-            // amountPaid: chargeAmount,
-            paidAmount: chargeAmount,
-            // remainingAmount: roundMoney(Math.max(0, remaining - chargeAmount)),
             type: paymentType,
             paymentKind: "CHARGE",
             paymentStage,
@@ -748,9 +828,6 @@ export class PaymentService {
           guideId: booking.guideId || undefined,
           driverId: booking.driverId || undefined,
           amount: chargeAmount,
-          // amountPaid: chargeAmount,
-          // paidAmount: chargeAmount,
-          remainingAmount: roundMoney(Math.max(0, remaining - chargeAmount)),
           type: paymentType,
           paymentKind: "CHARGE",
           paymentStage,
@@ -947,26 +1024,58 @@ export class PaymentService {
         throw new BadRequest("Razorpay payment does not belong to this order");
       }
 
-      const expectedPaise = Math.round(effectiveLineAmount(payment) * 100);
+      // CRITICAL FIX: Fetch the actual Razorpay order to get the true amount
+      // This prevents mismatches when payment.amount in DB is stale
+      const rpOrder = await razorpay.orders.fetch(payload.razorpay_order_id);
+      const orderAmountPaise = Number(rpOrder.amount);
+      const orderAmountRupees = orderAmountPaise / 100;
+
+      // Use Razorpay order amount as the source of truth, not DB payment.amount
+      // The order amount is what was actually charged to the user
+      const expectedPaise = orderAmountPaise;
+      
       console.log("🔍 PAYMENT VERIFICATION AUDIT:", {
         paymentId,
         razorpayPaymentId: payload.razorpay_payment_id,
-        expectedPaise,
-        expectedRupees: expectedPaise / 100,
-        razorpayAmount: Number(rpPayment.amount),
-        razorpayAmountRupees: Number(rpPayment.amount) / 100,
-        amountMatch: Number(rpPayment.amount) === expectedPaise,
+        razorpayOrderId: payload.razorpay_order_id,
+        // Razorpay order amount (source of truth)
+        orderAmountPaise,
+        orderAmountRupees,
+        // Payment amount from DB (might be stale)
+        dbPaymentAmount: payment.amount,
+        dbPaymentAmountPaise: Math.round(payment.amount * 100),
+        // Razorpay payment amount (what was actually captured)
+        razorpayPaymentAmount: Number(rpPayment.amount),
+        razorpayPaymentAmountRupees: Number(rpPayment.amount) / 100,
+        // Validation
+        orderMatchPayment: orderAmountPaise === Number(rpPayment.amount),
+        dbMatchOrder: Math.round(payment.amount * 100) === orderAmountPaise,
         paymentStatus: rpPayment.status,
         paymentMethod: rpPayment.method,
       });
 
-      if (Number(rpPayment.amount) !== expectedPaise) {
-        console.log("❌ AMOUNT MISMATCH DETECTED:", {
-          expected: expectedPaise,
-          received: Number(rpPayment.amount),
-          difference: Number(rpPayment.amount) - expectedPaise,
+      // Verify Razorpay payment amount matches Razorpay order amount
+      if (Number(rpPayment.amount) !== orderAmountPaise) {
+        console.log("❌ RAZORPAY PAYMENT/ORDER AMOUNT MISMATCH:", {
+          orderAmount: orderAmountPaise,
+          paymentAmount: Number(rpPayment.amount),
+          difference: Number(rpPayment.amount) - orderAmountPaise,
         });
-        throw new BadRequest("Paid amount does not match expected charge");
+        throw new BadRequest("Razorpay payment amount does not match order amount");
+      }
+
+      // Log warning if DB payment amount differs from order amount (non-blocking)
+      const dbAmountPaise = Math.round(payment.amount * 100);
+      if (dbAmountPaise !== orderAmountPaise) {
+        console.log("⚠️ DB payment amount differs from Razorpay order amount:", {
+          dbAmount: dbAmountPaise,
+          orderAmount: orderAmountPaise,
+          difference: orderAmountPaise - dbAmountPaise,
+          note: "Using Razorpay order amount as source of truth",
+        });
+        // Update payment amount to match order amount for consistency
+        payment.amount = orderAmountRupees;
+        await payment.save({ session });
       }
 
       // Process payment within transaction
@@ -1241,7 +1350,7 @@ export class PaymentService {
     const refunds = await Refund.find({ bookingId: { $in: bookingIds } })
       .populate({
         path: "paymentId",
-        select: "_id amount amountPaid status",
+        select: "_id amount status",
       })
       .populate({
         path: "bookingId",
@@ -1655,7 +1764,7 @@ export class PaymentService {
 
     const grossEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     const totalGst = validPayments
       .filter((p) => p.status === "COMPLETED")
@@ -1663,7 +1772,7 @@ export class PaymentService {
         const b = p.bookingId as any;
         if (!b) return sum;
         const totalPaid = b.paidAmount || b.totalPrice || 1;
-        const lineAmt = p.amountPaid || p.amount || 0;
+        const lineAmt = p.amount || 0;
         const portion = lineAmt / totalPaid;
         return sum + ((b.gstAmount || 0) * portion);
       }, 0);
@@ -1829,7 +1938,7 @@ export class PaymentService {
 
     const grossEarnings = validPayments
       .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     const totalGst = validPayments
       .filter((p) => p.status === "COMPLETED")
@@ -1837,7 +1946,7 @@ export class PaymentService {
         const b = p.bookingId as any;
         if (!b) return sum;
         const totalPaid = b.paidAmount || b.totalPrice || 1;
-        const lineAmt = p.amountPaid || p.amount || 0;
+        const lineAmt = p.amount || 0;
         const portion = lineAmt / totalPaid;
         return sum + ((b.gstAmount || 0) * portion);
       }, 0);
@@ -2014,9 +2123,6 @@ export class PaymentService {
         type: "COD",
         paidAt: new Date(),
         amount: finalPrice,
-        amountPaid: finalPrice,
-        paidAmount: finalPrice,
-        remainingAmount: 0,
         transactionId: txnId,
       });
 
@@ -2040,9 +2146,6 @@ export class PaymentService {
         guideId: booking.guideId,
         driverId: booking.driverId,
         amount: finalPrice,
-        amountPaid: finalPrice,
-        paidAmount: finalPrice,
-        remainingAmount: 0,
         type: "COD",
         paymentKind: "CHARGE",
         paymentStage: "FULL",
@@ -2115,7 +2218,7 @@ export class PaymentService {
         $group: {
           _id: null,
           totalRevenue: {
-            $sum: { $ifNull: ["$amountPaid", "$amount"] },
+            $sum: "$amount",
           },
         },
       },

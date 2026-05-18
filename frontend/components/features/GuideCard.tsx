@@ -135,19 +135,20 @@ export function GuideCard({ guide }: GuideCardProps) {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <p className="text-xs pt-1">Specialities:</p>
-              {(guide.specialities || []).map((spec: string) => (
+              <p className="text-xs pt-1">Locations:</p>
+              {(guide.locations || []).map((loc: string) => (
                 <Badge
-                  key={spec}
+                  key={loc}
                   variant="secondary"
                   className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
                 >
-                  {spec}
+                  {loc}
                 </Badge>
               ))}
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap gap-2">
+              <p className="text-xs pt-1">Certificates:</p>
               {guide.certificates && guide.certificates.length > 0 ? (
                 <>
                   <div className="flex flex-wrap gap-2">

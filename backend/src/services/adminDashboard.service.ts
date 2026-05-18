@@ -72,9 +72,7 @@ export class DashboardService {
         $group: {
           _id: null,
           totalRevenue: {
-            $sum: {
-              $ifNull: ["$amountPaid", "$amount"],
-            },
+            $sum: "$amount",
           },
         },
       },
@@ -332,8 +330,8 @@ export class DashboardService {
     const valid = payments.filter((p) => p.bookingId !== null);
 
     const earnings = valid.reduce(
-      (sum, p) => sum + (p.amountPaid ?? p.amount ?? 0),
-      0,
+      (sum, p) => sum + (p.amount ?? 0),
+      0,  
     );
 
     return {

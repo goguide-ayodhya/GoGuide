@@ -37,10 +37,18 @@ export async function createRazorpayOrder(
     throw new Error("Invalid amount for Razorpay order");
   }
   const razorpay = getRazorpayClient();
+  
+  // CRITICAL FIX: Ensure consistent rounding before paise conversion
+  // Always round to nearest rupee first, then convert to paise
   const safeAmountRupees = Math.round(amountRupees);
   const amountPaise = safeAmountRupees * 100;
 
-  console.log("amountPaise:", amountPaise);
+  console.log("💰 PAISE CONVERSION:", {
+    originalAmount: amountRupees,
+    roundedRupees: safeAmountRupees,
+    amountPaise,
+  });
+  
   if (amountPaise < 100) {
     console.log("Amount too small");
     throw new Error("Minimum order amount is ₹1");

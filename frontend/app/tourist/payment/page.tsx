@@ -191,13 +191,18 @@ function PaymentPageContent() {
     );
   }
 
+  // CRITICAL: Always use backend-calculated amounts - never calculate locally
+  // This prevents amount mismatches between frontend and backend
   const originalPrice = booking.originalPrice ?? booking.totalPrice ?? 0;
   const paidAmount = booking.paidAmount ?? 0;
 
+  // Use backend-calculated values only - no local calculations
   let discountDisplay = booking.discount ?? 0;
-  let gstAmount = Math.round(booking.gstAmount || 0);
+  let gstAmount = booking.gstAmount ?? 0;
   let finalDisplay = booking.finalPrice ?? booking.totalPrice ?? 0;
 
+  // If payment mode not set yet, show preview using backend pricing logic
+  // But don't use these for actual payment - backend will recalculate
   if (!booking.paymentType && selectedMode) {
     const isFull = selectedMode === "FULL";
     const discountPercent = isFull ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
@@ -207,6 +212,7 @@ function PaymentPageContent() {
     finalDisplay = Math.round(afterDiscount + gstAmount);
   }
 
+  // Always use backend remainingAmount if available
   const remainingAmount =
     booking.remainingAmount != null
       ? Math.round(booking.remainingAmount)
@@ -257,7 +263,8 @@ function PaymentPageContent() {
         return;
       }
 
-      // Validate booking pricing
+      // CRITICAL: Always use backend-calculated finalPrice after setting payment mode
+      // Backend will recalculate pricing based on selected mode
       const finalPrice = booking.finalPrice ?? booking.totalPrice ?? 0;
       if (finalPrice <= 0) {
         setError("Booking has invalid pricing data");
@@ -269,6 +276,14 @@ function PaymentPageContent() {
         setError("Booking is already fully paid");
         return;
       }
+
+      console.log("💰 Payment amount validation:", {
+        finalPrice,
+        paidAmount: booking.paidAmount,
+        remaining,
+        paymentType: booking.paymentType,
+        selectedMode,
+      });
 
       // Only set payment mode when user explicitly chose a mode.
       if (!isPayingRemaining) {
@@ -322,8 +337,17 @@ function PaymentPageContent() {
       ).Razorpay;
 
       await new Promise<void>((resolve, reject) => {
+        // CRITICAL FIX: Ensure consistent paise conversion
+        // Round to nearest rupee first, then convert to paise
         const amountPaise =
-          typeof amount === "number" ? Math.round(amount * 100) : undefined;
+          typeof amount === "number" ? Math.round(Math.round(amount) * 100) : undefined;
+        
+        console.log("💰 FRONTEND PAISE CONVERSION:", {
+          amount,
+          roundedAmount: Math.round(amount),
+          amountPaise,
+        });
+        
         const options: Record<string, unknown> = {
           key: keyId,
           currency: "INR",

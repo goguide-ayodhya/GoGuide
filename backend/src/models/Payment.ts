@@ -10,12 +10,8 @@ export interface IPayment extends Document {
   userId: Types.ObjectId;
   guideId?: Types.ObjectId;
   driverId?: Types.ObjectId;
-  /** Line amount for this row (same as amountPaid for charge rows). Kept for backwards compatibility with analytics. */
+  /** Transaction amount for this payment row (single source of truth). */
   amount: number;
-  /** Expected rupees captured for this Razorpay order / transaction. */
-  amountPaid: number;
-  paidAmount: number;
-  remainingAmount: number;
   type?: PaymentType;
   paymentStage?: PaymentStage;
   /** Placeholder row created on booking acceptance vs an actual charge. */
@@ -58,21 +54,6 @@ const PaymentSchema = new Schema<IPayment>(
     amount: {
       type: Number,
       required: true,
-    },
-    amountPaid: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    paidAmount: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    remainingAmount: {
-      type: Number,
-      required: true,
-      default: 0,
     },
     type: {
       type: String,

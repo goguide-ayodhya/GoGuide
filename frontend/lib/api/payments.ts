@@ -92,28 +92,9 @@ export const createRazorpayOrderApi = async (
     },
   );
 
-  const text = await res.text();
-  let json: any = {};
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = {};
-  }
-
-  if (res.ok) return json.data;
-  if (res.status === 409) return json.data ?? json;
-
-  const errorMessage =
-    json.message || `API Error: ${res.status} ${res.statusText}`;
-  if (isAuthError(res.status, errorMessage, json)) {
-    console.warn(
-      "[PAYMENTS_API] Authentication error detected, triggering logout",
-    );
-    const { handleAuthError } = await import("./authErrorHandler");
-    handleAuthError({ message: errorMessage });
-  }
-
-  throw new Error(errorMessage);
+  // CRITICAL FIX: Use handleApiResponse to avoid 'body stream already read' error
+  // This ensures response body is parsed only once consistently
+  return handleApiResponse(res);
 };
 
 export const getBookingPaymentsApi = async (bookingId: string) => {

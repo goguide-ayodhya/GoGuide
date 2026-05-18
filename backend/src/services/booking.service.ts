@@ -631,11 +631,7 @@ export class BookingService {
 
       const sumCompleted = (completedPayments || []).reduce(
         (s: number, p: any) => {
-          const line =
-            p.amountPaid != null && p.amountPaid > 0
-              ? p.amountPaid
-              : (p.amount ?? 0);
-          return s + Number(line || 0);
+          return s + Number(p.amount || 0);
         },
         0,
       );
@@ -744,7 +740,7 @@ export class BookingService {
       gstAmount: pricing.gstAmount,
       finalPrice: pricing.finalPrice,
 
-      paidAmount: 0,
+      // paidAmount: 0,
       remainingAmount: pricing.finalPrice,
 
       guideEarning: 0,
