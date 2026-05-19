@@ -3,7 +3,7 @@ import { PRICING_CONFIG } from "../config/pricing";
 export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
 
 const GST_RATE = PRICING_CONFIG.GST_RATE; // 5% GST
-const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments
+export const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments
 
 export function roundMoney(n: number): number {
   return Math.round(n * 100) / 100;

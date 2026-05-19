@@ -629,7 +629,6 @@ export default function BookingsPage() {
                     <TabsList className="mb-6 w-full flex bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar justify-start sm:justify-center h-auto">
                       <TabsTrigger value="tourPackages" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tour Packages</TabsTrigger>
                       <TabsTrigger value="guideBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Guide Bookings</TabsTrigger>
-                      <TabsTrigger value="cabBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Cab Bookings</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="tourPackages" className="mt-0">

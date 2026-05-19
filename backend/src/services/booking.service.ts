@@ -712,9 +712,29 @@ export class BookingService {
         ? pkg.locations[pkg.locations.length - 1]
         : pkg.title || "Dropoff location not specified";
 
+    // CRITICAL FIX: Use package discount if available
+    // Admin can set discount on packages, which should be reflected in booking pricing
+    // At booking creation, only package discount applies (no payment mode selected yet)
+    const packageDiscountPercent = pkg.discount ? (pkg.discount / 100) : 0;
+    
+    console.log("📦 PACKAGE BOOKING PRICING:", {
+      packageId: pkg._id,
+      packagePrice: pkg.price,
+      packageDiscount: pkg.discount,
+      packageDiscountPercent,
+    });
+    
     const pricing = calculateFinalPrice({
       totalPrice: pkg.price,
-      discountPercent: 0,
+      discountPercent: packageDiscountPercent,
+    });
+    
+    console.log("📦 PACKAGE BOOKING FINAL PRICING:", {
+      totalPrice: pricing.totalPrice,
+      discount: pricing.discount,
+      gstAmount: pricing.gstAmount,
+      finalPrice: pricing.finalPrice,
+      note: "Payment mode discount will be applied later when tourist selects payment option",
     });
 
     const booking = await Booking.create({

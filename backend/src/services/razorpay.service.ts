@@ -38,15 +38,14 @@ export async function createRazorpayOrder(
   }
   const razorpay = getRazorpayClient();
   
-  // CRITICAL FIX: Ensure consistent rounding before paise conversion
-  // Always round to nearest rupee first, then convert to paise
-  const safeAmountRupees = Math.round(amountRupees);
-  const amountPaise = safeAmountRupees * 100;
+  // CRITICAL FIX: Convert directly to paise to preserve fractional rupees
+  // This prevents rounding mismatches with booking amounts
+  const amountPaise = Math.round(amountRupees * 100);
 
   console.log("💰 PAISE CONVERSION:", {
     originalAmount: amountRupees,
-    roundedRupees: safeAmountRupees,
     amountPaise,
+    amountPaiseRupees: amountPaise / 100,
   });
   
   if (amountPaise < 100) {

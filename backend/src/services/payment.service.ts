@@ -10,6 +10,7 @@ import {
   applyPaymentModePricing,
   calculateFinalPrice,
   roundMoney,
+  PARTIAL_DISCOUNT_RATE,
 } from "../utils/bookingPricing";
 import {
   createRazorpayOrder,
@@ -516,17 +517,102 @@ export class PaymentService {
 
     let pricing;
     if (booking.bookingType === "PACKAGE") {
-      // For packages, no payment discount applies
-      pricing = calculateFinalPrice({
-        totalPrice: originalPrice,
-        discountPercent: 0,
-        paymentMode: paymentType,
+      // CRITICAL FIX: For packages, apply payment mode discount ON TOP of package discount
+      // Package discount is set during booking creation and should be preserved
+      // Additional payment mode discounts (FULL/PARTIAL) apply on the package-discounted price
+      const packageDiscountedPrice = roundMoney(originalPrice - (booking.discount || 0));
+      
+      console.log("📦 PACKAGE PAYMENT MODE PRICING:", {
+        bookingId,
+        originalPrice,
+        packageDiscount: booking.discount,
+        packageDiscountedPrice,
+        paidAmount,
+        paymentType,
       });
-      pricing = {
-        ...pricing,
-        remainingAmount: roundMoney(pricing.finalPrice - paidAmount),
-        partialDiscountApplied: false,
-      };
+      
+      // Apply payment mode discount on the package-discounted price
+      if (paymentType === "FULL") {
+        // FULL payment: 10% discount on package-discounted price
+        const fullPaymentDiscountPercent = PRICING_CONFIG.FULL_PAYMENT_DISCOUNT_RATE;
+        const fullPaymentDiscount = roundMoney(packageDiscountedPrice * fullPaymentDiscountPercent);
+        const priceAfterFullDiscount = roundMoney(packageDiscountedPrice - fullPaymentDiscount);
+        const gstAmount = roundMoney(priceAfterFullDiscount * PRICING_CONFIG.GST_RATE);
+        const finalPrice = roundMoney(priceAfterFullDiscount + gstAmount);
+        
+        pricing = {
+          totalPrice: originalPrice,
+          discount: roundMoney(booking.discount + fullPaymentDiscount), // Total discount = package + FULL payment
+          gstAmount,
+          finalPrice,
+          remainingAmount: roundMoney(finalPrice - paidAmount),
+          partialDiscountApplied: false,
+        };
+        
+        console.log("📦 PACKAGE FULL PAYMENT PRICING:", {
+          packageDiscountedPrice,
+          fullPaymentDiscountPercent,
+          fullPaymentDiscount,
+          priceAfterFullDiscount,
+          gstAmount,
+          finalPrice,
+          totalDiscount: pricing.discount,
+        });
+      } else if (paymentType === "PARTIAL") {
+        // PARTIAL payment: 5% discount on package-discounted price
+        const partialDiscountPercent = PARTIAL_DISCOUNT_RATE;
+        const partialDiscount = roundMoney(packageDiscountedPrice * partialDiscountPercent);
+        const priceAfterPartialDiscount = roundMoney(packageDiscountedPrice - partialDiscount);
+        const gstAmount = roundMoney(priceAfterPartialDiscount * PRICING_CONFIG.GST_RATE);
+        const finalPrice = roundMoney(priceAfterPartialDiscount + gstAmount);
+        
+        pricing = {
+          totalPrice: originalPrice,
+          discount: roundMoney(booking.discount + partialDiscount), // Total discount = package + PARTIAL
+          gstAmount,
+          finalPrice,
+          remainingAmount: roundMoney(finalPrice - paidAmount),
+          partialDiscountApplied: true,
+        };
+        
+        console.log("📦 PACKAGE PARTIAL PAYMENT PRICING:", {
+          packageDiscountedPrice,
+          partialDiscountPercent,
+          partialDiscount,
+          priceAfterPartialDiscount,
+          gstAmount,
+          finalPrice,
+          totalDiscount: pricing.discount,
+        });
+      } else {
+        // COD: No additional discount, only package discount
+        const gstAmount = roundMoney(packageDiscountedPrice * PRICING_CONFIG.GST_RATE);
+        const finalPrice = roundMoney(packageDiscountedPrice + gstAmount);
+        
+        pricing = {
+          totalPrice: originalPrice,
+          discount: booking.discount || 0, // Only package discount
+          gstAmount,
+          finalPrice,
+          remainingAmount: roundMoney(finalPrice - paidAmount),
+          partialDiscountApplied: false,
+        };
+        
+        console.log("📦 PACKAGE COD PRICING:", {
+          packageDiscountedPrice,
+          gstAmount,
+          finalPrice,
+          totalDiscount: pricing.discount,
+        });
+      }
+      
+      console.log("📦 PACKAGE PAYMENT MODE FINAL PRICING:", {
+        totalPrice: pricing.totalPrice,
+        discount: pricing.discount,
+        gstAmount: pricing.gstAmount,
+        finalPrice: pricing.finalPrice,
+        remainingAmount: pricing.remainingAmount,
+      });
     } else {
       pricing = applyPaymentModePricing({
         originalPrice,
@@ -606,6 +692,8 @@ export class PaymentService {
 
     console.log("💰 BOOKING PRICING CONTEXT:", {
       bookingId,
+      bookingType: booking.bookingType,
+      packageId: booking.packageId,
       originalPrice: booking.originalPrice,
       totalPrice: booking.totalPrice,
       finalPrice,
@@ -616,6 +704,19 @@ export class PaymentService {
       paymentStatus: booking.paymentStatus,
       remainingAmount: booking.remainingAmount,
     });
+    
+    // Additional logging for package bookings to track discount flow
+    if (booking.bookingType === "PACKAGE") {
+      console.log("📦 PACKAGE BOOKING PAYMENT CONTEXT:", {
+        bookingId,
+        packageId: booking.packageId,
+        originalPrice: booking.originalPrice,
+        discount: booking.discount,
+        discountPercent: (booking.originalPrice && booking.originalPrice > 0) ? (booking.discount / booking.originalPrice) : 0,
+        finalPrice,
+        remainingAmount: booking.remainingAmount,
+      });
+    }
 
     if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) {
       throw new BadRequest(
@@ -708,6 +809,17 @@ export class PaymentService {
     // This ensures we never reuse a payment with an outdated amount
     await this.invalidateStalePendingOrders(bookingId);
 
+    // Log payment creation context for debugging
+    console.log("💰 PAYMENT CREATION CONTEXT:", {
+      bookingId,
+      bookingFinalPrice: finalPrice,
+      bookingPaidAmount: paidAmount,
+      bookingRemainingAmount: remaining,
+      calculatedChargeAmount: chargeAmount,
+      paymentStage,
+      paymentType,
+    });
+
     // Check for duplicate pending with razorpayOrderId and EXACT amount match
     const duplicatePending = await Payment.findOne({
       bookingId,
@@ -734,7 +846,7 @@ export class PaymentService {
           failureReason: "Amount changed, invalidated",
         });
       } else {
-        // Exact match - safe to reuse
+        // Exact match - safe to reuse, but still sync amount to be safe
         const keyId = process.env.RAZORPAY_KEY_ID;
         if (!keyId) {
           throw new BadRequest("Razorpay is not configured");
@@ -744,8 +856,18 @@ export class PaymentService {
           amount: chargeAmount,
           orderId: duplicatePending.razorpayOrderId,
         });
+        // CRITICAL: Even with exact match, sync amount to ensure consistency
+        const updated = await Payment.findByIdAndUpdate(
+          duplicatePending._id,
+          {
+            amount: chargeAmount,
+            type: paymentType,
+            paymentStage,
+          },
+          { new: true },
+        );
         return {
-          payment: duplicatePending,
+          payment: updated || duplicatePending,
           orderId: duplicatePending.razorpayOrderId,
           amount: chargeAmount,
           currency: "INR",
@@ -755,71 +877,53 @@ export class PaymentService {
       }
     }
 
-    // Try to reuse any existing PENDING payment for this booking matching the current amount and stage.
-    let pending = await Payment.findOne({
+    // CRITICAL FIX: Check for PENDING payment without razorpayOrderId with EXACT amount match
+    // This is the payment updated by retryFailedPayment() - reuse it instead of creating new
+    const pendingWithoutOrderId = await Payment.findOne({
       bookingId,
       status: "PENDING",
       paymentKind: "CHARGE",
       paymentStage,
+      razorpayOrderId: { $exists: false },
     });
 
-    if (pending) {
-      // CRITICAL: Require EXACT amount match - no tolerance for differences
-      const amountDiff = Math.abs(pending.amount - chargeAmount);
+    // If still no pending doc to attach order to, create one
+    let paymentDoc = pendingWithoutOrderId;
+
+    if (pendingWithoutOrderId) {
+      const amountDiff = Math.abs(pendingWithoutOrderId.amount - chargeAmount);
       if (amountDiff > 0.001) {
-        // Amount changed even slightly - invalidate this payment
-        console.log("🔄 Amount mismatch detected, invalidating stale payment:", {
-          paymentId: pending._id,
-          oldAmount: pending.amount,
+        // Amount mismatch - invalidate this payment
+        console.log("🔄 Amount mismatch in PENDING without razorpayOrderId, invalidating:", {
+          paymentId: pendingWithoutOrderId._id,
+          oldAmount: pendingWithoutOrderId.amount,
           newAmount: chargeAmount,
           difference: amountDiff,
         });
-        await Payment.findByIdAndUpdate(pending._id, {
+        await Payment.findByIdAndUpdate(pendingWithoutOrderId._id, {
           status: "FAILED",
           failureReason: "Amount changed, invalidated",
         });
-        pending = null; // Force creation of new payment
-      } else if (pending.razorpayOrderId) {
-        // Exact match with existing Razorpay order - safe to reuse
-        const keyId = process.env.RAZORPAY_KEY_ID;
-        if (!keyId) throw new BadRequest("Razorpay is not configured");
-        console.log("♻️ Reusing existing payment with Razorpay order:", {
-          paymentId: pending._id,
+        paymentDoc = null;
+      } else {
+        // Exact match - reuse this payment (updated by retryFailedPayment)
+        console.log("♻️ Reusing PENDING payment without razorpayOrderId (updated by retry):", {
+          paymentId: pendingWithoutOrderId._id,
           amount: chargeAmount,
-          orderId: pending.razorpayOrderId,
         });
-        return {
-          payment: pending,
-          orderId: pending.razorpayOrderId,
-          amount: chargeAmount,
-          currency: "INR",
-          keyId,
-          paymentStage,
-        };
-      }
-    }
-
-    // Attempt to claim an existing pending doc (without order id) to avoid duplicates
-    if (pending && !pending.razorpayOrderId) {
-      const claimed = await Payment.findOneAndUpdate(
-        { _id: pending._id, razorpayOrderId: { $exists: false } },
-        {
-          $set: {
+        // CRITICAL: Even when reusing, ensure amount is synced to latest chargeAmount
+        // This prevents any edge cases where amount might be slightly off
+        paymentDoc = await Payment.findByIdAndUpdate(
+          pendingWithoutOrderId._id,
+          {
             amount: chargeAmount,
             type: paymentType,
-            paymentKind: "CHARGE",
             paymentStage,
-            status: "PENDING",
           },
-        },
-        { new: true },
-      );
-      if (claimed) pending = claimed;
-      else pending = await Payment.findById(pending._id);
+          { new: true },
+        );
+      }
     }
-
-    // If still no pending doc to attach order to, create one
-    let paymentDoc = pending;
     if (!paymentDoc) {
       try {
         paymentDoc = await Payment.create({
@@ -833,9 +937,43 @@ export class PaymentService {
           paymentStage,
           status: "PENDING",
         });
+        console.log("🆕 Created fresh payment document:", {
+          paymentId: paymentDoc._id,
+          amount: chargeAmount,
+        });
       } catch (err: any) {
         if (err?.code === 11000) {
           paymentDoc = await Payment.findOne({ bookingId, status: "PENDING" });
+          // console.log("♻️ Found existing payment after duplicate key error:", {
+          //   paymentId: paymentDoc._id,
+          //   oldAmount: paymentDoc.amount,
+          //   newAmount: chargeAmount,
+          // });
+          
+          // CRITICAL FIX: When reusing payment after duplicate key error,
+          // ALWAYS update the amount to match the current chargeAmount
+          // This prevents stale amounts from persisting
+          if (paymentDoc) {
+            const amountDiff = Math.abs(paymentDoc.amount - chargeAmount);
+            if (amountDiff > 0.001) {
+              console.log("🔄 Updating stale payment amount after duplicate key recovery:", {
+                paymentId: paymentDoc._id,
+                oldAmount: paymentDoc.amount,
+                newAmount: chargeAmount,
+                difference: amountDiff,
+              });
+              paymentDoc = await Payment.findByIdAndUpdate(
+                paymentDoc._id,
+                {
+                  amount: chargeAmount,
+                  type: paymentType,
+                  paymentStage,
+                  $unset: { razorpayOrderId: "" }, // Clear stale razorpayOrderId
+                },
+                { new: true },
+              );
+            }
+          }
         } else {
           throw err;
         }
@@ -927,6 +1065,8 @@ export class PaymentService {
   }
 
   private async invalidateStalePendingOrders(bookingId: string) {
+    // Invalidate ALL PENDING payments with razorpayOrderId and CLEAR the razorpayOrderId field
+    // This prevents stale order reuse and ensures clean retry flow
     await Payment.updateMany(
       {
         bookingId,
@@ -936,6 +1076,20 @@ export class PaymentService {
       {
         status: "FAILED",
         failureReason: "Superseded by a new checkout attempt",
+        $unset: { razorpayOrderId: "" }, // Clear stale razorpayOrderId
+      },
+    );
+
+    // Also invalidate FAILED payments with razorpayOrderId to prevent any confusion
+    // This is critical for retry flow - old failed payments should not have active razorpayOrderId
+    await Payment.updateMany(
+      {
+        bookingId,
+        status: "FAILED",
+        razorpayOrderId: { $exists: true, $ne: null },
+      },
+      {
+        $unset: { razorpayOrderId: "" }, // Clear stale razorpayOrderId from failed payments
       },
     );
   }
@@ -1030,9 +1184,10 @@ export class PaymentService {
       const orderAmountPaise = Number(rpOrder.amount);
       const orderAmountRupees = orderAmountPaise / 100;
 
-      // Use Razorpay order amount as the source of truth, not DB payment.amount
-      // The order amount is what was actually charged to the user
-      const expectedPaise = orderAmountPaise;
+      // CRITICAL FIX: Use DB payment amount as the source of truth, NOT Razorpay order amount
+      // The DB payment amount matches the booking finalPrice exactly
+      // The Razorpay order amount might have rounding differences
+      const expectedPaise = Math.round(payment.amount * 100);
       
       console.log("🔍 PAYMENT VERIFICATION AUDIT:", {
         paymentId,
@@ -1053,15 +1208,34 @@ export class PaymentService {
         paymentStatus: rpPayment.status,
         paymentMethod: rpPayment.method,
       });
-
-      // Verify Razorpay payment amount matches Razorpay order amount
-      if (Number(rpPayment.amount) !== orderAmountPaise) {
-        console.log("❌ RAZORPAY PAYMENT/ORDER AMOUNT MISMATCH:", {
-          orderAmount: orderAmountPaise,
-          paymentAmount: Number(rpPayment.amount),
-          difference: Number(rpPayment.amount) - orderAmountPaise,
+      
+      // Additional logging for package bookings
+      const packageBooking = await Booking.findById(payment.bookingId).session(session);
+      if (packageBooking && packageBooking.bookingType === "PACKAGE") {
+        console.log("📦 PACKAGE PAYMENT VERIFICATION:", {
+          bookingId: packageBooking._id,
+          packageId: packageBooking.packageId,
+          originalPrice: packageBooking.originalPrice,
+          discount: packageBooking.discount,
+          finalPrice: packageBooking.finalPrice,
+          paymentAmount: payment.amount,
+          razorpayOrderAmount: orderAmountRupees,
+          amountMatch: Math.abs(payment.amount - orderAmountRupees) < 0.01,
         });
-        throw new BadRequest("Razorpay payment amount does not match order amount");
+      }
+
+      // Verify Razorpay payment amount matches DB payment amount (not order amount)
+      // This allows for minor rounding differences in Razorpay order creation
+      const razorpayPaymentAmountPaise = Number(rpPayment.amount);
+      const amountDiffPaise = Math.abs(razorpayPaymentAmountPaise - expectedPaise);
+      
+      if (amountDiffPaise > 1) {
+        console.log("❌ RAZORPAY PAYMENT/DB AMOUNT MISMATCH:", {
+          expectedPaise,
+          razorpayPaymentAmountPaise,
+          difference: amountDiffPaise,
+        });
+        throw new BadRequest("Razorpay payment amount does not match expected amount");
       }
 
       // Log warning if DB payment amount differs from order amount (non-blocking)
@@ -1071,11 +1245,10 @@ export class PaymentService {
           dbAmount: dbAmountPaise,
           orderAmount: orderAmountPaise,
           difference: orderAmountPaise - dbAmountPaise,
-          note: "Using Razorpay order amount as source of truth",
+          note: "Using DB payment amount as source of truth",
         });
-        // Update payment amount to match order amount for consistency
-        payment.amount = orderAmountRupees;
-        await payment.save({ session });
+        // CRITICAL FIX: Do NOT update payment amount - DB amount is source of truth
+        // The paise conversion fix in razorpay.service.ts should prevent this mismatch
       }
 
       // Process payment within transaction
@@ -1530,14 +1703,73 @@ export class PaymentService {
       throw new BadRequest("Completed payment cannot be retried");
     }
 
-    await Payment.findByIdAndUpdate(paymentId, {
-      status: "FAILED",
-      failureReason: "Retry requested by user",
+    const bookingId = payment.bookingId.toString();
+
+    // CRITICAL: Invalidate ALL stale payments for this booking before retry
+    // This ensures no stale PENDING or FAILED payments with old amounts can interfere
+    await this.invalidateStalePendingOrders(bookingId);
+
+    // Fetch fresh booking data to get latest pricing
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      throw new NotFound("Booking not found");
+    }
+
+    const finalPrice = booking.finalPrice ?? booking.totalPrice;
+    const paidAmount = booking.paidAmount ?? 0;
+    const remainingAmount = roundMoney(finalPrice - paidAmount);
+
+    // Log pricing context for debugging
+    console.log("🔄 RETRY PAYMENT PRICING CONTEXT:", {
+      paymentId,
+      bookingId,
+      originalPaymentAmount: payment.amount,
+      currentFinalPrice: finalPrice,
+      currentPaidAmount: paidAmount,
+      currentRemainingAmount: remainingAmount,
+      paymentType: booking.paymentType,
+      paymentStatus: booking.paymentStatus,
     });
 
+    // Warn if pricing changed significantly since original payment
+    if (payment.amount && Math.abs(payment.amount - remainingAmount) > 1) {
+      console.warn("⚠️ PRICING CHANGE DETECTED DURING RETRY:", {
+        paymentId,
+        bookingId,
+        originalAmount: payment.amount,
+        newAmount: remainingAmount,
+        difference: Math.abs(payment.amount - remainingAmount),
+      });
+    }
+
+    // CRITICAL FIX: Update the EXISTING payment document with the new amount
+    // instead of creating a new one. This ensures the paymentId remains the same
+    // and verification will use the correct amount.
+    const updatedPayment = await Payment.findByIdAndUpdate(
+      paymentId,
+      {
+        status: "PENDING",
+        amount: remainingAmount,
+        failureReason: undefined,
+        $unset: { razorpayOrderId: "" }, // Clear any existing razorpayOrderId
+      },
+      { new: true },
+    );
+
+    if (!updatedPayment) {
+      throw new BadRequest("Failed to update payment for retry");
+    }
+
+    console.log("🔄 PAYMENT UPDATED FOR RETRY:", {
+      paymentId,
+      oldAmount: payment.amount,
+      newAmount: remainingAmount,
+    });
+
+    // Now create Razorpay order for the updated payment
     return this.createRazorpayOrderForBooking(
       userId,
-      payment.bookingId.toString(),
+      bookingId,
     );
   }
 

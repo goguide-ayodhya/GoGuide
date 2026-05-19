@@ -19,10 +19,23 @@ import { Card } from "@/components/ui/card";
 import { getPackages, deletePackage } from "@/lib/api/tourPackages";
 import PackageForm from "./PackageForm";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Truck, User, Percent, CheckCircle, XCircle } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Truck,
+  User,
+  Percent,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { SelectTrigger } from "@radix-ui/react-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAllBookings, adminAcceptBookingApi, cancelBookingApi } from "@/lib/api/bookings";
+import {
+  getAllBookings,
+  adminAcceptBookingApi,
+  cancelBookingApi,
+} from "@/lib/api/bookings";
 import { formatDate } from "@/lib/utils";
 
 export default function TourPackagesPage() {
@@ -113,15 +126,24 @@ export default function TourPackagesPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
           <h1 className="text-2xl font-semibold">Tour Packages Management</h1>
           <TabsList className="bg-slate-100 rounded-lg p-1">
-            <TabsTrigger value="packages" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Packages</TabsTrigger>
-            <TabsTrigger value="bookings" className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">Bookings</TabsTrigger>
+            <TabsTrigger
+              value="packages"
+              className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              Packages
+            </TabsTrigger>
+            <TabsTrigger
+              value="bookings"
+              className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              Bookings
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="packages" className="mt-0">
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-3 items-center w-full sm:w-auto">
-
               <Input
                 placeholder="Search"
                 value={searchQuery}
@@ -160,8 +182,8 @@ export default function TourPackagesPage() {
                   className="p-0 overflow-hidden rounded-xl shadow-md"
                 >
                   <div className="relative">
-                    <div className="h-48 w-full bg-gray-100">
-                      {(p?.mainImage || p?.images?.[0]) ? (
+                    <div className="aspect-[16/10] w-full bg-gray-100">
+                      {p?.mainImage || p?.images?.[0] ? (
                         <img
                           src={p.mainImage || p.images?.[0]}
                           alt={p?.title || "Package image"}
@@ -235,40 +257,66 @@ export default function TourPackagesPage() {
                   <tr>
                     <th className="px-4 py-3 font-semibold">Tourist</th>
                     <th className="px-4 py-3 font-semibold">Contact</th>
-                    <th className="px-4 py-3 font-semibold">Package / Tour Date</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Package / Tour Date
+                    </th>
                     <th className="px-4 py-3 font-semibold">Group Size</th>
                     <th className="px-4 py-3 font-semibold">Total Price</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
                     <th className="px-4 py-3 font-semibold">Notes</th>
-                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {bookings.length > 0 ? (
                     bookings.map((b) => (
                       <tr key={b._id || b.id} className="hover:bg-slate-50/50">
-                        <td className="px-4 py-3 font-medium text-slate-900">{b.touristName}</td>
+                        <td className="px-4 py-3 font-medium text-slate-900">
+                          {b.touristName}
+                        </td>
                         <td className="px-4 py-3 text-slate-600">
                           <div>{b.email}</div>
-                          <div className="text-xs text-slate-400">{b.phone}</div>
+                          <div className="text-xs text-slate-400">
+                            {b.phone}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          <div className="font-medium text-slate-900">{b.tourType || "Package Tour"}</div>
-                          <div className="text-xs">{formatDate(b.bookingDate)}</div>
+                          <div className="font-medium text-slate-900">
+                            {b.tourType || "Package Tour"}
+                          </div>
+                          <div className="text-xs">
+                            {formatDate(b.bookingDate)}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{b.groupSize}</td>
-                        <td className="px-4 py-3 text-slate-900 font-semibold">₹{b.totalPrice}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {b.groupSize}
+                        </td>
+                        <td className="px-4 py-3 text-slate-900 font-semibold">
+                          ₹{b.totalPrice}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1 items-start">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.status === "PENDING" ? "bg-amber-100 text-amber-700" :
-                              b.status === "ACCEPTED" || b.status === "COMPLETED" ? "bg-green-100 text-green-700" :
-                                "bg-red-100 text-red-700"
-                              }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                b.status === "PENDING"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : b.status === "ACCEPTED" ||
+                                      b.status === "COMPLETED"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
                               {b.status}
                             </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${b.paymentStatus === "COMPLETED" ? "bg-green-100 text-green-700" :
-                              "bg-slate-100 text-slate-600"
-                              }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                b.paymentStatus === "COMPLETED"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
                               Payment: {b.paymentStatus || "PENDING"}
                             </span>
                           </div>
@@ -284,7 +332,6 @@ export default function TourPackagesPage() {
                           ) : (
                             <div>No notes</div>
                           )}
-
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -298,52 +345,66 @@ export default function TourPackagesPage() {
                                     toast({ title: "Booking Accepted" });
                                     loadBookings();
                                   } catch (err: any) {
-                                    toast({ title: "Error accepting booking", description: String(err), variant: "destructive" });
+                                    toast({
+                                      title: "Error accepting booking",
+                                      description: String(err),
+                                      variant: "destructive",
+                                    });
                                   }
                                 }}
                               >
                                 <CheckCircle className="w-4 h-4 mr-1" /> Accept
                               </Button>
                             )}
-                            {b.status !== "CANCELLED" && b.status !== "REJECTED" && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="h-8"
-                                onClick={async () => {
-                                  if (!confirm("Cancel this booking?")) return;
-                                  try {
-                                    await cancelBookingApi(b._id || b.id, "Cancelled by Admin");
-                                    toast({ title: "Booking Cancelled" });
-                                    loadBookings();
-                                  } catch (err: any) {
-                                    toast({ title: "Error cancelling booking", description: String(err), variant: "destructive" });
-                                  }
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-1" /> Cancel
-                              </Button>
-                            )}
+                            {b.status !== "CANCELLED" &&
+                              b.status !== "REJECTED" && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8"
+                                  onClick={async () => {
+                                    if (!confirm("Cancel this booking?"))
+                                      return;
+                                    try {
+                                      await cancelBookingApi(
+                                        b._id || b.id,
+                                        "Cancelled by Admin",
+                                      );
+                                      toast({ title: "Booking Cancelled" });
+                                      loadBookings();
+                                    } catch (err: any) {
+                                      toast({
+                                        title: "Error cancelling booking",
+                                        description: String(err),
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4 mr-1" /> Cancel
+                                </Button>
+                              )}
                           </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-center text-slate-500"
+                      >
                         No package bookings found.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
-
             </div>
           </div>
           {selectedNotes && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <div className="bg-white rounded-xl p-6 w-[90%] max-w-md shadow-lg">
-
                 <h2 className="text-lg font-semibold mb-3">Notes</h2>
 
                 <p className="text-slate-700">{selectedNotes}</p>
@@ -354,7 +415,6 @@ export default function TourPackagesPage() {
                 >
                   Close
                 </button>
-
               </div>
             </div>
           )}

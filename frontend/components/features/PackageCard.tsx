@@ -62,7 +62,7 @@ export function PackageCard({ pkg }: PackageCardProps) {
       className={`overflow-hidden rounded-3xl bg-white transition-all duration-300 ${styles.border} ${styles.hover}`}
     >
       <div className="relative group">
-        <div className="aspect-video w-full bg-slate-100 overflow-hidden rounded-t-2xl">
+        <div className="aspect-[16/10] w-full bg-slate-100 overflow-hidden rounded-t-2xl">
           {pkg.mainImage || pkg.images?.[0] ? (
             <>
               <a
