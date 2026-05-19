@@ -11,7 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { Mail, AlertCircle, CheckCircle } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { poppins } from "@/lib/fonts";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
@@ -255,10 +256,7 @@ function VerifyEmailContent() {
               className="w-full bg-primary hover:bg-primay/95 text-white h-10 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
+                <TouristLoader inline size={20} text="Verifying..." />
               ) : (
                 "Verify Code"
               )}
@@ -274,10 +272,7 @@ function VerifyEmailContent() {
                 className="text-orange-600 hover:text-orange-700 font-medium text-sm mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resendLoading ? (
-                  <>
-                    <Loader2 className="inline h-3 w-3 animate-spin mr-1" />
-                    Sending...
-                  </>
+                  <TouristLoader inline size={16} text="Sending..." />
                 ) : resendTimer > 0 ? (
                   `Resend in ${resendTimer}s`
                 ) : (
@@ -308,7 +303,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <VerifyEmailContent />
     </Suspense>
   );

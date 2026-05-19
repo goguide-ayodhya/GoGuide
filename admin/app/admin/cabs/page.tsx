@@ -44,8 +44,6 @@ const vehicleTypeMap: Record<string, string> = {
   BIKE: "Bike",
   AUTO: "Auto",
   RIKSHAW: "Rikshaw",
-  VAN: "Van",
-  OTHER: "Other",
 };
 
 // Helper function to convert API cab format to UI cab format
@@ -66,7 +64,7 @@ const convertApiCabToUi = (apiCab: any): Cab => {
       apiCab.vehicleName ||
       "Sedan",
     vehicleNumber:
-      apiCab.vehicleNumber || apiCab.vehicleName || "TN 00 AA 0000",
+      apiCab.vehicleNumber || apiCab.vehicleName || "N/A",
     phone: apiCab.userId?.phone || apiCab.phone || "N/A",
     status: status as "available" | "busy" | "offline",
   };

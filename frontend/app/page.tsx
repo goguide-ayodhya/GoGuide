@@ -20,6 +20,7 @@ import { assets } from "@/public/assets/assets";
 import { poppins, manrope } from "@/lib/fonts";
 import Image from "next/image";
 import FAQSection from "@/components/home/FAQs";
+import TouristLoader from "@/components/common/TouristLoader";
 
 export default function Home() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function Home() {
         ? b.rating - a.rating
         : (b.totalReviews || 0) - (a.totalReviews || 0),
     )
-    .slice(0, 6);
+    .slice(0, 4);
 
   const destinations = [
     { name: "Ram Mandir", image: assets.ramMandir },
@@ -75,14 +76,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50">
-        <Image width={70} height={70} src={assets.logo} alt="" />
-        <div className="mt-8 flex justify-center gap-2">
-          <span className="w-3 h-3 bg-primary rounded-full animate-bounce"></span>
-          <span className="w-3 h-3 bg-secondary rounded-full animate-bounce [animation-delay:0.2s]"></span>
-          <span className="w-3 h-3 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></span>
-        </div>
-      </div>
+      <TouristLoader fullScreen />
     );
   }
 
@@ -150,7 +144,7 @@ export default function Home() {
                     icon={<Users className="h-6 w-6 text-indigo-600" />}
                   />
                   <ServiceCard
-                    title="Cabs"
+                    title="GoCabs"
                     description="Reliable transportation across the city"
                     href="/tourist/cabs"
                     icon={<Car className="h-6 w-6 text-sky-500" />}
@@ -249,7 +243,7 @@ export default function Home() {
                 No verified guides available yet. Check back soon!
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {topRatedGuides.map((guide) => {
                   const reviewsCount = guide.totalReviews ?? 0;
                   const displayRating = reviewsCount > 0 ? guide.rating : 5;
@@ -259,17 +253,18 @@ export default function Home() {
                       key={guide.id}
                       className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 overflow-hidden"
                     >
-                      <div className="relative h-48 bg-slate-100">
+                      <div className="relative aspect-square overflow-hidden rounded-[1.75rem] bg-slate-100 border shadow-sm border-border">
                         {guide.image ? (
                           <Image
                             src={guide.image}
                             alt={guide.userId?.name || guide.name || "Guide"}
                             fill
-                            className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                            sizes="(max-width:768px) 100vw, 33vw"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            {" "}
                             <Users className="h-12 w-12" />
                           </div>
                         )}
@@ -280,8 +275,9 @@ export default function Home() {
                             : "Unverified"}
                         </div>
                       </div>
+
                       <div className="p-4">
-                        <h3 className="text-lg font-semibold text-slate-900 truncate">
+                        <h3 className="text-md font-semibold text-slate-900 truncate">
                           {guide.userId?.name || guide.name || "Verified guide"}
                         </h3>
                         <div className="mt-2 flex items-center justify-between">

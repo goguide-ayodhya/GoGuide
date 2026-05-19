@@ -7,6 +7,7 @@ import Link from "next/link";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspense } from "react";
+import TouristLoader from "@/components/common/TouristLoader";
 
 import { forgotPassword, resetPassword } from "@/lib/api/auth";
 import { Button } from "@/components/ui/button";
@@ -187,7 +188,7 @@ function LoginPageContent(): JSX.Element {
           return;
         }
         setLoading(true)
-        
+
         if (newPassword.length < 6) {
           setError("Password must be at least 6 characters");
           return;
@@ -452,7 +453,7 @@ function LoginPageContent(): JSX.Element {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<TouristLoader fullScreen text="Preparing secure login..." />}>
       <LoginPageContent />
     </Suspense>
   );

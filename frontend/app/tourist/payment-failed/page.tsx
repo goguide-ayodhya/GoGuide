@@ -8,7 +8,8 @@ import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { AlertCircle, Loader2, Home } from "lucide-react";
+import { AlertCircle, Home } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import Link from "next/link";
 
 interface BookingData {
@@ -47,7 +48,7 @@ function PaymentFailedContent() {
   const failedPayment = payments.find(
     (p) => p.status === "FAILED" || p.status === "PENDING"
   );
-  const failureReason = failedPayment?.failureReason || 
+  const failureReason = failedPayment?.failureReason ||
     "Payment could not be processed. Please try again or use a different payment method.";
 
   // Fetch booking and payment data
@@ -154,12 +155,7 @@ function PaymentFailedContent() {
       <main className="min-h-screen flex flex-col bg-background">
         <Header showBack={false} hideHome={true} />
         <div className="flex-1 flex items-center justify-center px-4">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">Loading payment details...</p>
-          </div>
+          <TouristLoader size={48} text="Loading payment details..." />
         </div>
         <Footer />
       </main>
@@ -334,10 +330,7 @@ function PaymentFailedContent() {
               size="lg"
             >
               {isRetrying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
+                <TouristLoader inline size={20} text="Processing..." />
               ) : (
                 <>
                   {!failedPayment && "No Failed Payment"}
@@ -374,20 +367,7 @@ function PaymentFailedContent() {
 
 export default function PaymentFailedPage() {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen flex flex-col bg-background">
-        <Header showBack={false} hideHome={true} />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-        <Footer />
-      </main>
-    }>
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <PaymentFailedContent />
     </Suspense>
   );

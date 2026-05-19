@@ -26,7 +26,8 @@ import { SuccessConfirmation } from "@/components/booking/SuccessConfirmation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { Suspense } from "react";
 import { getPaymentStatusLabel } from "@/lib/payment-status";
 
@@ -152,11 +153,7 @@ function PaymentPageContent() {
   }
 
   if (!booking) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-background">
-        <div>Loading booking details...</div>
-      </main>
-    );
+    return <TouristLoader fullScreen text="Loading booking details..." />;
   }
 
   if (paymentComplete) {
@@ -341,13 +338,13 @@ function PaymentPageContent() {
         // Round to nearest rupee first, then convert to paise
         const amountPaise =
           typeof amount === "number" ? Math.round(Math.round(amount) * 100) : undefined;
-        
+
         console.log("💰 FRONTEND PAISE CONVERSION:", {
           amount,
           roundedAmount: Math.round(amount),
           amountPaise,
         });
-        
+
         const options: Record<string, unknown> = {
           key: keyId,
           currency: "INR",
@@ -605,10 +602,7 @@ function PaymentPageContent() {
               className="w-full h-12 text-base font-semibold cursor-pointer"
             >
               {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Processing...
-                </>
+                <TouristLoader inline size={20} text="Processing..." />
               ) : booking.paymentStatus === "PARTIAL" ? (
                 `Pay Remaining`
               ) : selectedMode === "COD" ? (
@@ -628,7 +622,7 @@ function PaymentPageContent() {
 
 export default function PaymentPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <PaymentPageContent />
     </Suspense>
   );

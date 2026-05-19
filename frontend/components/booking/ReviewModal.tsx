@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Loader2 } from "lucide-react";
+import { Star } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import type { BookingReview } from "@/contexts/BookingsContext";
 
 interface ReviewModalProps {
@@ -143,10 +144,7 @@ export function ReviewModal({
             className="bg-secondary hover:bg-secondary/90"
           >
             {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === "edit" ? "Saving..." : "Submitting..."}
-              </>
+              <TouristLoader inline size={16} text={mode === "edit" ? "Saving..." : "Submitting..."} />
             ) : mode === "edit" ? (
               "Save Changes"
             ) : (

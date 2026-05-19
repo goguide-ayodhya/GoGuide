@@ -102,7 +102,7 @@ export default function CabBookingPage() {
     phone: string;
   }) => {
     if (isSubmitting) return;
-    
+
     setError(null);
     setIsSubmitting(true);
 
@@ -202,10 +202,6 @@ export default function CabBookingPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Price per km</p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-950">₹{driver.pricePerKm}</p>
-                  </div>
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Rating</p>
                     <p className="mt-3 text-2xl font-semibold text-slate-950">{driver.averageRating.toFixed(1)}</p>
                   </div>
@@ -294,11 +290,6 @@ export default function CabBookingPage() {
               </div>
 
               <div className="mt-6 space-y-4">
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Price per km</p>
-                  <p className="mt-2 text-3xl font-semibold text-slate-950">₹{driver.pricePerKm}</p>
-                </div>
-
                 <div className="rounded-3xl bg-slate-50 p-4">
                   <p className="text-sm text-slate-500">Rating</p>
                   <p className="mt-2 text-xl font-semibold text-slate-950">{driver.averageRating.toFixed(1)} / 5</p>

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { Card } from "@/components/ui/card";
@@ -81,21 +82,7 @@ function BookingConfirmationContent() {
   };
 
   if (loading || !currentBooking) {
-    return (
-      <main
-        className={`${poppins.className} min-h-screen bg-slate-50 text-slate-950`}
-      >
-        <Header />
-        <div className="flex min-h-[calc(100vh-96px)] items-center justify-center px-4 py-16">
-          <Card className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl">
-            <p className="text-xl font-semibold text-slate-900">
-              Loading booking details...
-            </p>
-          </Card>
-        </div>
-        <Footer />
-      </main>
-    );
+    return <TouristLoader fullScreen text="Loading booking details..." />;
   }
 
   const bookingDateStr =
@@ -262,21 +249,7 @@ function BookingConfirmationContent() {
 
 export default function BookingConfirmationPage() {
   return (
-    <Suspense
-      fallback={
-        <main
-          className={`${poppins.className} min-h-screen bg-slate-50 text-slate-950`}
-        >
-          <Header />
-          <div className="flex min-h-[calc(100vh-96px)] items-center justify-center px-4 py-16">
-            <Card className="rounded-[2rem] border border-slate-200 bg-white p-10 shadow-xl">
-              <p className="text-xl font-semibold text-slate-900">Loading...</p>
-            </Card>
-          </div>
-          <Footer />
-        </main>
-      }
-    >
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <BookingConfirmationContent />
     </Suspense>
   );

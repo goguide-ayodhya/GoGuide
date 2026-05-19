@@ -160,10 +160,9 @@ export interface Booking extends BaseEntity {
 // Cab Model
 export interface Cab extends BaseEntity {
   name: string;
-  type: string; // Sedan, SUV, etc.
+  type: string;
   capacity: number;
   baseFare: number;
-  // pricePerKm: number;
   image?: string;
   isActive: boolean;
   features: string[];
