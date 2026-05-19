@@ -13,7 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { Step1Profile } from "@/components/guide-profile-steps/Step1Profile";
 import { Step2Services } from "@/components/guide-profile-steps/Step2Services";
 import { Step3Pricing } from "@/components/guide-profile-steps/Step3Pricing";
@@ -468,10 +469,7 @@ function CompleteProfilePageContent() {
 
               {uploading && (
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3 text-blue-800">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>
-                    Uploading images and saving your profile. Please wait...
-                  </span>
+                  <TouristLoader inline size={16} text="Uploading images and saving your profile. Please wait..." />
                 </div>
               )}
 
@@ -560,10 +558,7 @@ function CompleteProfilePageContent() {
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   >
                     {uploading || submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Saving...
-                      </>
+                      <TouristLoader inline size={16} text="Saving..." />
                     ) : (
                       <>
                         <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -579,10 +574,7 @@ function CompleteProfilePageContent() {
                     }
                   >
                     {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Saving...
-                      </>
+                      <TouristLoader inline size={16} text="Saving..." />
                     ) : (
                       "Next →"
                     )}
@@ -626,7 +618,7 @@ function CompleteProfilePageContent() {
 
 export default function CompleteProfilePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-orange-500" /></div>}>
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <CompleteProfilePageContent />
     </Suspense>
   );

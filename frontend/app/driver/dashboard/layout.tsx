@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Header } from "@/components/header";
+import TouristLoader from "@/components/common/TouristLoader";
 export default function DashboardLayout({
   children,
 }: {
@@ -21,20 +22,7 @@ export default function DashboardLayout({
   }, [user, loading]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        {" "}
-        <div className="text-center">
-          {" "}
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>{" "}
-          <p className="text-muted-foreground">Loading...</p>{" "}
-        </div>{" "}
-      </div>
-    );
-  }
-
-  if (loading) {
-    return <div>Loading...</div>;
+    return <TouristLoader fullScreen text="Loading dashboard..." />;
   }
 
   return (

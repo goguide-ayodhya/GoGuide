@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
 import { sendOtpApi, verifyEmailOtp } from "@/lib/api/auth";
@@ -182,25 +183,25 @@ function DriverSignupFlowContent() {
       // Enhanced step recovery logic
       if (user.isEmailVerified) {
         let targetStep = 3; // Default to personal details
-        
+
         if (user.profileStep) {
           targetStep = user.profileStep;
         }
-        
+
         // If profile is complete, redirect to dashboard
         if (user.isProfileComplete) {
           console.log("[ONBOARDING] Profile already complete, redirecting to dashboard");
           router.push("/driver/dashboard");
           return;
         }
-        
+
         // Ensure we don't go backwards
         if (targetStep > currentStep) {
           console.log("[ONBOARDING] Advancing to step:", targetStep);
           setCurrentStep(targetStep);
         }
       }
-      
+
       setInitialSyncDone(true);
 
       // Check if profile exists
@@ -740,13 +741,12 @@ function DriverSignupFlowContent() {
                 key={step.id}
                 onClick={() => handleStepChange(step.id)}
                 disabled={step.id > currentStep}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                  currentStep === step.id
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${currentStep === step.id
                     ? "bg-primary text-white"
                     : currentStep > step.id
                       ? "bg-green-100 text-green-800"
                       : "bg-slate-200 text-slate-700"
-                }`}
+                  }`}
               >
                 {currentStep > step.id && (
                   <CheckCircle2 className="h-4 w-4 inline mr-1" />
@@ -890,7 +890,7 @@ function DriverSignupFlowContent() {
 
 export default function DriverSignupFlow() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<TouristLoader fullScreen text="Loading..." />}>
       <DriverSignupFlowContent />
     </Suspense>
   );

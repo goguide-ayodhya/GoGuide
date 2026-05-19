@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
 import { changePassword } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
+import { ImageCropModal } from "@/components/common/ImageCropModal";
 
 export default function ProfilePage() {
   const { myGuide, updateGuideData } = useGuide();
@@ -54,6 +55,8 @@ export default function ProfilePage() {
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
   const { toast } = useToast();
 
   // Sync form as soon as guide profile is available
@@ -228,12 +231,25 @@ export default function ProfilePage() {
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      return null;
-    }
-    setSelectedImage(file);
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewImage(previewUrl);
+    // Reset input so same file can be re-selected after cancel
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setRawAvatarSrc(objectUrl);
+    setAvatarCropOpen(true);
+  };
+
+  const handleAvatarCropComplete = (croppedFile: File, croppedPreview: string) => {
+    if (rawAvatarSrc) URL.revokeObjectURL(rawAvatarSrc);
+    setRawAvatarSrc(null);
+    setSelectedImage(croppedFile);
+    setPreviewImage(croppedPreview);
+  };
+
+  const handleAvatarCropCancel = () => {
+    if (rawAvatarSrc) URL.revokeObjectURL(rawAvatarSrc);
+    setRawAvatarSrc(null);
+    setAvatarCropOpen(false);
   };
 
   const handleSaveAvatar = async () => {
@@ -362,543 +378,553 @@ export default function ProfilePage() {
 
   if (!user) return null;
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Profile Settings
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your guide profile and preferences
-          </p>
+    <div>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Profile Settings
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your guide profile and preferences
+            </p>
+          </div>
+          <Button
+            disabled={isDisabled}
+            onClick={() => setIsEditing(!isEditing)}
+            className={
+              isEditing
+                ? "bg-red-500/20 text-red-600 hover:bg-red-500/30"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }
+          >
+            {isEditing ? "Cancel" : "Edit Profile"}
+          </Button>
         </div>
-        <Button
-          disabled={isDisabled}
-          onClick={() => setIsEditing(!isEditing)}
-          className={
-            isEditing
-              ? "bg-red-500/20 text-red-600 hover:bg-red-500/30"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }
-        >
-          {isEditing ? "Cancel" : "Edit Profile"}
-        </Button>
-      </div>
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GuideAvailabilityToggle />
-      </div>
+        {/* Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <GuideAvailabilityToggle />
+        </div>
 
-      {/* Profile Picture */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Profile Picture</CardTitle>
-          <CardDescription>Upload or change your profile photo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-6">
-            <div className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-border">
-              <Image
-                src={
-                  previewImage
-                    ? previewImage
-                    : myGuide?.image
-                      ? myGuide.image
-                      : user.avatar
-                        ? user.avatar
-                        : assets.guideImage
-                }
-                alt={user.name}
-                fill
-                className="object-cover"
-                sizes="96px"
-              />
-            </div>
-            <div className="flex-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
+        {/* Profile Picture */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Profile Picture</CardTitle>
+            <CardDescription>Upload or change your profile photo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-border">
+                <Image
+                  src={
+                    previewImage
+                      ? previewImage
+                      : myGuide?.image
+                        ? myGuide.image
+                        : user.avatar
+                          ? user.avatar
+                          : assets.guideImage
+                  }
+                  alt={user.name}
+                  fill
+                  className="object-cover"
+                  sizes="96px"
+                />
+              </div>
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload size={18} />
-                  Upload New Picture
-                </Button>
-
-                {selectedImage && (
+                <div className="flex gap-2">
                   <Button
-                    onClick={handleSaveAvatar}
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload size={18} />
+                    Upload New Picture
+                  </Button>
+
+                  {selectedImage && (
+                    <Button
+                      onClick={handleSaveAvatar}
+                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={avatarLoading}
+                    >
+                      <Save size={18} />
+                      {avatarLoading ? "Saving..." : "Save Avatar"}
+                    </Button>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  JPG, PNG or GIF (max 5MB)
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Basic Information */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+            <CardDescription>Your account details and bio</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Full Name
+                  </label>
+                  <Input
+                    value={user.name}
+                    disabled
+                    className="bg-muted border-border"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Email
+                  </label>
+                  <Input
+                    value={user.email}
+                    disabled
+                    className="bg-muted border-border"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  rows={4}
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground disabled:opacity-50"
+                  placeholder="Tell travelers about your experience and style..."
+                />
+              </div>
+
+              {isEditing && (
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleSave}
                     className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={avatarLoading}
                   >
                     <Save size={18} />
-                    {avatarLoading ? "Saving..." : "Save Avatar"}
+                    {loading ? "Saving..." : "Save Changes"}
                   </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Professional Information */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Professional Information</CardTitle>
+            <CardDescription>
+              Your tour guide credentials and expertise
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Specialities
+                </label>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newSpeciality}
+                        onChange={(e) => setNewSpeciality(e.target.value)}
+                        className="bg-muted border-border flex-1"
+                        placeholder="Enter a speciality"
+                        onKeyPress={(e) => e.key === "Enter" && addSpeciality()}
+                      />
+                      <Button onClick={addSpeciality} variant="outline">
+                        Add
+                      </Button>
+                    </div>
+                    {formData.specialities.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.specialities.map((spec) => (
+                          <Badge
+                            key={spec}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {spec}
+                            <X
+                              className="h-3 w-3 cursor-pointer"
+                              onClick={() => removeSpeciality(spec)}
+                            />
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.specialities.map((spec) => (
+                      <Badge key={spec} variant="secondary">
+                        {spec}
+                      </Badge>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <p className="text-xs text-muted-foreground mt-2">
-                JPG, PNG or GIF (max 5MB)
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Basic Information */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Basic Information</CardTitle>
-          <CardDescription>Your account details and bio</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
-                  Full Name
+                  Locations
                 </label>
-                <Input
-                  value={user.name}
-                  disabled
-                  className="bg-muted border-border"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Email
-                </label>
-                <Input
-                  value={user.email}
-                  disabled
-                  className="bg-muted border-border"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Bio
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                disabled={!isEditing}
-                rows={4}
-                className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-foreground disabled:opacity-50"
-                placeholder="Tell travelers about your experience and style..."
-              />
-            </div>
-
-            {isEditing && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSave}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Save size={18} />
-                  {loading ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Professional Information */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Professional Information</CardTitle>
-          <CardDescription>
-            Your tour guide credentials and expertise
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Specialities
-              </label>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newSpeciality}
-                      onChange={(e) => setNewSpeciality(e.target.value)}
-                      className="bg-muted border-border flex-1"
-                      placeholder="Enter a speciality"
-                      onKeyPress={(e) => e.key === "Enter" && addSpeciality()}
-                    />
-                    <Button onClick={addSpeciality} variant="outline">
-                      Add
-                    </Button>
-                  </div>
-                  {formData.specialities.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {formData.specialities.map((spec) => (
-                        <Badge
-                          key={spec}
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          {spec}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => removeSpeciality(spec)}
-                          />
-                        </Badge>
-                      ))}
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newLocation}
+                        onChange={(e) => setNewLocation(e.target.value)}
+                        className="bg-muted border-border flex-1"
+                        placeholder="Enter a location"
+                        onKeyPress={(e) => e.key === "Enter" && addLocation()}
+                      />
+                      <Button onClick={addLocation} variant="outline">
+                        Add
+                      </Button>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {formData.specialities.map((spec) => (
-                    <Badge key={spec} variant="secondary">
-                      {spec}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Locations
-              </label>
-              {isEditing ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newLocation}
-                      onChange={(e) => setNewLocation(e.target.value)}
-                      className="bg-muted border-border flex-1"
-                      placeholder="Enter a location"
-                      onKeyPress={(e) => e.key === "Enter" && addLocation()}
-                    />
-                    <Button onClick={addLocation} variant="outline">
-                      Add
-                    </Button>
-                  </div>
-                  {formData.locations.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {formData.locations.map((loc) => (
-                        <Badge
-                          key={loc}
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          {loc}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => removeLocation(loc)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {formData.locations.map((loc) => (
-                    <Badge key={loc} variant="secondary">
-                      {loc}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Price (₹)
-                </label>
-                <Input
-                  name="price"
-                  type="number"
-                  value={formData.price}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="bg-muted border-border"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Duration
-                </label>
-                <select
-                  name="duration"
-                  value={formData.duration}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-md"
-                >
-                  <option value="2 hours">2 hours</option>
-                  <option value="4 hours">4 hours</option>
-                  <option value="6 hours">6 hours</option>
-                  <option value="8 hours">8 hours</option>
-                  <option value="Full day">Full day</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Years of Experience
-              </label>
-              <Input
-                name="yearsOfExperience"
-                type="number"
-                value={formData.yearsOfExperience}
-                onChange={handleChange}
-                disabled={!isEditing}
-                className="bg-muted border-border"
-              />
-            </div>
-
-            {isEditing && (
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSave}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <Save size={18} />
-                  {loading ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Certificates */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Certificates</CardTitle>
-          <CardDescription>Your professional certifications</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {isEditing && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    value={newCertificateName}
-                    onChange={(e) => setNewCertificateName(e.target.value)}
-                    className="bg-muted border-border"
-                    placeholder="Certificate name"
-                  />
-                  <div>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        setSelectedCertificateImage(e.target.files?.[0] || null)
-                      }
-                      className="bg-muted border-border"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={addCertificate}
-                  variant="outline"
-                  disabled={!newCertificateName || !selectedCertificateImage}
-                >
-                  Add Certificate
-                </Button>
-              </div>
-            )}
-
-            {formData.certificates.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formData.certificates.map((cert, index) => (
-                  <div
-                    key={index}
-                    className="border border-border rounded-lg p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{cert.name}</h4>
-                        <img
-                          src={cert.image}
-                          alt={cert.name}
-                          className="w-20 h-20 object-cover mt-2 rounded"
-                        />
+                    {formData.locations.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.locations.map((loc) => (
+                          <Badge
+                            key={loc}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            {loc}
+                            <X
+                              className="h-3 w-3 cursor-pointer"
+                              onClick={() => removeLocation(loc)}
+                            />
+                          </Badge>
+                        ))}
                       </div>
-                      {isEditing && (
-                        <X
-                          className="h-4 w-4 cursor-pointer text-destructive"
-                          onClick={() => removeCertificate(index)}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Languages */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Languages</CardTitle>
-          <CardDescription>Languages you speak fluently</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {formData.languages.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.languages.map((lang) => (
-                  <div
-                    key={lang}
-                    className="px-3 py-2 bg-primary/10 rounded-lg flex items-center gap-2"
-                  >
-                    <span className="text-sm font-medium text-foreground">
-                      {lang}
-                    </span>
-                    {isEditing && (
-                      <button
-                        onClick={() => removeLanguage(lang)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        ×
-                      </button>
                     )}
                   </div>
-                ))}
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.locations.map((loc) => (
+                      <Badge key={loc} variant="secondary">
+                        {loc}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
 
-            {isEditing && (
-              <div className="flex gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Price (₹)
+                  </label>
+                  <Input
+                    name="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className="bg-muted border-border"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Duration
+                  </label>
+                  <select
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md"
+                  >
+                    <option value="2 hours">2 hours</option>
+                    <option value="4 hours">4 hours</option>
+                    <option value="6 hours">6 hours</option>
+                    <option value="8 hours">8 hours</option>
+                    <option value="Full day">Full day</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-2">
+                  Years of Experience
+                </label>
                 <Input
-                  value={newLanguage}
-                  onChange={(e) => setNewLanguage(e.target.value)}
-                  placeholder="Add a language"
+                  name="yearsOfExperience"
+                  type="number"
+                  value={formData.yearsOfExperience}
+                  onChange={handleChange}
+                  disabled={!isEditing}
                   className="bg-muted border-border"
-                  onKeyPress={(e) => e.key === "Enter" && addLanguage()}
                 />
-                <Button onClick={addLanguage} variant="outline">
-                  Add
-                </Button>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Account Settings */}
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>Manage your account security</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {!showPasswordChange ? (
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => setShowPasswordChange(true)}
-              >
-                <Lock size={18} />
-                Change Password
-              </Button>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">
-                    Current Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.currentPassword}
-                    onChange={(e) =>
-                      setPasswordData((prev) => ({
-                        ...prev,
-                        currentPassword: e.target.value,
-                      }))
-                    }
-                    className="bg-muted border-border"
-                    placeholder="Enter current password"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">
-                    New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) =>
-                      setPasswordData((prev) => ({
-                        ...prev,
-                        newPassword: e.target.value,
-                      }))
-                    }
-                    className="bg-muted border-border"
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">
-                    Confirm New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordData((prev) => ({
-                        ...prev,
-                        confirmPassword: e.target.value,
-                      }))
-                    }
-                    className="bg-muted border-border"
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                <div className="flex gap-2">
+              {isEditing && (
+                <div className="flex justify-end">
                   <Button
-                    onClick={handleChangePassword}
+                    onClick={handleSave}
                     className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={passwordLoading}
                   >
                     <Save size={18} />
-                    {passwordLoading ? "Changing..." : "Change Password"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowPasswordChange(false);
-                      setPasswordData({
-                        currentPassword: "",
-                        newPassword: "",
-                        confirmPassword: "",
-                      });
-                    }}
-                  >
-                    Cancel
+                    {loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Certificates */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Certificates</CardTitle>
+            <CardDescription>Your professional certifications</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isEditing && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      value={newCertificateName}
+                      onChange={(e) => setNewCertificateName(e.target.value)}
+                      className="bg-muted border-border"
+                      placeholder="Certificate name"
+                    />
+                    <div>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setSelectedCertificateImage(e.target.files?.[0] || null)
+                        }
+                        className="bg-muted border-border"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={addCertificate}
+                    variant="outline"
+                    disabled={!newCertificateName || !selectedCertificateImage}
+                  >
+                    Add Certificate
+                  </Button>
+                </div>
+              )}
+
+              {formData.certificates.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {formData.certificates.map((cert, index) => (
+                    <div
+                      key={index}
+                      className="border border-border rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">{cert.name}</h4>
+                          <img
+                            src={cert.image}
+                            alt={cert.name}
+                            className="w-20 h-20 object-cover mt-2 rounded"
+                          />
+                        </div>
+                        {isEditing && (
+                          <X
+                            className="h-4 w-4 cursor-pointer text-destructive"
+                            onClick={() => removeCertificate(index)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Languages */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Languages</CardTitle>
+            <CardDescription>Languages you speak fluently</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {formData.languages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.languages.map((lang) => (
+                    <div
+                      key={lang}
+                      className="px-3 py-2 bg-primary/10 rounded-lg flex items-center gap-2"
+                    >
+                      <span className="text-sm font-medium text-foreground">
+                        {lang}
+                      </span>
+                      {isEditing && (
+                        <button
+                          onClick={() => removeLanguage(lang)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isEditing && (
+                <div className="flex gap-2">
+                  <Input
+                    value={newLanguage}
+                    onChange={(e) => setNewLanguage(e.target.value)}
+                    placeholder="Add a language"
+                    className="bg-muted border-border"
+                    onKeyPress={(e) => e.key === "Enter" && addLanguage()}
+                  />
+                  <Button onClick={addLanguage} variant="outline">
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Account Settings */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Account Settings</CardTitle>
+            <CardDescription>Manage your account security</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {!showPasswordChange ? (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={() => setShowPasswordChange(true)}
+                >
+                  <Lock size={18} />
+                  Change Password
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">
+                      Current Password
+                    </label>
+                    <Input
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) =>
+                        setPasswordData((prev) => ({
+                          ...prev,
+                          currentPassword: e.target.value,
+                        }))
+                      }
+                      className="bg-muted border-border"
+                      placeholder="Enter current password"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">
+                      New Password
+                    </label>
+                    <Input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) =>
+                        setPasswordData((prev) => ({
+                          ...prev,
+                          newPassword: e.target.value,
+                        }))
+                      }
+                      className="bg-muted border-border"
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">
+                      Confirm New Password
+                    </label>
+                    <Input
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) =>
+                        setPasswordData((prev) => ({
+                          ...prev,
+                          confirmPassword: e.target.value,
+                        }))
+                      }
+                      className="bg-muted border-border"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleChangePassword}
+                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={passwordLoading}
+                    >
+                      <Save size={18} />
+                      {passwordLoading ? "Changing..." : "Change Password"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowPasswordChange(false);
+                        setPasswordData({
+                          currentPassword: "",
+                          newPassword: "",
+                          confirmPassword: "",
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ImageCropModal
+        imageSrc={rawAvatarSrc}
+        open={avatarCropOpen}
+        onClose={handleAvatarCropCancel}
+        onCropComplete={handleAvatarCropComplete}
+        outputFileName="avatar.jpg"
+      />
     </div>
   );
 }

@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import TouristLoader from '@/components/common/TouristLoader'
 
 interface CancelBookingModalProps {
   open: boolean
@@ -80,10 +81,7 @@ export function CancelBookingModal({ open, onOpenChange, onConfirm }: CancelBook
             disabled={isLoading || !reason.trim()}
           >
             {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cancelling...
-              </>
+              <TouristLoader inline size={16} text="Cancelling..." />
             ) : (
               'Confirm Cancellation'
             )}

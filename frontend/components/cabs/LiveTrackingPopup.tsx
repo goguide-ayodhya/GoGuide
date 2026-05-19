@@ -6,6 +6,7 @@ import { SocketContext } from "@/contexts/cabs/SocketContext";
 import { useActiveRide } from "@/contexts/ActiveRideContext";
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
+import TouristLoader from "@/components/common/TouristLoader";
 
 
 interface LiveTrackingPopupProps {
@@ -290,7 +291,7 @@ useEffect(() => {
             </div>
           ) : !isLoaded ? (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <TouristLoader text="Loading map..." />
             </div>
           ) : (
             <GoogleMap

@@ -32,6 +32,7 @@ import { useReview } from "@/contexts/ReviewContext";
 import { changePassword } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { ImageCropModal } from "@/components/common/ImageCropModal";
 
 export default function ProfilePage() {
   const { myDriver, updateDriverData } = useDriver();
@@ -80,6 +81,8 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const driverPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const licenseInputRef = useRef<HTMLInputElement | null>(null);
+  const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
   const { toast } = useToast();
 
   // Sync form as soon as driver profile is available
@@ -170,12 +173,24 @@ export default function ProfilePage() {
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      return null;
-    }
-    setSelectedImage(file);
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewImage(previewUrl);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setRawAvatarSrc(objectUrl);
+    setAvatarCropOpen(true);
+  };
+
+  const handleAvatarCropComplete = (croppedFile: File, croppedPreview: string) => {
+    if (rawAvatarSrc) URL.revokeObjectURL(rawAvatarSrc);
+    setRawAvatarSrc(null);
+    setSelectedImage(croppedFile);
+    setPreviewImage(croppedPreview);
+  };
+
+  const handleAvatarCropCancel = () => {
+    if (rawAvatarSrc) URL.revokeObjectURL(rawAvatarSrc);
+    setRawAvatarSrc(null);
+    setAvatarCropOpen(false);
   };
 
   const handleLicenseImagesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -737,6 +752,15 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+    </div>
+
+      <ImageCropModal
+        imageSrc={rawAvatarSrc}
+        open={avatarCropOpen}
+        onClose={handleAvatarCropCancel}
+        onCropComplete={handleAvatarCropComplete}
+        outputFileName="avatar.jpg"
+      />
     </div>
   );
 }

@@ -1,11 +1,12 @@
 // components/guide-profile-steps/Step1Profile.tsx
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
+import { ImageCropModal } from "@/components/common/ImageCropModal";
 
 interface Step1ProfileProps {
   bio: string;
@@ -28,27 +29,51 @@ export function Step1Profile({
   errors,
 }: Step1ProfileProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type and size
-      if (!file.type.startsWith("image/")) {
-        alert("Only images allowed");
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        return;
-      }
-      onImageChange(file);
+    // Reset input so same file can be re-selected after cancel
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Only images allowed");
+      return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File is too large. Maximum size is 10MB.");
+      return;
+    }
+    // Open crop modal with the raw image URL
+    const objectUrl = URL.createObjectURL(file);
+    setRawImageSrc(objectUrl);
+    setCropOpen(true);
+  };
+
+  const handleCropComplete = (croppedFile: File, croppedPreview: string) => {
+    // Release the raw object URL
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+    setRawImageSrc(null);
+    onImageChange(croppedFile);
+    // Pass a synthetic event-like structure isn't needed since
+    // the parent controls previewUrl; croppedPreview can also be used.
+    // The parent component generates previewUrl from the File.
+    // If parent needs the object URL we can expose it via a separate callback.
+    void croppedPreview; // consumed by parent's useEffect on profileImage change
+  };
+
+  const handleCropCancel = () => {
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+    setRawImageSrc(null);
+    setCropOpen(false);
   };
 
   const handleRemoveImage = () => {
     onImageChange(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+    setRawImageSrc(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -153,6 +178,14 @@ export function Step1Profile({
           <li>• Include languages you speak fluently</li>
         </ul>
       </div>
+
+      <ImageCropModal
+        imageSrc={rawImageSrc}
+        open={cropOpen}
+        onClose={handleCropCancel}
+        onCropComplete={handleCropComplete}
+        outputFileName="profile-photo.jpg"
+      />
     </div>
   );
 }

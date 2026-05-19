@@ -15,7 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MapPin, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { MapPin, Eye, EyeOff, AlertCircle } from "lucide-react";
+import TouristLoader from "@/components/common/TouristLoader";
 import { poppins } from "@/lib/fonts";
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
@@ -377,10 +378,7 @@ export default function GuideSignupPage() {
               className="w-full bg-primary rounded-full hover:bg-primary/90 text-white h-10 font-medium"
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
+                <TouristLoader inline size={18} text="Creating Account..." />
               ) : (
                 "Create Account"
               )}
