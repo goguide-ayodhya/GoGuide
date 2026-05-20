@@ -351,7 +351,7 @@ export default function ProfilePage() {
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DriverStatusCard driver={undefined} />
-        <DriverAvailabilityToggle driver={undefined} />
+        <DriverAvailabilityToggle />
       </div>
 
       {/* Profile Picture */}
