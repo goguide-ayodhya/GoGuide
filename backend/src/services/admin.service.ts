@@ -451,6 +451,16 @@ export class UserService {
 
     return user;
   }
+
+  async markUserAsViewed(userId: string) {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFound("User not found");
+
+    user.isViewedByAdmin = true;
+    await user.save();
+
+    return { message: "User marked as viewed", success: true };
+  }
 }
 
 export const userService = new UserService();

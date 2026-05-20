@@ -99,6 +99,15 @@ export const unverifyUserApi = async (id: string) => {
   return handleResOrError(res);
 };
 
+// Mark user as viewed
+export const markUserAsViewedApi = async (id: string) => {
+  const res = await fetch(`${base_url}admin/users/${id}/viewed`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  return handleResOrError(res);
+};
+
 // Delete
 export const deleteUserApi = async (id: string) => {
   const res = await fetch(`${base_url}admin/users/${id}`, {

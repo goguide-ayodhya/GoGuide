@@ -24,6 +24,9 @@ router.patch("/users/:id/activate", adminController.activateUser);
 // Suspend user
 router.patch("/users/:id/suspend", adminController.suspendUser);
 
+// Mark user as viewed by admin
+router.patch("/users/:id/viewed", adminController.markUserAsViewed);
+
 // Verify guide
 router.patch("/users/:id/verify", adminController.verifyUser);
 

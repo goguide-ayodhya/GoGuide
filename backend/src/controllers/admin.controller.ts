@@ -47,6 +47,11 @@ export class AdminController {
     const user = await userService.suspendUser(req.params.id, duration);
     res.json(user);
   }
+
+  async markUserAsViewed(req: AuthRequest, res: Response) {
+    const result = await userService.markUserAsViewed(req.params.id);
+    res.json(result);
+  }
 }
 
 export const adminController = new AdminController();

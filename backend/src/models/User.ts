@@ -33,6 +33,7 @@ export interface IUser extends Document {
   fcmToken?: string;
   fcmTokenUpdatedAt?: Date;
   cancellationCount?: number;
+  isViewedByAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;
 
@@ -128,6 +129,10 @@ const UserSchema = new Schema<IUser>(
     cancellationCount: {
       type: Number,
       default: 0,
+    },
+    isViewedByAdmin: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true },

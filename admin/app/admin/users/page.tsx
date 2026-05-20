@@ -22,6 +22,7 @@ import {
   verifyUserApi,
   unverifyUserApi,
   getUserDetailApi,
+  markUserAsViewedApi,
 } from "@/lib/api/admin";
 import {
   AlertDialog,
@@ -55,9 +56,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const isNewUser = (createdAt: string): boolean => {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  return new Date(createdAt) > sevenDaysAgo;
+};
+
 type AdminRole = "GUIDE" | "DRIVER" | "TOURIST" | "ADMIN";
 
 type AdminUser = {
+  isViewedByAdmin: any;
   id: string;
   name: string;
   email: string;
@@ -326,6 +334,16 @@ export default function GuidesPage() {
     setIsProfileOpen(true);
     setProfileLoading(true);
     try {
+      // Mark user as viewed by admin
+      await markUserAsViewedApi(userId);
+      
+      // Update local state to remove "New" badge immediately
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user.id === userId ? { ...user, isViewedByAdmin: true } : user
+        )
+      );
+      
       const details = await getUserDetailApi(userId);
       setSelectedUserDetails(details?.data || details);
     } catch (err) {
@@ -462,9 +480,16 @@ export default function GuidesPage() {
                         </span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {user.name}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user.name}
+                          </p>
+                          {isNewUser(user.createdAt) && !user.isViewedByAdmin && (
+                            <Badge className="bg-green-500/20 text-green-700 border-green-200 text-[10px] whitespace-nowrap">
+                              New
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                           {user.email}
                         </p>
@@ -582,7 +607,7 @@ export default function GuidesPage() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
-                      P.Completed
+                      Profile
                     </th>
                     <th className="text-left text-xs font-medium text-muted-foreground py-3">
                       Name
@@ -635,20 +660,27 @@ export default function GuidesPage() {
                         title={
                           user.isProfileComplete
                             ? "Profile complete"
-                            : `Profile step: ${user.profileStep ?? "-"}`
+                            : `Profile Not Complete`
                         }
                       >
                         <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground">
-                            {user.isProfileComplete ? "Yes" : user.profileStep ?? "-"}
+                            {user.isProfileComplete ? "Yes" : "No"}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 text-sm text-foreground">
-                        {user.name.slice(0, 7)}...
+                        <div className="flex items-center gap-2">
+                          {user.name}
+                          {isNewUser(user.createdAt) && !user.isViewedByAdmin && (
+                            <Badge className="bg-green-500/20 text-green-700 border-green-200 text-[10px] whitespace-nowrap">
+                              New
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 text-sm text-muted-foreground">
-                        {user.email}
+                        {user.email.slice(0, 12)}...
                       </td>
                       <td className="py-3 text-sm text-foreground">
                         {user.role}

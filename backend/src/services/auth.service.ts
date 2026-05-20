@@ -68,9 +68,9 @@ export class AuthService {
         );
         await Driver.create({
           userId: user._id,
-          vehicleType: "",
-          vehicleName: "",
-          vehicleNumber: "",
+          vehicleType: undefined,
+          vehicleName: undefined,
+          vehicleNumber: undefined,
           seats: 0,
           images: [],
           verificationStatus: "PENDING",
@@ -204,9 +204,9 @@ export class AuthService {
       try {
         const driverProfile = await Driver.create({
           userId: user._id,
-          vehicleType: input.vehicleType || "",
-          vehicleName: input.vehicleName || "",
-          vehicleNumber: input.vehicleNumber || "",
+          vehicleType: input.vehicleType || undefined,
+          vehicleName: input.vehicleName || undefined,
+          vehicleNumber: input.vehicleNumber || undefined,
           seats: input.seats || 0,
           images: [input.driverPhoto].filter(Boolean) as string[],
           verificationStatus: "PENDING",
@@ -224,11 +224,7 @@ export class AuthService {
           "[AUTH-SERVICE] Failed to create Driver profile:",
           driverError,
         );
-        const errorMessage =
-          driverError instanceof Error
-            ? driverError.message
-            : String(driverError);
-        throw new Error(`Failed to create driver profile: ${errorMessage}`);
+        throw new Error("Unable to create driver profile at this time. Please check your details or try again later.");
       }
     }
     const token = this.generateToken(user._id.toString(), user.email || "");
