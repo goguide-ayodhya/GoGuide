@@ -332,9 +332,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     } catch (error: unknown) {
-      if (error instanceof ApiError && error.message === "PROFILE_INCOMPLETE") {
+      if (error instanceof ApiError && (error.message === "PROFILE_INCOMPLETE" || error.message === "EMAIL_NOT_VERIFIED")) {
         console.warn(
-          "[AUTH] Profile incomplete during login, letting page handle redirect",
+          "[AUTH] Expected flow interruption during login, letting page handle redirect",
         );
       } else {
         console.error(

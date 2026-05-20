@@ -1,5 +1,5 @@
 "use client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useDriverAuthGuard } from "@/hooks/useDriverAuthGuard";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -10,7 +10,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, loading } = useDriverAuthGuard();
   const router = useRouter();
 
   useEffect(() => {

@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ImageCropModal } from "@/components/common/ImageCropModal";
 
 interface DriverStep5DocumentsProps {
   formData: {
@@ -20,8 +19,6 @@ interface DriverStep5DocumentsProps {
 export function DriverStep5Documents({ formData, errors, onChange }: DriverStep5DocumentsProps) {
   const [driverPhotoPreview, setDriverPhotoPreview] = useState<string | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
-  const [rawPhotoSrc, setRawPhotoSrc] = useState<string | null>(null);
-  const [cropOpen, setCropOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -49,21 +46,7 @@ export function DriverStep5Documents({ formData, errors, onChange }: DriverStep5
     if (photoInputRef.current) photoInputRef.current.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
-    const url = URL.createObjectURL(file);
-    setRawPhotoSrc(url);
-    setCropOpen(true);
-  };
-
-  const handleCropComplete = (croppedFile: File) => {
-    if (rawPhotoSrc) URL.revokeObjectURL(rawPhotoSrc);
-    setRawPhotoSrc(null);
-    onChange("driverPhoto", croppedFile);
-  };
-
-  const handleCropCancel = () => {
-    if (rawPhotoSrc) URL.revokeObjectURL(rawPhotoSrc);
-    setRawPhotoSrc(null);
-    setCropOpen(false);
+    onChange("driverPhoto", file);
   };
 
   return (
@@ -168,14 +151,6 @@ export function DriverStep5Documents({ formData, errors, onChange }: DriverStep5
           )}
         </div>
       </div>
-
-      <ImageCropModal
-        imageSrc={rawPhotoSrc}
-        open={cropOpen}
-        onClose={handleCropCancel}
-        onCropComplete={handleCropComplete}
-        outputFileName="driver-photo.jpg"
-      />
     </div>
   );
 }

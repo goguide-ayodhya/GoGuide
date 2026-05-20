@@ -109,11 +109,12 @@ function VerifyEmailContent() {
       });
 
       const refreshedUser = await refreshUser();
+      setSuccess(true);
+
       if (!refreshedUser) {
-        setError("Email verified, but could not refresh user. Please log in again.");
+        setTimeout(() => router.push("/login"), 1500);
         return;
       }
-      setSuccess(true);
 
       const destination = nextRedirect && nextRedirect.startsWith("/")
         ? nextRedirect
@@ -122,7 +123,9 @@ function VerifyEmailContent() {
             ? "/guide/dashboard"
             : "/guide/complete-profile"
           : refreshedUser.role === "DRIVER"
-            ? "/driver/dashboard"
+            ? refreshedUser.isProfileComplete
+              ? "/driver/dashboard"
+              : `/signup/goguide-driver?step=${refreshedUser.profileStep || 3}`
             : "/";
 
       setTimeout(() => router.push(destination), 1500);

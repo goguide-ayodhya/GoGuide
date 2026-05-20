@@ -76,7 +76,11 @@ export default function UserForm() {
       if (user.role === "GUIDE") {
         router.push("/guide/dashboard");
       } else if (user.role === "DRIVER") {
-        router.push("/driver/dashboard");
+        if (!user.isProfileComplete) {
+          router.push(`/signup/goguide-driver?step=${user.profileStep || 1}`);
+        } else {
+          router.push("/driver/dashboard");
+        }
       } else {
         router.push("/");
       }
@@ -171,7 +175,11 @@ export default function UserForm() {
       if (user.role === "GUIDE") {
         router.push("/guide/dashboard");
       } else if (user.role === "DRIVER") {
-        router.push("/driver/dashboard");
+        if (!user.isProfileComplete) {
+          router.push(`/signup/goguide-driver?step=${user.profileStep || 1}`);
+        } else {
+          router.push("/driver/dashboard");
+        }
       } else {
         router.push("/");
       }

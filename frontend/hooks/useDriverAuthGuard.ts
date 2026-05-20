@@ -29,8 +29,11 @@ export function useDriverAuthGuard() {
       // Check profile completion - only redirect if explicitly trying to access driver areas
       if (!user.isProfileComplete) {
         const currentPath = window.location.pathname;
-        if (currentPath.startsWith("/driver")) {
-          router.push("/signup/goguide-driver");
+        if (
+          currentPath.startsWith("/driver") &&
+          !currentPath.startsWith("/driver/complete-profile")
+        ) {
+          router.push(`/signup/goguide-driver?step=${user.profileStep || 1}`);
           return;
         }
       }

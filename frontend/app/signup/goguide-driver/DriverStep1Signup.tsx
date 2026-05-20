@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { Check, Eye, EyeOff } from "lucide-react";
 
 interface DriverStep1SignupProps {
   formData: {
@@ -24,6 +25,9 @@ export function DriverStep1Signup({
   loading,
   onChange,
 }: DriverStep1SignupProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const passwordStrength = {
     hasLength: formData.password.length >= 8,
     hasUpperCase: /[A-Z]/.test(formData.password),
@@ -42,7 +46,7 @@ export function DriverStep1Signup({
             </p>
           </div>
 
-          {/* <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -67,7 +71,7 @@ export function DriverStep1Signup({
               />
               {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
-          </div> */}
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -85,28 +89,48 @@ export function DriverStep1Signup({
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(event) => onChange("password", event.target.value)}
-                className={cn(errors.password ? "border-red-500" : "bg-muted")}
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(event) => onChange("password", event.target.value)}
+                  className={cn(errors.password ? "border-red-500" : "bg-muted", "pr-10")}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(event) => onChange("confirmPassword", event.target.value)}
-              className={cn(errors.confirmPassword ? "border-red-500" : "bg-muted")}
-              disabled={loading}
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={(event) => onChange("confirmPassword", event.target.value)}
+                className={cn(errors.confirmPassword ? "border-red-500" : "bg-muted", "pr-10")}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={loading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 disabled:opacity-50"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {errors.confirmPassword && (
               <p className="text-sm text-red-600">{errors.confirmPassword}</p>
             )}

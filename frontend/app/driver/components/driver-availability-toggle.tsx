@@ -1,78 +1,103 @@
 "use client";
 
-import { useState } from "react";
-import { Circle } from "lucide-react";
+import { useGuide } from "@/contexts/GuideContext";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Circle,
+  Sparkles,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
+
 import { Switch } from "@/components/ui/switch";
 import { useDriver } from "@/contexts/DriverContext";
 
-interface DriverAvailabilityToggleProps {
-  driver: any;
-}
+export function DriverAvailabilityToggle() {
+  const { myDriver, setAvailability } = useDriver();
 
-export function DriverAvailabilityToggle({ driver }: DriverAvailabilityToggleProps) {
-  const { setAvailability } = useDriver();
-  const [loading, setLoading] = useState(false);
+  if (!myDriver) return null;
 
-  if (!driver) return null;
-
-  const handleToggle = async (checked: boolean) => {
-    setLoading(true);
-    try {
-      await setAvailability(driver.id, checked);
-    } catch (error) {
-      console.error("Failed to update availability:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleToggle = (checked: boolean) => {
+    setAvailability(myDriver.id, checked);
   };
 
   return (
-    <Card className="bg-card border border-border">
-      <CardHeader>
-        <CardTitle className="text-lg">Availability Status</CardTitle>
-      </CardHeader>
+    <div
+      className={`relative overflow-hidden rounded-2xl border shadow-md transition-all duration-300
+      ${
+        myDriver.isAvailable
+          ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-100"
+          : "border-slate-200 bg-gradient-to-r from-slate-100 to-slate-200"
+      }`}
+    >
+      {/* Glow */}
+      <div
+        className={`absolute -top-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-30
+        ${
+          myDriver.isAvailable
+            ? "bg-green-400"
+            : "bg-slate-400"
+        }`}
+      />
 
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            Availability Status
-          </span>
+      <div className="relative flex items-center justify-between px-4 py-3 gap-4">
+        
+        {/* Left */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`p-2 rounded-full border
+            ${
+              myDriver.isAvailable
+                ? "bg-white border-green-200"
+                : "bg-white border-slate-300"
+            }`}
+          >
+            {myDriver.isAvailable ? (
+              <Wifi className="h-5 w-5 text-green-600" />
+            ) : (
+              <WifiOff className="h-5 w-5 text-slate-500" />
+            )}
+          </div>
 
-          <div className="flex items-center gap-2">
-            <Circle
-              size={12}
-              className={
-                driver.isAvailable
-                  ? "fill-green-500 text-green-500"
-                  : "fill-gray-500 text-gray-500"
-              }
-            />
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-sm text-slate-900">
+                {myDriver.isAvailable
+                  ? "Available for Bookings"
+                  : "Currently Offline"}
+              </p>
 
-            <span className="text-sm font-medium">
-              {driver.isAvailable ? "Available" : "Not Available"}
-            </span>
-            <Switch
-              id="driver-availability-toggle"
-              checked={driver?.isAvailable}
-              onCheckedChange={handleToggle}
-              disabled={loading}
-            />
+              <Circle
+                size={10}
+                className={
+                  myDriver.isAvailable
+                    ? "fill-green-500 text-green-500 animate-pulse"
+                    : "fill-slate-400 text-slate-400"
+                }
+              />
+            </div>
+
+            <p className="text-xs text-slate-600">
+              {myDriver.isAvailable
+                ? ""
+                : "You are hidden from new booking requests"}
+            </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Right */}
+        <div className="flex items-center gap-2">
+          {myDriver.isAvailable && (
+            <Sparkles className="h-4 w-4 text-green-600" />
+          )}
+
+          <Switch
+            id="availability-toggle"
+            className="cursor-pointer"
+            checked={myDriver?.isAvailable}
+            onCheckedChange={handleToggle}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
-//             />
-//           </div>
-//         </div>
-//       </CardContent>
-//     </Card>
-//   );
-// }

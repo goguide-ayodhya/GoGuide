@@ -134,12 +134,22 @@ function LoginPageContent(): JSX.Element {
         if (user.role === "GUIDE") {
           router.push("/guide/dashboard");
         } else if (user.role === "DRIVER") {
-          router.push("/driver/dashboard");
+          if (!user.isProfileComplete) {
+            router.push(`/signup/goguide-driver?step=${user.profileStep || 1}`);
+          } else {
+            router.push("/driver/dashboard");
+          }
         } else {
           router.push("/");
         }
       } catch (err: any) {
         const msg = err.message;
+
+        if (err.message === "EMAIL_NOT_VERIFIED") {
+          console.log("[LOGIN] Email not verified - redirecting to verify email");
+          router.push(`/verify-email?email=${identifier}`);
+          return;
+        }
 
         if (err.message === "PROFILE_INCOMPLETE") {
           const role = err.fieldErrors?.role;
@@ -148,7 +158,7 @@ function LoginPageContent(): JSX.Element {
           console.log("[LOGIN] Profile incomplete - redirecting to complete profile", { role, step });
 
           if (role === "DRIVER") {
-            router.push(`/signup/goguide-driver?step=3`);
+            router.push(`/signup/goguide-driver?step=${step}`);
           } else if (role === "GUIDE") {
             router.push(`/guide/complete-profile?step=${step}`);
           } else {

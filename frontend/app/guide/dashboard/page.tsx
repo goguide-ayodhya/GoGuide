@@ -305,25 +305,18 @@ export default function DashboardPage() {
           value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
           icon={DollarSign}
           description={`Completed: ${completedCount}, Pending: ${pendingCount}`}
-          trend={{ value: 12, label: "vs last month", positive: true }}
         />
         <StatsCard
           title="Upcoming Tours"
           value={acceptedCount}
           icon={Calendar}
           description={`${acceptedCount} accepted bookings`}
-          trend={{
-            value: acceptedCount >= 0 ? 8 : 0,
-            label: "vs last month",
-            positive: true,
-          }}
         />
         <StatsCard
           title="Average Rating"
           value={myGuide?.rating ? myGuide.rating.toFixed(1) : "0.0"}
           icon={Star}
           description={`${myGuide?.totalReviews ?? 0} reviews`}
-          trend={{ value: 2, label: "since last month", positive: true }}
         />
         <StatsCard
           title="Total Bookings"

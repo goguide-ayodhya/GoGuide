@@ -47,6 +47,7 @@ import {
   Users,
   Star,
   IndianRupee,
+  Clock3,
 } from "lucide-react";
 import { Booking } from "@/contexts/BookingsContext";
 import Link from "next/link";
@@ -55,11 +56,16 @@ import { useBooking } from "@/contexts/BookingsContext";
 import { useEarnings } from "@/contexts/EarningContext";
 import { useReview } from "@/contexts/ReviewContext";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useActiveRide } from "@/contexts/ActiveRideContext";
+import { Badge } from "@/components/ui/badge";
 import DriverAssignedSheet from "@/components/cabs/DriverAssignedSheet";
+import { useDriverAuthGuard } from "@/hooks/useDriverAuthGuard";
+import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 
 export default function DashboardPage() {
+  // Auth Guard
+  const { user, loading } = useDriverAuthGuard();
+
   const { myDriver } = useDriver();
   const earningsContext = useEarnings();
   const earnings = earningsContext?.earnings;
@@ -67,7 +73,6 @@ export default function DashboardPage() {
   const { bookings, setBookings } = useBooking();
   const { reviews, getDriverReview } = useReview();
   const { socket } = useContext(SocketContext);
-  const { user } = useAuth();
   const { activeRide, clearActiveRide, setActiveRide } = useActiveRide();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -102,7 +107,7 @@ export default function DashboardPage() {
     try {
       console.log("[DRIVER] Loading pending rides from database");
       const pendingRides = await getPendingRides();
-      
+
       // Convert ride data to booking format
       const rideBookings = pendingRides.map((rideData: any) => ({
         bookingId: rideData._id,
@@ -110,13 +115,20 @@ export default function DashboardPage() {
         id: rideData._id,
         guideId: "",
         driverId: user?.id || "",
-        touristName: rideData.user?.fullname?.firstname || rideData.user?.name || "Unknown",
+        touristName:
+          rideData.user?.fullname?.firstname ||
+          rideData.user?.name ||
+          "Unknown",
         email: rideData.user?.email || "",
         phone: rideData.user?.phone || "",
         groupSize: rideData.groupSize || 1,
         participants: rideData.groupSize || 1,
-        bookingDate: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
-        date: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        bookingDate:
+          rideData.bookingDate ||
+          new Date(rideData.createdAt).toISOString().split("T")[0],
+        date:
+          rideData.bookingDate ||
+          new Date(rideData.createdAt).toISOString().split("T")[0],
         startTime: rideData.startTime || "09:00",
         bookingType: "DRIVER" as const,
         tourType: rideData.tourType || "City Tour",
@@ -146,12 +158,16 @@ export default function DashboardPage() {
       }));
 
       setBookings((prev) => {
-        const existingIds = new Set(prev.map(b => b.id));
-        const newBookings = rideBookings.filter((b: { id: string; }) => !existingIds.has(b.id));
+        const existingIds = new Set(prev.map((b) => b.id));
+        const newBookings = rideBookings.filter(
+          (b: { id: string }) => !existingIds.has(b.id),
+        );
         return [...newBookings, ...prev];
       });
 
-      console.log(`[DRIVER] Loaded ${rideBookings.length} pending rides from database`);
+      console.log(
+        `[DRIVER] Loaded ${rideBookings.length} pending rides from database`,
+      );
     } catch (error) {
       console.error("[DRIVER] Error loading pending rides:", error);
     }
@@ -163,11 +179,11 @@ export default function DashboardPage() {
         console.log(`[DRIVER] Accepting ride ${bookingId}`);
         const rideData = await confirmRide(bookingId);
         console.log(`[DRIVER] Successfully accepted ride ${bookingId}`);
-        
+
         // Remove from pending bookings and show active ride sheet
         setBookings((prev) => prev.filter((b) => b.id !== bookingId));
         setShowActiveRideSheet(true);
-        
+
         // Set active ride in context
         if (rideData) {
           // Convert to active ride format
@@ -239,7 +255,7 @@ export default function DashboardPage() {
     // Handle new ride requests
     const handleNewRide = (rideData: any) => {
       console.log("[DRIVER] New ride request received:", rideData);
-      
+
       // Convert ride data to booking format and add to bookings list
       const newBooking: Booking = {
         bookingId: rideData._id,
@@ -252,8 +268,12 @@ export default function DashboardPage() {
         phone: rideData.user?.phone || "",
         groupSize: rideData.groupSize || 1,
         participants: rideData.groupSize || 1,
-        bookingDate: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
-        date: rideData.bookingDate || new Date(rideData.createdAt).toISOString().split('T')[0],
+        bookingDate:
+          rideData.bookingDate ||
+          new Date(rideData.createdAt).toISOString().split("T")[0],
+        date:
+          rideData.bookingDate ||
+          new Date(rideData.createdAt).toISOString().split("T")[0],
         startTime: rideData.startTime || "09:00",
         bookingType: "DRIVER" as const,
         tourType: rideData.tourType || "City Tour",
@@ -307,7 +327,7 @@ export default function DashboardPage() {
       // Remove from pending bookings and show active ride
       setBookings((prev) => prev.filter((b) => b.id !== data.rideId));
       setShowActiveRideSheet(true);
-      
+
       // ActiveRideContext will handle setting the active ride data
       // No need to manually set here since context handles it
     };
@@ -325,29 +345,46 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
+
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Driver Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back! Here's your ride and earnings overview.
+        <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-xl text-secondary md:text-3xl font-bold text-foreground flex items-center gap-3">
+            {myDriver?.name}
+            {myDriver?.verificationStatus === "VERIFIED" ? (
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                VERIFIED
+              </Badge>
+            ) : (
+              <Badge>UNVERIFIED</Badge>
+            )}
+          </h1>
+          <DriverAvailabilityToggle />
+        </div>
+
+        <p className="text-muted-foreground text-sm mt-2">
+          Dear, Best of Luck from <b className="text-secondary">GoGuide</b>{" "}
+          Team{" "}
         </p>
       </div>
 
-      {/* Not Available Alert */}
-      {myDriver && !myDriver.isAvailable && (
-        <Alert className="border-amber-500/50 bg-amber-500/10">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-700">
-            You are currently not accepting new rides. Toggle your availability
-            status to start receiving new ride requests.
+      {/* Verification Status Alert */}
+      {myDriver?.verificationStatus !== "VERIFIED" && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <Clock3 className="h-4 w-4 text-orange-600" />
+
+          <AlertDescription className="text-orange-800">
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold">
+                Your ID verification is under review
+              </p>
+
+              <p className="text-sm">
+                Our team is reviewing your documents. You will be verified soon.
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}
-
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DriverStatusCard driver={myDriver} />
-        <DriverAvailabilityToggle driver={myDriver} />
-      </div>
 
       {/* New Rides Section */}
       {bookings.length > 0 && (
@@ -376,12 +413,12 @@ export default function DashboardPage() {
                           {booking.tourType}
                         </p>
                       </div>
-                    <div className="text-right flex items-center justify-end gap-1 whitespace-nowrap">
-  <IndianRupee className="w-3 h-3 shrink-0" />
-  <p className="text-sm font-medium">
-    {booking.totalPrice}
-  </p>
-</div>
+                      <div className="text-right flex items-center justify-end gap-1 whitespace-nowrap">
+                        <IndianRupee className="w-3 h-3 shrink-0" />
+                        <p className="text-sm font-medium">
+                          {booking.totalPrice}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="flex gap-4 text-sm text-muted-foreground">

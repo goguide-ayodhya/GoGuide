@@ -752,8 +752,8 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
-
+    
+    
       <ImageCropModal
         imageSrc={rawAvatarSrc}
         open={avatarCropOpen}

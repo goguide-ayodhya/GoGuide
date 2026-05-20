@@ -65,6 +65,7 @@ export function DriverStep4Vehicle({ formData, errors, onChange }: DriverStep4Ve
           <Input
             id="vehicleNumber"
             value={formData.vehicleNumber}
+            placeholder="UP42XY1234"
             onChange={(event) => onChange("vehicleNumber", event.target.value.toUpperCase())}
             className={cn(errors.vehicleNumber ? "border-red-500" : "bg-muted")}
           />

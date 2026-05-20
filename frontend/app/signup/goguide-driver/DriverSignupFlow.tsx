@@ -12,6 +12,7 @@ import {
   createDriverProfile,
   getMyDriverProfile,
 } from "@/lib/api/driver";
+import { updateProfile as updateSettingProfile } from "@/lib/api/settings";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -181,25 +182,24 @@ function DriverSignupFlowContent() {
       }));
 
       // Enhanced step recovery logic
-      if (user.isEmailVerified) {
-        let targetStep = 3; // Default to personal details
+      let targetStep = 1;
+      if (user.profileStep) {
+        targetStep = user.profileStep;
+      } else if (user.isEmailVerified) {
+        targetStep = 3;
+      }
 
-        if (user.profileStep) {
-          targetStep = user.profileStep;
-        }
+      // If profile is complete, redirect to dashboard
+      if (user.isProfileComplete) {
+        console.log("[ONBOARDING] Profile already complete, redirecting to dashboard");
+        router.push("/driver/dashboard");
+        return;
+      }
 
-        // If profile is complete, redirect to dashboard
-        if (user.isProfileComplete) {
-          console.log("[ONBOARDING] Profile already complete, redirecting to dashboard");
-          router.push("/driver/dashboard");
-          return;
-        }
-
-        // Ensure we don't go backwards
-        if (targetStep > currentStep) {
-          console.log("[ONBOARDING] Advancing to step:", targetStep);
-          setCurrentStep(targetStep);
-        }
+      // Ensure we don't go backwards
+      if (targetStep > currentStep) {
+        console.log("[ONBOARDING] Advancing to step:", targetStep);
+        setCurrentStep(targetStep);
       }
 
       setInitialSyncDone(true);
@@ -228,6 +228,25 @@ function DriverSignupFlowContent() {
       },
     });
   }, [currentStep, formData]);
+
+  useEffect(() => {
+    const syncStepWithBackend = async () => {
+      if (isLoggedIn && user) {
+        if (currentStep > (user.profileStep || 1)) {
+          try {
+            console.log(`[ONBOARDING] Syncing profileStep ${currentStep} to backend...`);
+            await updateSettingProfile({ profileStep: currentStep });
+            await refreshUser();
+            console.log("[ONBOARDING] Successfully synced profileStep to backend.");
+          } catch (err) {
+            console.warn("[ONBOARDING] Failed to sync profileStep to backend:", err);
+          }
+        }
+      }
+    };
+
+    syncStepWithBackend();
+  }, [currentStep, isLoggedIn, user?.profileStep, refreshUser]);
 
   const progressValue = useMemo(
     () => Math.round((currentStep / STEPS.length) * 100),
@@ -532,17 +551,13 @@ function DriverSignupFlowContent() {
     setSuccessMessage("");
 
     try {
-      console.log("🚀 [ONBOARDING] Starting final profile completion");
-      console.log("🚀 [ONBOARDING] Token before API call:", localStorage.getItem("token")?.substring(0, 20) + "...");
-      console.log("🚀 [ONBOARDING] User before completion:", user);
-
       const form = new FormData();
 
       const driverName = formData.signup?.name?.trim();
       if (!driverName) throw new Error("Driver name required");
 
       let vehicleType = formData.vehicle.vehicleType.trim().toUpperCase();
-      if (vehicleType === "CAB") vehicleType = "CAR";
+      if (vehicleType === "CAB") vehicleType = "CAB";
       if (!vehicleType) throw new Error("Vehicle type required");
 
       const seatsValue = Number(formData.vehicle.seats);
@@ -565,7 +580,7 @@ function DriverSignupFlowContent() {
       const email = formData.signup.email.trim();
 
       const finalPayload = {
-        driverName,
+        // driverName,
         vehicleType,
         vehicleName,
         vehicleNumber,
