@@ -16,6 +16,8 @@ export interface IGuide extends Document {
   averageRating: number;
   totalReviews: number;
   isAvailable: boolean;
+  isDeleted?: boolean;
+  isActive?: boolean;
 
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
   createdAt: Date;
@@ -70,8 +72,16 @@ const GuideSchema = new Schema<IGuide>(
     isAvailable: {
       type: Boolean,
       default: false,
+    },    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
-    // isOnline: {
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },    // isOnline: {
     //   type: Boolean,
     //   default: false,
     // },

@@ -13,7 +13,9 @@ export class DashboardService {
     });
 
     const totalGuides = await Guide.countDocuments({
-      verificationStatus: "VERIFIED"
+      verificationStatus: "VERIFIED",
+      isDeleted: { $ne: true },
+      isActive: true,
     });
 
     const totalBookings = await Booking.countDocuments();
@@ -23,6 +25,8 @@ export class DashboardService {
     // Get unique cities from guides
     const uniqueCities = await Guide.distinct("city", {
       verificationStatus: "VERIFIED",
+      isDeleted: { $ne: true },
+      isActive: true,
       city: { $exists: true, $ne: null }
     });
 
@@ -47,7 +51,8 @@ export class DashboardService {
 
     const totalGuides = await Guide.countDocuments({
       verificationStatus: "VERIFIED",
-      ...dateFilter
+      isDeleted: { $ne: true },
+      isActive: true,
     });
 
     const totalBookings = await Booking.countDocuments(dateFilter);
@@ -83,6 +88,8 @@ export class DashboardService {
     const activeGuides = await Guide.countDocuments({
       verificationStatus: "VERIFIED",
       isAvailable: true,
+      isDeleted: { $ne: true },
+      isActive: true,
       ...dateFilter
     });
 
@@ -123,7 +130,11 @@ export class DashboardService {
   }
 
   async getRecentGuides(limit = 10) {
-    const guides = await Guide.find({ verificationStatus: "VERIFIED" })
+    const guides = await Guide.find({
+      verificationStatus: "VERIFIED",
+      isDeleted: { $ne: true },
+      isActive: true,
+    })
       .populate('userId', 'name email phone')
       .select('specialities yearsOfExperience createdAt')
       .sort({ createdAt: -1 })
@@ -160,7 +171,11 @@ export class DashboardService {
   }
 
   async getPendingGuides(limit = 10) {
-    const guides = await Guide.find({ verificationStatus: "PENDING" })
+    const guides = await Guide.find({
+      verificationStatus: "PENDING",
+      isDeleted: { $ne: true },
+      isActive: true,
+    })
       .populate('userId', 'name email phone')
       .select('specialities yearsOfExperience bio createdAt')
       .sort({ createdAt: -1 })

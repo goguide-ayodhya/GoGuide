@@ -41,7 +41,9 @@ export const createRide = async (req: AuthRequest, res: Response) => {
         // Get all active verified drivers
         const activeDrivers = await Driver.find({
             isAvailable: true,
-            verificationStatus: "VERIFIED"
+            verificationStatus: "VERIFIED",
+            isDeleted: { $ne: true },
+            isActive: { $ne: false },
         }).populate('userId');
 
         // Prepare ride data for socket
@@ -174,7 +176,9 @@ export const confirmRide = async (req: AuthRequest, res: Response) => {
         // Send ride-accepted event to all drivers to remove from their pending list
         const allActiveDrivers = await Driver.find({
             isAvailable: true,
-            verificationStatus: "VERIFIED"
+            verificationStatus: "VERIFIED",
+            isDeleted: { $ne: true },
+            isActive: { $ne: false },
         }).populate('userId');
 
         // Send to the accepting driver

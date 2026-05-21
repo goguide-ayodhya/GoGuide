@@ -349,11 +349,27 @@ export class UserService {
     // Update related models
     if (user.role === "GUIDE") {
       const { Guide } = await import("../models/Guide");
-      await Guide.findOneAndUpdate({ userId: user._id }, { isAvailable: false, verificationStatus: "REJECTED" });
+      await Guide.findOneAndUpdate(
+        { userId: user._id },
+        {
+          isDeleted: true,
+          isActive: false,
+          isAvailable: false,
+          verificationStatus: "REJECTED",
+        }
+      );
     }
     if (user.role === "DRIVER") {
       const { Driver } = await import("../models/Driver");
-      await Driver.findOneAndUpdate({ userId: user._id }, { isAvailable: false, verificationStatus: "REJECTED" });
+      await Driver.findOneAndUpdate(
+        { userId: user._id },
+        {
+          isDeleted: true,
+          isActive: false,
+          isAvailable: false,
+          verificationStatus: "REJECTED",
+        }
+      );
     }
 
     try {

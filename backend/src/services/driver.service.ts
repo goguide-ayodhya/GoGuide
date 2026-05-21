@@ -32,11 +32,15 @@ export class DriverService {
     const query: any = {
       verificationStatus: "VERIFIED",
       isAvailable: true,
+      isDeleted: { $ne: true },
+      isActive: { $ne: false },
     };
 
     if (filters?.all) {
       delete query.verificationStatus;
       delete query.isAvailable;
+      delete query.isDeleted;
+      delete query.isActive;
     }
 
     const drivers = await Driver.find(query)
@@ -47,7 +51,9 @@ export class DriverService {
   }
 
   async getAllDriversForAdmin() {
-    const drivers = await Driver.find({})
+    const drivers = await Driver.find({
+      isDeleted: { $ne: true },
+    })
       .populate("userId", "name avatar email phone")
       .sort({ createdAt: -1 });
 

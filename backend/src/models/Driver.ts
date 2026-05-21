@@ -20,6 +20,8 @@ export interface IDriver extends Document {
   driverLicenseImage?: string[];
 
   isAvailable?: boolean;
+  isDeleted?: boolean;
+  isActive?: boolean;
   languages?: string[];
 
   averageRating: number;
@@ -70,6 +72,16 @@ const DriverSchema = new Schema<IDriver>(
     isAvailable: {
       type: Boolean,
       default: true,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
 
     currentLocation: {

@@ -9,6 +9,8 @@ export class GuideService {
   async getAllGuides(filters?: { speciality?: string; minRating?: number }) {
     const query: any = {
       verificationStatus: "VERIFIED",
+      isDeleted: { $ne: true },
+      isActive: true,
     };
 
     if (filters?.speciality) {
@@ -27,6 +29,8 @@ export class GuideService {
     // 1. userId exists (not null/undefined)
     // 2. userId.status is ACTIVE
     // 3. verificationStatus is VERIFIED (already in query)
+    // 4. isDeleted is not true (already in query)
+    // 5. isActive is true (already in query)
     return guides.filter((g: any) => {
       return g.userId && g.userId.status === "ACTIVE";
     });
