@@ -199,6 +199,11 @@ export default function TourPackagesPage() {
                       <div className="absolute top-3 left-3 bg-white/90 rounded-full px-3 py-1 flex items-center gap-2 text-sm font-semibold">
                         <Percent className="w-4 h-4 text-rose-500" />
                         <span className="text-rose-600">{p.discount}%</span>
+                        <div>
+                          <div className="bg-black/70 text-white rounded-full px-2 py-1 text-xs font-semibold backdrop-blur-sm">
+                            {p.soldCount ?? 0} sold
+                          </div>
+                        </div>
                       </div>
                     ) : null}
                     <div className="absolute top-3 right-3 flex gap-2">
@@ -216,6 +221,7 @@ export default function TourPackagesPage() {
                       </button>
                     </div>
                   </div>
+
                   <div className="p-4">
                     <h3 className="font-semibold text-lg mb-1">{p.title}</h3>
                     <p className="text-sm text-muted-foreground mb-2">

@@ -53,7 +53,7 @@ export const DriverProvider = ({ children }: any) => {
     email: driver.userId?.email || driver.email || "",
     avatar: driver.userId?.avatar || driver.avatar || "",
     phone: driver.userId?.phone || driver.phone || "",
-    vehicleType: driver.vehicleType || "CAR",
+    vehicleType: driver.vehicleType || (driver.userId?.isProfileComplete ? "CAR" : ""),
     vehicleName: driver.vehicleName || "",
     vehicleNumber: driver.vehicleNumber || "",
     pricePerKm: driver.pricePerKm || 0,

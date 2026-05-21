@@ -9,16 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Car, IndianRupee, Save } from "lucide-react";
+import { Car } from "lucide-react";
 import {
   getAllCabsApi,
-  getCabPricingApi,
-  updateCabPricingApi,
 } from "@/lib/api/admin";
-import { cancelCab } from "@/lib/api/driver";
 
 type Cab = {
   _id?: string;
@@ -34,13 +28,8 @@ type Cab = {
   status: "available" | "busy" | "offline";
 };
 
-type CabPricing = {
-  baseFare: number;
-  pricePerKm: number;
-};
-
 const vehicleTypeMap: Record<string, string> = {
-  CAR: "Car",
+  CAB: "CAB",
   BIKE: "Bike",
   AUTO: "Auto",
   RIKSHAW: "Rikshaw",
@@ -61,10 +50,8 @@ const convertApiCabToUi = (apiCab: any): Cab => {
     vehicleType:
       vehicleTypeMap[apiCab.vehicleType] ||
       apiCab.vehicleType ||
-      apiCab.vehicleName ||
-      "Sedan",
-    vehicleNumber:
-      apiCab.vehicleNumber || apiCab.vehicleName || "N/A",
+      "N/A",
+    vehicleNumber: apiCab.vehicleNumber || apiCab.vehicleName || "N/A",
     phone: apiCab.userId?.phone || apiCab.phone || "N/A",
     status: status as "available" | "busy" | "offline",
   };
@@ -74,12 +61,6 @@ export default function CabsPage() {
   const [cabs, setCabs] = useState<Cab[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pricing, setPricing] = useState<CabPricing>({
-    baseFare: 0,
-    pricePerKm: 0,
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [savingError, setSavingError] = useState<string | null>(null);
 
   // Fetch cabs and pricing on component mount
   useEffect(() => {
@@ -100,22 +81,10 @@ export default function CabsPage() {
           setCabs([]);
           setError(cabErr?.message || "Failed to fetch cabs");
         }
-
-        // Fetch pricing
-        try {
-          const pricingData = await getCabPricingApi();
-          if (pricingData?.baseFare && pricingData?.pricePerKm) {
-            setPricing(pricingData);
-          }
-        } catch (pricingErr: any) {
-          console.error("Failed to fetch pricing:", pricingErr);
-          setPricing({ baseFare: 0, pricePerKm: 0 });
-        }
       } catch (err: any) {
         console.error("Failed to fetch cab data:", err);
         setError(err.message || "Failed to load cab data");
         setCabs([]);
-        setPricing({ baseFare: 0, pricePerKm: 0 });
       } finally {
         setLoading(false);
       }
@@ -123,46 +92,6 @@ export default function CabsPage() {
 
     fetchData();
   }, []);
-
-  const handlePricingChange = (field: keyof CabPricing, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setPricing((prev) => ({ ...prev, [field]: numValue }));
-  };
-
-  const savePricing = async () => {
-    try {
-      setIsSaving(true);
-      setSavingError(null);
-      await updateCabPricingApi(pricing);
-      // Show success feedback
-      setTimeout(() => {
-        setIsSaving(false);
-      }, 500);
-    } catch (err: any) {
-      console.error("Failed to save pricing:", err);
-      setSavingError(err.message || "Failed to save pricing");
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancelCab = async (cabId?: string) => {
-    if (!cabId) return;
-    try {
-      setLoading(true);
-      await cancelCab(cabId);
-      // refresh list
-      const data = await getAllCabsApi();
-      const uiCabs = (Array.isArray(data) ? data : data?.data || []).map(
-        (cab: any) => convertApiCabToUi(cab),
-      );
-      setCabs(uiCabs);
-    } catch (err: any) {
-      console.error("Failed to cancel cab:", err);
-      setError(err?.message || "Failed to cancel cab");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -227,71 +156,6 @@ export default function CabsPage() {
 
       {!loading && (
         <>
-          {/* Pricing Section */}
-          <Card className="border-border">
-            <CardHeader className="pb-2 sm:pb-4">
-              <CardTitle className="text-sm sm:text-base">
-                Cab Pricing
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                Set the base fare and per kilometer pricing for cab services.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {savingError && (
-                <div className="p-3 mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs sm:text-sm">
-                  {savingError}
-                </div>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="baseFare" className="text-xs sm:text-sm">
-                    Base Fare
-                  </Label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="baseFare"
-                      type="number"
-                      value={pricing.baseFare}
-                      onChange={(e) =>
-                        handlePricingChange("baseFare", e.target.value)
-                      }
-                      className="pl-10 h-11"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pricePerKm" className="text-xs sm:text-sm">
-                    Price per KM
-                  </Label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="pricePerKm"
-                      type="number"
-                      value={pricing.pricePerKm}
-                      onChange={(e) =>
-                        handlePricingChange("pricePerKm", e.target.value)
-                      }
-                      className="pl-10 h-11"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-end sm:col-span-2 lg:col-span-1">
-                  <Button
-                    onClick={savePricing}
-                    disabled={isSaving}
-                    className="w-full h-11"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {isSaving ? "Saving..." : "Save Pricing"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Cabs - Mobile Cards / Desktop Table */}
           <Card className="border-border">
             <CardHeader className="pb-2 sm:pb-4">
@@ -342,15 +206,6 @@ export default function CabsPage() {
                         <span className="text-muted-foreground">Phone:</span>
                         <span className="text-foreground">{cab.phone}</span>
                       </div>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleCancelCab(cab.id || cab._id)}
-                      >
-                        Cancel Cab
-                      </Button>
                     </div>
                   </div>
                 ))}
@@ -412,17 +267,6 @@ export default function CabsPage() {
                           {cab.phone}
                         </td>
                         <td className="py-3">{getStatusBadge(cab.status)}</td>
-                        <td className="py-3">
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleCancelCab(cab.id || cab._id)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </td>
                       </tr>
                     ))}
                   </tbody>

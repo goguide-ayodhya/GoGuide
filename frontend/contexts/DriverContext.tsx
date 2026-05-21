@@ -16,7 +16,7 @@ export type Driver = {
   avatar?: string;
   phone?: string;
   bio?: string;
-  vehicleType?: "CAR" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
+  vehicleType?: "CAB" | "BIKE" | "AUTO" | "RIKSHAW" | "VAN" | "OTHER";
   vehicleName?: string;
   vehicleNumber?: string;
   seats?: number;
@@ -69,7 +69,7 @@ export const DriverProvider = ({ children }: any) => {
       avatar: driver.userId?.avatar || driver.driverPhoto || driver.avatar || "",
       phone: driver.userId?.phone || driver.phone || "",
       bio: driver.userId?.bio || driver.bio || "",
-      vehicleType: driver.vehicleType || "CAR",
+      vehicleType: driver.vehicleType || (driver.userId?.isProfileComplete ? "CAR" : ""),
       vehicleName: driver.vehicleName || "",
       vehicleNumber: driver.vehicleNumber || "",
       seats: driver.seats || 4,

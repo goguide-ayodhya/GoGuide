@@ -100,9 +100,9 @@ export class DriverController {
       // Create fallback driver profile
       const fallbackDriver = await Driver.create({
         userId: user._id,
-        vehicleType: "",
-        vehicleName: "",
-        vehicleNumber: "",
+        vehicleType: undefined,
+        vehicleName: undefined,
+        vehicleNumber: undefined,
         seats: 0,
         images: [],
         verificationStatus: "PENDING",

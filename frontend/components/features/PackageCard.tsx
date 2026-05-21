@@ -108,9 +108,11 @@ export function PackageCard({ pkg }: PackageCardProps) {
 
           <div className="flex items-center gap-2">
             {/* Sold count */}
-            <div className="bg-black/70 text-white rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-              {pkg.soldCount ?? 0} sold
-            </div>
+            {(pkg.soldCount ?? 0) > 5 && (
+              <div className="bg-black/70 text-white rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+                {pkg.soldCount} sold
+              </div>
+            )}
 
             {/* Popular */}
             {(pkg.soldCount ?? 0) > 10 && (
@@ -138,7 +140,17 @@ export function PackageCard({ pkg }: PackageCardProps) {
         <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
           <MapPin className="w-4 h-4 text-orange-600 flex-shrink-0" />
           <span className="truncate">
-            {pkg.locations?.[0] || "Locations not mentioned"}....
+            {pkg.locations.length
+              ? pkg.locations.map((loc: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-slate-100 rounded-full text-sm"
+                  >
+                    {" "}
+                    {loc}
+                  </span>
+                ))
+              : "Locations not mentioned"}
           </span>
         </div>
 

@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { poppins } from "@/lib/fonts";
+import TouristLoader from "@/components/common/TouristLoader";
 
 type SortOption = "popular" | "price-low" | "price-high" | "duration";
 
@@ -203,9 +204,7 @@ export default function PackagesPage() {
           {/* Packages Grid */}
           <section className="space-y-6">
             {loading ? (
-              <div className="rounded-2xl border border-slate-200 bg-white/95 p-10 text-center shadow-lg shadow-slate-200/30">
-                <p className="text-base text-slate-600">Loading packages...</p>
-              </div>
+              <TouristLoader fullScreen text="Loading Packages" />
             ) : sortedPackages.length > 0 ? (
               <>
                 <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg shadow-slate-200/40">

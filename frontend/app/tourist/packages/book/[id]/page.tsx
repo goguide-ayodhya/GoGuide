@@ -274,14 +274,7 @@ export default function PackageBookingPage() {
                         {pkg.title}
                       </h3>
 
-                      <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-                        <MapPin className="h-4 w-4 text-orange-600" />
-                        <span>
-                          <span>{pkg.locations?.[0] || "Not specified"}</span>
-                        </span>
-                      </div>
-
-                      {/* Duration & Days */}
+                     {/* Duration & Days */}
                       <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className={`rounded-2xl border ${styles.box} p-3`}>
                           <p className="text-xs uppercase tracking-[0.15em] text-slate-500 font-semibold">
