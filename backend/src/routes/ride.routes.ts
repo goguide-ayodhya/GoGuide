@@ -44,10 +44,42 @@ router.post('/end-ride',
     rideController.endRide
 );
 
+router.post('/confirm-payment',
+    authenticate,
+    authorize(['TOURIST']),
+    body('rideId').isMongoId().withMessage('Invalid ride id'),
+    body('paymentMethod').isString().isIn(['cash', 'card', 'wallet']).withMessage('Invalid payment method'),
+    rideController.confirmPayment
+);
+
 router.get('/pending-rides',
     authenticate,
     authorize(['DRIVER']),
     rideController.getPendingRides
+);
+
+router.get('/active',
+    authenticate,
+    authorize(['TOURIST', 'DRIVER']),
+    rideController.getActiveRide
+);
+
+router.post('/submit-review',
+    authenticate,
+    authorize(['TOURIST']),
+    body('rideId').isMongoId().withMessage('Invalid ride id'),
+    body('rating').isInt({min: 0, max: 5}).withMessage('Rating must be between 0 and 5'),
+    body('text').isString().trim().optional().withMessage('Review text must be a string'),
+    body('skip').isBoolean().optional().withMessage('Skip must be a boolean'),
+    rideController.submitReview
+);
+
+// [RIDE_STATE_MACHINE] Cancel ride — only allowed in pending/accepted status
+router.post('/cancel',
+    authenticate,
+    authorize(['TOURIST']),
+    body('rideId').isMongoId().withMessage('Invalid ride id'),
+    rideController.cancelRide
 );
 
 export default router;

@@ -1,6 +1,8 @@
 "use client";
 import { SetStateAction, useState, useEffect } from "react";
 import { getPublicStats } from "@/lib/api/adminDashboard";
+import { Header } from "@/components/common/Header";
+import { Footer } from "@/components/common/Footer";
 
 export default function AboutUs() {
   const [open, setOpen] = useState<number | null>(null);
@@ -34,6 +36,7 @@ export default function AboutUs() {
 
   return (
     <div className="px-6 md:px-16 py-16 space-y-16">
+      <Header />
 
       {/* HERO */}
       <section className="text-center space-y-4">
@@ -133,6 +136,8 @@ export default function AboutUs() {
           Explore Now
         </button>
       </section>
+
+      <Footer />
 
     </div>
   );

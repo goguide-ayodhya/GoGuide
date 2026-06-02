@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import * as rideService from '../services/ride.service';
 import * as mapService from '../services/maps.service';
+import { driverCommissionService } from '../services/driverCommission.service';
 import { sendMessageToSocketId } from '../socket';
 import { Ride } from '../models/Ride';
 import { AuthRequest } from '../middleware/auth';
@@ -276,17 +277,136 @@ export const endRide = async (req: AuthRequest, res: Response) => {
 
         const ride = await rideService.endRide({ rideId, driver });
 
+        console.log("[RIDE CONTROLLER] Ride ended with distance and duration:", {
+          distance: ride.distance,
+          duration: ride.duration,
+          status: ride.status,
+        });
+
         const user = await User.findById(ride.user);
 
         if (user && user.socketId) {
             sendMessageToSocketId(user.socketId, {
-                event: 'ride-ended',
+                event: 'ride-payment-pending',
                 data: ride
             });
         }
 
         return res.status(200).json(ride);
     } catch (err: any) {
+        return res.status(500).json({ message: err.message });
+    }
+};
+
+export const confirmPayment = async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { rideId, paymentMethod } = req.body;
+
+    try {
+        const ride = await Ride.findById(rideId);
+
+        if (!ride) {
+            console.error(`[PAYMENT_CONFIRM] Ride not found: ${rideId}`);
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        console.log(`[PAYMENT_STATUS] DB status before update for ride ${rideId}: status=${ride.status}, paymentStatus=${ride.paymentStatus}`);
+
+        if (ride.status !== 'payment_pending') {
+            console.warn(`[PAYMENT_CONFIRM] Ride ${rideId} is not in payment_pending state (current: ${ride.status})`);
+            return res.status(400).json({ message: 'Ride is not waiting for payment' });
+        }
+
+        // Update ride to completed and mark payment as paid
+        ride.status = 'completed';
+        ride.paymentStatus = 'paid';
+        ride.paymentMethod = paymentMethod;
+        ride.paymentConfirmedAt = new Date();
+        await ride.save();
+
+        console.log(`[PAYMENT_STATUS] DB status after update for ride ${rideId}: status=${ride.status}, paymentStatus=${ride.paymentStatus}, paymentMethod=${ride.paymentMethod}`);
+
+        // Fetch fully populated ride object to avoid any partial population issues
+        const populatedRide = await Ride.findById(rideId)
+            .populate('user')
+            .populate({
+                path: 'driver',
+                populate: {
+                    path: 'userId',
+                    model: 'User',
+                }
+            });
+
+        if (!populatedRide) {
+            console.error(`[PAYMENT_CONFIRM] Failed to reload populated ride ${rideId}`);
+            return res.status(500).json({ message: 'Error reloading populated ride' });
+        }
+
+        const driver = populatedRide.driver as any;
+        if (!driver) {
+            console.warn(`[PAYMENT] No driver associated with ride ${rideId}`);
+            return res.status(500).json({ message: 'No driver associated with ride' });
+        }
+
+        // Generate driver earnings - call addDriverEarning
+        const { driverCommissionService } = require('../services/driverCommission.service');
+        try {
+            await driverCommissionService.addDriverEarning(
+                driver._id.toString(),
+                populatedRide.fare,
+                rideId
+            );
+            console.log(`[PAYMENT] Driver earnings generated for ride ${rideId}`);
+        } catch (earnErr: any) {
+            console.error(`[PAYMENT] Error generating driver earnings: ${earnErr.message}`);
+        }
+
+        // Prepare updated ride object for socket emission
+        const updatedRide = populatedRide.toObject ? populatedRide.toObject() : populatedRide;
+        console.log(`[SOCKET_SYNC] Emitting payment-confirmed payload:`, JSON.stringify({
+            rideId: updatedRide._id || updatedRide.id,
+            status: updatedRide.status,
+            paymentStatus: updatedRide.paymentStatus,
+            paymentMethod: updatedRide.paymentMethod,
+            pickup: updatedRide.pickup,
+            fare: updatedRide.fare
+        }));
+
+        // Notify driver that payment is confirmed
+        const driverUser = driver.userId;
+        if (driverUser && driverUser.socketId) {
+            console.log(`[SOCKET_SYNC] Sending payment-confirmed to driver ${driver._id} at socket ${driverUser.socketId}`);
+            sendMessageToSocketId(driverUser.socketId, {
+                event: 'payment-confirmed',
+                data: updatedRide
+            });
+        } else {
+            console.warn(`[SOCKET_SYNC] Driver user socket ID not found for driver ${driver._id}`);
+        }
+
+        // Notify user with same event for consistency
+        const touristUser = populatedRide.user as any;
+        if (touristUser && touristUser.socketId) {
+            console.log(`[SOCKET_SYNC] Sending payment-confirmed to tourist ${touristUser._id} at socket ${touristUser.socketId}`);
+            sendMessageToSocketId(touristUser.socketId, {
+                event: 'payment-confirmed',
+                data: updatedRide
+            });
+        } else {
+            console.warn(`[SOCKET_SYNC] Tourist socket ID not found for user ${populatedRide.user}`);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Payment confirmed and ride completed',
+            data: updatedRide
+        });
+    } catch (err: any) {
+        console.error('[PAYMENT] Error confirming payment:', err);
         return res.status(500).json({ message: err.message });
     }
 };
@@ -334,6 +454,250 @@ export const getPendingRides = async (req: AuthRequest, res: Response) => {
         return res.status(200).json(filteredRides);
     } catch (err: any) {
         console.error('[RIDE] Error fetching pending rides:', err);
+        return res.status(500).json({ message: err.message });
+    }
+};
+
+export const getActiveRide = async (req: AuthRequest, res: Response) => {
+    try {
+        console.log(`[ACTIVE_RIDE_RESTORE] Fetching active ride for user ${req.userId}`);
+        
+        // Check if user is a driver or tourist
+        const driver = await Driver.findOne({ userId: req.userId });
+        const isDriver = !!driver;
+
+        let activeRide = null;
+
+        if (isDriver) {
+            // Driver: look for rides where driver is assigned and status is not completed/cancelled
+            console.log(`[ACTIVE_RIDE_RESTORE] Checking for active driver rides`);
+            activeRide = await Ride.findOne({
+                driver: driver._id,
+                status: { $in: ['accepted', 'ongoing', 'payment_pending'] }
+            })
+                .populate('user')
+                .populate({
+                    path: 'driver',
+                    populate: {
+                        path: 'userId',
+                        model: 'User',
+                    }
+                })
+                .select('+otp')
+                .sort({ createdAt: -1 });
+
+            if (activeRide) {
+                console.log(`[ACTIVE_RIDE_RESTORE] Found active driver ride: ${activeRide._id}, status: ${activeRide.status}`);
+            }
+        } else {
+            // Tourist: restore only actionable statuses — never reviewed or cancelled
+            // completed is also excluded since payment already done; review flow handles it
+            console.log(`[RESTORE_FLOW] Checking for active tourist rides`);
+            activeRide = await Ride.findOne({
+                user: req.userId,
+                status: { $in: ['pending', 'accepted', 'ongoing', 'payment_pending'] }
+            })
+                .populate('user')
+                .populate({
+                    path: 'driver',
+                    populate: {
+                        path: 'userId',
+                        model: 'User',
+                    }
+                })
+                .sort({ createdAt: -1 });
+
+            if (activeRide) {
+                console.log(`[RESTORE_FLOW] Found active tourist ride: ${activeRide._id}, status: ${activeRide.status}`);
+            }
+        }
+
+        if (!activeRide) {
+            console.log(`[ACTIVE_RIDE_RESTORE] No active ride found for ${isDriver ? 'driver' : 'tourist'} ${req.userId}`);
+            return res.status(200).json(null);
+        }
+
+        // Convert status to frontend-friendly format
+        const rideStatus = activeRide.status;
+        console.log(`[ACTIVE_RIDE_RESTORE] Returning active ride with status: ${rideStatus}`);
+
+        return res.status(200).json({
+            ...activeRide.toObject(),
+            status: rideStatus,
+            userType: isDriver ? 'driver' : 'tourist'
+        });
+    } catch (err: any) {
+        console.error('[ACTIVE_RIDE_RESTORE] Error fetching active ride:', err);
+        return res.status(500).json({ message: err.message });
+    }
+};
+export const submitReview = async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { rideId, rating, text, skip } = req.body;
+
+    try {
+        console.log(`[REVIEW_FLOW] Tourist ${req.userId} submitting review for ride ${rideId}`, {
+            rating,
+            textLength: text?.length || 0,
+            skip
+        });
+
+        const ride = await Ride.findById(rideId)
+            .populate('user')
+            .populate({
+                path: 'driver',
+                populate: {
+                    path: 'userId',
+                    model: 'User',
+                }
+            });
+
+        if (!ride) {
+            console.error(`[REVIEW_FLOW] Ride not found: ${rideId}`);
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        // Verify the user is the ride requester
+        const rideUser = ride.user as any;
+        if (rideUser._id.toString() !== req.userId) {
+            console.error(`[REVIEW_FLOW] Unauthorized review submission. Ride user: ${rideUser._id}, Requesting user: ${req.userId}`);
+            return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Verify ride is in completed status (ready for review)
+        if (ride.status !== 'completed') {
+            console.error(`[REVIEW_FLOW] Cannot submit review. Ride status is ${ride.status}, expected 'completed'`);
+            return res.status(400).json({ message: `Ride is not ready for review (current status: ${ride.status})` });
+        }
+
+        // Update ride with review or skip
+        if (skip) {
+            console.log(`[REVIEW_FLOW] Ride ${rideId}: Tourist skipped review`);
+            ride.review = {
+                rating: 0,
+                text: 'Review skipped',
+                submittedAt: new Date(),
+                skipped: true
+            } as any;
+        } else {
+            console.log(`[REVIEW_FLOW] Ride ${rideId}: Review submitted - Rating: ${rating}/5`);
+            ride.review = {
+                rating,
+                text: text || '',
+                submittedAt: new Date(),
+                skipped: false
+            } as any;
+        }
+
+        // Mark ride as reviewed
+        ride.status = 'reviewed';
+        await ride.save();
+
+        console.log(`[REVIEW_FLOW] Ride ${rideId} status updated to 'reviewed'`);
+
+        // Notify driver about the review/skip
+        const driver = ride.driver as any;
+        if (driver && driver.userId) {
+            const driverSocketId = (driver.userId as any).socketId;
+            if (driverSocketId) {
+                console.log(`[REVIEW_FLOW] Emitting ride-reviewed event to driver ${driver._id}`);
+                sendMessageToSocketId(driverSocketId, {
+                    event: 'ride-reviewed',
+                    data: ride.toObject()
+                });
+            }
+        }
+
+        // Emit to tourist as well for multi-tab sync
+        const userSocketId = (rideUser as any).socketId;
+        if (userSocketId) {
+            console.log(`[REVIEW_FLOW] Emitting ride-reviewed event to tourist ${req.userId}`);
+            sendMessageToSocketId(userSocketId, {
+                event: 'ride-reviewed',
+                data: ride.toObject()
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: skip ? 'Review skipped' : 'Review submitted successfully',
+            data: ride.toObject()
+        });
+    } catch (err: any) {
+        console.error('[REVIEW_FLOW] Error submitting review:', err);
+        return res.status(500).json({ message: err.message });
+    }
+};
+
+// ============================================================
+// CANCEL RIDE CONTROLLER
+// [RIDE_STATE_MACHINE] Tourist cancels ride
+// Only allowed from: pending (searching) | accepted
+// Notifies driver via socket if driver was already assigned
+// ============================================================
+export const cancelRide = async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { rideId } = req.body;
+
+    try {
+        console.log(`[CANCEL_FLOW] Tourist ${req.userId} requesting cancel for ride ${rideId}`);
+
+        // Delegate to service (includes status guard + ownership check)
+        const ride = await rideService.cancelRide({ rideId, userId: req.userId! });
+
+        if (!ride) {
+            return res.status(404).json({ message: 'Ride not found after cancellation' });
+        }
+
+        const cancelPayload = {
+            rideId: ride._id,
+            status: 'cancelled',
+            message: 'Ride has been cancelled by the tourist',
+        };
+
+        // Notify tourist (for multi-tab/refresh safety)
+        const tourist = ride.user as any;
+        if (tourist?.socketId) {
+            sendMessageToSocketId(tourist.socketId, {
+                event: 'ride-cancelled',
+                data: cancelPayload,
+            });
+            console.log(`[CANCEL_FLOW] Notified tourist ${tourist._id}`);
+        }
+
+        // Notify driver if one was assigned
+        const driver = ride.driver as any;
+        if (driver?.userId?.socketId) {
+            sendMessageToSocketId(driver.userId.socketId, {
+                event: 'ride-cancelled',
+                data: cancelPayload,
+            });
+            console.log(`[CANCEL_FLOW] Notified driver ${driver._id}`);
+        }
+
+        console.log(`[CANCEL_FLOW] Ride ${rideId} cancelled successfully`);
+        return res.status(200).json({
+            success: true,
+            message: 'Ride cancelled successfully',
+            data: ride,
+        });
+    } catch (err: any) {
+        console.error('[CANCEL_FLOW] Error cancelling ride:', err.message);
+        // If it's a state machine violation, return 400
+        if (err.message.includes('Cannot cancel')) {
+            return res.status(400).json({ message: err.message });
+        }
+        if (err.message.includes('Unauthorized')) {
+            return res.status(403).json({ message: err.message });
+        }
         return res.status(500).json({ message: err.message });
     }
 };

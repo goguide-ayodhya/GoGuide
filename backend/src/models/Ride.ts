@@ -6,12 +6,21 @@ export interface IRide extends Document {
   pickup: string;
   destination: string;
   fare: number;
-  status: "pending" | "accepted" | "ongoing" | "completed" | "cancelled";
+  status: "pending" | "accepted" | "ongoing" | "payment_pending" | "completed" | "reviewed" | "cancelled";
   duration?: number; // in seconds
   distance?: number; // in meters
   paymentID?: string;
   orderId?: string;
   signature?: string;
+  paymentStatus?: "unpaid" | "paid";
+  paymentMethod?: "cash" | "card" | "wallet";
+  paymentConfirmedAt?: Date;
+  review?: {
+    rating: number;
+    text: string;
+    submittedAt: Date;
+    skipped?: boolean;
+  };
   otp: string;
   createdAt: Date;
   updatedAt: Date;
@@ -42,7 +51,7 @@ const RideSchema = new Schema<IRide>(
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "ongoing", "completed", "cancelled"],
+      enum: ["pending", "accepted", "ongoing", "payment_pending", "completed", "reviewed", "cancelled"],
       default: "pending",
     },
     duration: {
@@ -59,6 +68,39 @@ const RideSchema = new Schema<IRide>(
     },
     signature: {
       type: String,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "card", "wallet"],
+    },
+    paymentConfirmedAt: {
+      type: Date,
+    },
+    review: {
+      type: {
+        rating: {
+          type: Number,
+          min: 0,
+          max: 5,
+        },
+        text: {
+          type: String,
+          default: "",
+        },
+        submittedAt: {
+          type: Date,
+        },
+        skipped: {
+          type: Boolean,
+          default: false,
+        },
+      },
+      default: null,
     },
     otp: {
       type: String,

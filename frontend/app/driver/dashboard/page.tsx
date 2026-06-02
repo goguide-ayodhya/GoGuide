@@ -56,9 +56,7 @@ import { useBooking } from "@/contexts/BookingsContext";
 import { useEarnings } from "@/contexts/EarningContext";
 import { useReview } from "@/contexts/ReviewContext";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
-import { useActiveRide } from "@/contexts/ActiveRideContext";
 import { Badge } from "@/components/ui/badge";
-import DriverAssignedSheet from "@/components/cabs/DriverAssignedSheet";
 import { useDriverAuthGuard } from "@/hooks/useDriverAuthGuard";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
 
@@ -73,11 +71,9 @@ export default function DashboardPage() {
   const { bookings, setBookings } = useBooking();
   const { reviews, getDriverReview } = useReview();
   const { socket } = useContext(SocketContext);
-  const { activeRide, clearActiveRide, setActiveRide } = useActiveRide();
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showActiveRideSheet, setShowActiveRideSheet] = useState(false);
 
   const recentBookings = bookings.slice(0, 5);
   const pendingCount = bookings.filter((b) => b.status === "PENDING").length;
@@ -180,28 +176,9 @@ export default function DashboardPage() {
         const rideData = await confirmRide(bookingId);
         console.log(`[DRIVER] Successfully accepted ride ${bookingId}`);
 
-        // Remove from pending bookings and show active ride sheet
+        // Remove from pending bookings
         setBookings((prev) => prev.filter((b) => b.id !== bookingId));
-        setShowActiveRideSheet(true);
 
-        // Set active ride in context
-        if (rideData) {
-          // Convert to active ride format
-          const activeRideData = {
-            _id: rideData._id,
-            id: rideData._id,
-            user: rideData.user,
-            driver: rideData.driver,
-            pickup: rideData.pickup,
-            destination: rideData.destination,
-            fare: rideData.fare,
-            status: rideData.status,
-            otp: rideData.otp,
-            createdAt: rideData.createdAt,
-            updatedAt: rideData.updatedAt,
-          };
-          // This will be handled by the ActiveRideContext via socket events
-        }
       } else if (newStatus === "REJECTED") {
         await rejectBookingApi(bookingId);
         setBookings((prev) =>
@@ -317,19 +294,13 @@ export default function DashboardPage() {
     // Handle ride accepted by another driver
     const handleRideAccepted = (data: any) => {
       console.log("[DRIVER] Ride accepted by another driver:", data);
-      // Remove the accepted ride from the bookings list
       setBookings((prev) => prev.filter((b) => b.id !== data.rideId));
     };
 
     // Handle ride accepted by this driver
     const handleRideAcceptedByMe = (data: any) => {
       console.log("[DRIVER] I accepted the ride:", data);
-      // Remove from pending bookings and show active ride
       setBookings((prev) => prev.filter((b) => b.id !== data.rideId));
-      setShowActiveRideSheet(true);
-
-      // ActiveRideContext will handle setting the active ride data
-      // No need to manually set here since context handles it
     };
 
     socket.on("ride-accepted", handleRideAccepted);
@@ -634,30 +605,6 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Booking Details Modal */}
-      <BookingDetailsModal
-        booking={selectedBooking}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onStatusChange={handleStatusChange}
-        onCashCollected={handleCashCollected}
-      />
-
-      {/* Active Ride Sheet */}
-      {showActiveRideSheet && (
-        <DriverAssignedSheet
-          ride={activeRide}
-          onClose={() => {
-            setShowActiveRideSheet(false);
-            // Clear active ride when closing
-            if (clearActiveRide) {
-              clearActiveRide();
-            }
-          }}
-          isDriver={true}
-        />
       )}
     </div>
   );

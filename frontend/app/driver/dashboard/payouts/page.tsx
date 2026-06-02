@@ -10,44 +10,79 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Banknote, RefreshCw } from "lucide-react";
 import {
-  getPayoutSummaryApi,
-  getPayoutHistoryApi,
-  confirmPayoutApi,
-  type PayoutWalletSummary,
-} from "@/lib/api/payout";
+  AlertCircle,
+  Banknote,
+  RefreshCw,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
+import { useDriver } from "@/contexts/DriverContext";
+import {
+  getDriverWalletApi,
+  getDriverPaymentHistoryApi,
+} from "@/lib/api/finance";
+import TouristLoader from "@/components/common/TouristLoader";
+
+interface DriverWallet {
+  driverId: string;
+  totalEarned: number;
+  adminCommissionGenerated: number;
+  adminCommissionPaid: number;
+  pendingAdminCommission: number;
+}
+
+interface CommissionPayment {
+  _id: string;
+  driverId: string;
+  amount: number;
+  commissionPercent: number;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED";
+  createdBy?: any;
+  confirmedAt?: string;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function PayoutsPage() {
-  const [wallet, setWallet] = useState<PayoutWalletSummary | null>(null);
-  const [payoutRows, setPayoutRows] = useState<
-    Array<{
-      _id: string;
-      amount: number;
-      status: string;
-      createdAt: string;
-      confirmedAt?: string;
-    }>
-  >([]);
+  const { myDriver, loading: driverLoading } = useDriver();
+
+  const [wallet, setWallet] = useState<DriverWallet | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<CommissionPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPayoutData();
-  }, []);
+    if (myDriver?.id) {
+      fetchPayoutData();
+    } else if (!driverLoading) {
+      setLoading(false);
+      setError("Unable to load driver profile. Please refresh the page.");
+    }
+  }, [myDriver?.id, driverLoading]);
 
   const fetchPayoutData = async () => {
+    if (!myDriver?.id) {
+      setError("Driver ID not available");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const [s, h] = await Promise.all([
-        getPayoutSummaryApi(),
-        getPayoutHistoryApi(),
+      // Use driver._id which is mapped to myDriver.id
+      console.log("[PAYOUTS] Fetching data for driver ID:", myDriver.id);
+
+      const [walletData, historyData] = await Promise.all([
+        getDriverWalletApi(myDriver.id),
+        getDriverPaymentHistoryApi(myDriver.id),
       ]);
-      setWallet(s);
-      setPayoutRows(
-        (Array.isArray(h) ? h : []).sort(
+
+      setWallet(walletData);
+      setPaymentHistory(
+        (Array.isArray(historyData) ? historyData : []).sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         ),
@@ -60,46 +95,40 @@ export default function PayoutsPage() {
     }
   };
 
-  const handleConfirmPayout = async (payoutId: string) => {
-    setConfirmingId(payoutId);
-    try {
-      await confirmPayoutApi(payoutId);
-      // Refresh data after confirmation
-      await fetchPayoutData();
-      window.alert("Payout confirmed successfully");
-    } catch (e) {
-      console.error("Failed to confirm payout", e);
-      window.alert(
-        e instanceof Error ? e.message : "Failed to confirm payout"
-      );
-    } finally {
-      setConfirmingId(null);
-    }
+  const stats = {
+    totalEarned: wallet?.totalEarned ?? 0,
+    adminCommissionGenerated: wallet?.adminCommissionGenerated ?? 0,
+    adminCommissionPaid: wallet?.adminCommissionPaid ?? 0,
+    pendingAdminCommission: wallet?.pendingAdminCommission ?? 0,
+    netEarnings:
+      (wallet?.totalEarned ?? 0) - (wallet?.adminCommissionGenerated ?? 0),
   };
 
-  const stats = {
-    totalEarnings: wallet?.totalEarnings ?? 0,
-    paidOut: wallet?.paidOut ?? 0,
-    pendingConfirmation: wallet?.pendingConfirmation ?? 0,
-    availableForPayout: wallet?.availableForPayout ?? 0,
-  };
+  if (driverLoading) {
+    return <TouristLoader />;
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Payouts</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Financial Summary
+        </h1>
         <p className="text-muted-foreground mt-2">
-          Track your payout wallet and confirm payments received
+          Track your earnings, commissions, and payment history
         </p>
       </div>
 
       {error && (
         <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle
+            size={20}
+            className="text-red-600 flex-shrink-0 mt-0.5"
+          />
           <div className="flex-1">
             <p className="font-medium text-red-900 dark:text-red-200">
-              Failed to load payout data
+              Failed to load financial data
             </p>
             <p className="text-sm text-red-800 dark:text-red-300 mt-1">
               {error}
@@ -117,24 +146,21 @@ export default function PayoutsPage() {
       )}
 
       {loading ? (
-        <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            Loading payout data...
-          </CardContent>
-        </Card>
+        <TouristLoader text="Loading financial data..." />
       ) : (
         <>
-          {/* Wallet Summary */}
+          {/* Financial Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Earned */}
             <Card className="border-border">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      Total Earnings (Accrued)
+                      Total Earned
                     </p>
                     <p className="text-2xl font-bold text-foreground mt-2">
-                      ₹{stats.totalEarnings.toLocaleString("en-IN")}
+                      ₹{stats.totalEarned.toLocaleString("en-IN")}
                     </p>
                   </div>
                   <Banknote size={24} className="text-primary/50" />
@@ -142,15 +168,33 @@ export default function PayoutsPage() {
               </CardContent>
             </Card>
 
+            {/* Admin Commission Generated */}
             <Card className="border-border">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      Paid Out
+                      Admin Commission Generated
+                    </p>
+                    <p className="text-2xl font-bold text-amber-600 mt-2">
+                      ₹{stats.adminCommissionGenerated.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <TrendingUp size={24} className="text-amber-500/50" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Admin Commission Paid */}
+            <Card className="border-border">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Paid to Admin
                     </p>
                     <p className="text-2xl font-bold text-green-600 mt-2">
-                      ₹{stats.paidOut.toLocaleString("en-IN")}
+                      ₹{stats.adminCommissionPaid.toLocaleString("en-IN")}
                     </p>
                   </div>
                   <Banknote size={24} className="text-green-500/50" />
@@ -158,70 +202,105 @@ export default function PayoutsPage() {
               </CardContent>
             </Card>
 
-            <Card className="border-border">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Pending Confirmation
-                    </p>
-                    <p className="text-2xl font-bold text-amber-600 mt-2">
-                      ₹{stats.pendingConfirmation.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                  <Banknote size={24} className="text-amber-500/50" />
-                </div>
-              </CardContent>
-            </Card>
-
+            {/* Pending Admin Commission */}
             <Card className="border-border bg-gradient-to-br from-primary/10 to-primary/5">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      Available for Next Payout
+                      Pending Admin Commission
                     </p>
                     <p className="text-2xl font-bold text-primary mt-2">
-                      ₹{stats.availableForPayout.toLocaleString("en-IN")}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                      After pending sends
+                      ₹{stats.pendingAdminCommission.toLocaleString("en-IN")}
                     </p>
                   </div>
-                  <Banknote size={24} className="text-primary/30" />
+                  <DollarSign size={24} className="text-primary/30" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Important Note */}
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          {/* Net Earnings Summary */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    Total Earned (Gross)
+                  </span>
+                  <span className="text-lg font-bold text-foreground">
+                    ₹{stats.totalEarned.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="border-t border-border"></div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    Admin Commission (Generated)
+                  </span>
+                  <span className="text-lg font-semibold text-amber-600">
+                    - ₹{stats.adminCommissionGenerated.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="border-t border-border"></div>
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-bold text-foreground">
+                    Your Net Earnings (After Commission)
+                  </span>
+                  <span className="text-2xl font-bold text-green-600">
+                    ₹{stats.netEarnings.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Commission Breakdown Info */}
+          <Card className="border-blue-500/30 bg-blue-500/5">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
-                <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle
+                  size={20}
+                  className="text-blue-600 flex-shrink-0 mt-0.5"
+                />
                 <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-200">
-                    How Payouts Work
+                  <p className="font-medium text-blue-900 dark:text-blue-200">
+                    Commission Breakdown
                   </p>
-                  <ul className="text-sm text-amber-800 dark:text-amber-300 mt-2 space-y-1 ml-4 list-disc">
-                    <li>Admin sends payouts to your configured account</li>
-                    <li>You earn per km or per trip based on your vehicle type</li>
-                    <li>Confirm here once you receive the payment</li>
-                    <li>Pending confirmation amount shows what's waiting for your confirmation</li>
+                  <ul className="text-sm text-blue-800 dark:text-blue-300 mt-2 space-y-1 ml-4 list-disc">
+                    <li>
+                      <strong>Total Earned:</strong> All rides earnings combined
+                    </li>
+                    <li>
+                      <strong>Admin Commission Generated:</strong> Commission
+                      owed to admin
+                    </li>
+                    <li>
+                      <strong>Paid to Admin:</strong> Commission already
+                      transferred
+                    </li>
+                    <li>
+                      <strong>Pending Admin Commission:</strong> Commission
+                      still owed
+                    </li>
+                    <li>
+                      <strong>Your Net Earnings:</strong> Total Earned - Admin
+                      Commission Generated
+                    </li>
                   </ul>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Payout History */}
+          {/* Payment History */}
           <Card className="border-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Payout History</CardTitle>
+                  <CardTitle>Commission Payment History</CardTitle>
                   <CardDescription>
-                    {payoutRows.length} payout{payoutRows.length !== 1 ? "s" : ""}
+                    {paymentHistory.length} payment
+                    {paymentHistory.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </div>
                 <Button
@@ -239,9 +318,9 @@ export default function PayoutsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {payoutRows.length === 0 ? (
+              {paymentHistory.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No payouts yet
+                  No commission payments yet
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
@@ -249,70 +328,78 @@ export default function PayoutsPage() {
                     <thead>
                       <tr className="border-b border-border bg-muted/40">
                         <th className="p-3 text-left font-medium">Amount</th>
+                        <th className="p-3 text-left font-medium">
+                          Commission %
+                        </th>
                         <th className="p-3 text-left font-medium">Status</th>
-                        <th className="p-3 text-left font-medium">Sent Date</th>
-                        <th className="p-3 text-left font-medium">Confirmed Date</th>
-                        <th className="p-3 text-left font-medium w-[200px]">Action</th>
+                        <th className="p-3 text-left font-medium">
+                          Created Date
+                        </th>
+                        <th className="p-3 text-left font-medium">
+                          Confirmed Date
+                        </th>
+                        <th className="p-3 text-left font-medium">Note</th>
+                        <th className="p-3 text-left font-medium">
+                          Recorded By
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {payoutRows.map((row) => (
+                      {paymentHistory.map((payment) => (
                         <tr
-                          key={row._id}
+                          key={payment._id}
                           className="border-b border-border/60 hover:bg-muted/30 transition-colors"
                         >
                           <td className="p-3 font-semibold text-foreground">
-                            ₹{row.amount.toLocaleString("en-IN")}
+                            ₹{payment.amount.toLocaleString("en-IN")}
+                          </td>
+                          <td className="p-3 text-muted-foreground">
+                            {payment.commissionPercent}%
                           </td>
                           <td className="p-3">
                             <Badge
                               variant={
-                                row.status === "COMPLETED"
+                                payment.status === "CONFIRMED"
                                   ? "default"
-                                  : "secondary"
+                                  : payment.status === "CANCELLED"
+                                    ? "destructive"
+                                    : "secondary"
                               }
                             >
-                              {row.status}
+                              {payment.status}
                             </Badge>
                           </td>
                           <td className="p-3 text-muted-foreground text-xs">
-                            {new Date(row.createdAt).toLocaleString("en-IN", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(payment.createdAt).toLocaleString(
+                              "en-IN",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
                           </td>
                           <td className="p-3 text-muted-foreground text-xs">
-                            {row.confirmedAt
-                              ? new Date(row.confirmedAt).toLocaleString("en-IN", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
+                            {payment.confirmedAt
+                              ? new Date(payment.confirmedAt).toLocaleString(
+                                  "en-IN",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  },
+                                )
                               : "—"}
                           </td>
-                          <td className="p-3">
-                            {row.status === "PENDING" && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleConfirmPayout(row._id)}
-                                disabled={confirmingId === row._id}
-                                className="bg-primary hover:bg-primary/90"
-                              >
-                                {confirmingId === row._id
-                                  ? "Confirming..."
-                                  : "Confirm Received"}
-                              </Button>
-                            )}
-                            {row.status === "COMPLETED" && (
-                              <Badge variant="outline" className="text-green-700">
-                                Confirmed
-                              </Badge>
-                            )}
+                          <td className="p-3 text-muted-foreground text-xs max-w-[200px] truncate">
+                            {payment.note || "—"}
+                          </td>
+                          <td className="p-3 text-muted-foreground text-xs">
+                            {payment.createdBy?.name || "Admin"}
                           </td>
                         </tr>
                       ))}

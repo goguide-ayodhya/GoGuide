@@ -16,6 +16,7 @@ import {
   X,
   Package,
   HandCoins,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -46,7 +47,7 @@ const menuItems = [
     icon: Users,
   },
   {
-    title: "Cabs",
+    title: "Drivers",
     href: "/admin/cabs",
     icon: Car,
   },
@@ -64,6 +65,11 @@ const menuItems = [
     title: "Guide payouts",
     href: "/admin/guide-payouts",
     icon: HandCoins,
+  },
+  {
+    title: "Driver Collections",
+    href: "/admin/drivers/collections",
+    icon: DollarSign,
   },
   {
     title: "Revenue",

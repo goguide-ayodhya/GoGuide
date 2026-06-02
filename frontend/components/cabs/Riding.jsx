@@ -24,20 +24,16 @@ const Riding = (props) => {
         }
     };
 
-    const handleEmergencyContact = () => {
-        alert("Emergency contact feature coming soon!");
-    };
-
     const handleShareRide = () => {
         if (navigator.share) {
             navigator.share({
                 title: 'My GoGuide Cab Ride',
-                text: `I'm on a GoGuide cab from ${pickup} to ${destination}. ETA: ${props.eta || '5 min'
+                text: `I'm on a GoGuide cab from ${pickup} to ${destination}. ETA: ${props.eta || 'N/A'
                     }`,
                 url: window.location.href
             });
         } else {
-            const text = `I'm on a GoGuide cab from ${pickup} to ${destination}. ETA: ${props.eta || '5 min'
+            const text = `I'm on a GoGuide cab from ${pickup} to ${destination}. ETA: ${props.eta || 'N/A'
                 }`;
 
             navigator.clipboard.writeText(text);
@@ -130,7 +126,7 @@ const Riding = (props) => {
                     </div>
 
                     <div className="text-sm font-semibold text-green-600">
-                        {props.eta || "5 min"}
+                        {props.eta || "N/A"}
                     </div>
                 </div>
             </div>
@@ -139,7 +135,7 @@ const Riding = (props) => {
             <div className="flex flex-col items-center gap-2">
 
                 <div className="w-full mt-4 sm:mt-5 space-y-0">
-
+                                    
                     {/* Pickup */}
                     <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-4 border-b">
 
@@ -244,21 +240,6 @@ const Riding = (props) => {
 
                             <span className="text-sm">
                                 Share Ride
-                            </span>
-                        </button>
-                    </div>
-
-                    {/* Emergency */}
-                    <div className="grid grid-cols-1 gap-3">
-
-                        <button
-                            onClick={handleEmergencyContact}
-                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-medium p-3 rounded-lg transition"
-                        >
-                            <AlertTriangle size={16} />
-
-                            <span className="text-sm">
-                                Emergency
                             </span>
                         </button>
                     </div>

@@ -9,11 +9,13 @@ import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { ServiceCard } from "@/components/common/ServiceCard";
 import { Car, MapPin, Ticket, Users, Star } from "lucide-react";
+import { motion } from "framer-motion";
 
 import Features from "@/components/home/Features";
 import HowItWorks from "@/components/home/HowItWorks";
 import Testimonials from "@/components/home/Testimonials";
 import CTABanner from "@/components/home/CTABanner";
+import GalleryPreview from "@/components/GalleryPreview";
 import Link from "next/link";
 import { assets } from "@/public/assets/assets";
 
@@ -166,6 +168,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+        {/* Gallery Preview */}
+        <GalleryPreview />
 
         {/* Destinations */}
         <section className="py-12 px-4 sm:px-6 lg:px-8">

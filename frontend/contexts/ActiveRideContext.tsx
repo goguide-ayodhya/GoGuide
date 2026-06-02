@@ -37,7 +37,9 @@ export interface ActiveRide {
   pickup: string;
   destination: string;
   fare: number;
-  status: "accepted" | "ongoing" | "completed" | "cancelled";
+  status: "pending" | "accepted" | "ongoing" | "payment_pending" | "completed" | "reviewed" | "cancelled";
+  paymentStatus?: "unpaid" | "paid";
+  paymentConfirmedAt?: string;
   otp?: string;
   createdAt: string;
   updatedAt: string;
@@ -54,41 +56,69 @@ interface ActiveRideContextType {
 
 const ActiveRideContext = createContext<ActiveRideContextType | undefined>(undefined);
 
-export const useActiveRide = () => {
-  const context = useContext(ActiveRideContext);
-  if (!context) {
-    throw new Error("useActiveRide must be used within ActiveRideProvider");
-  }
-  return context;
-};
-
 interface ActiveRideProviderProps {
   children: ReactNode;
 }
 
 export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
   const [activeRide, setActiveRide] = useState<ActiveRide | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasAttemptedRestore, setHasAttemptedRestore] = useState(false);
   const { socket } = useContext(SocketContext);
   const { user } = useAuth();
 
   const clearActiveRide = () => {
-    console.log("[ACTIVE RIDE] Clearing active ride");
+    console.log("[ACTIVE_RIDE_RESTORE] Clearing active ride");
     setActiveRide(null);
   };
+
+  // Restore active ride on mount (production-grade implementation)
+  useEffect(() => {
+    const restoreActiveRide = async () => {
+      if (!user?.id || hasAttemptedRestore) return;
+
+      setHasAttemptedRestore(true);
+      setIsLoading(true);
+
+      try {
+        console.log("[ACTIVE_RIDE_RESTORE] Starting restoration for user:", user.id);
+        const { getActiveRide } = await import("@/lib/api/rides");
+        
+        const restoredRide = await getActiveRide();
+
+        if (restoredRide) {
+          console.log(
+            `[ACTIVE_RIDE_RESTORE] Successfully restored active ride: ${restoredRide._id}, status: ${restoredRide.status}`
+          );
+          setActiveRide(restoredRide);
+        } else {
+          console.log("[ACTIVE_RIDE_RESTORE] No active ride to restore");
+          setActiveRide(null);
+        }
+      } catch (error) {
+        console.error("[ACTIVE_RIDE_RESTORE] Error restoring active ride:", error);
+        // Continue gracefully - if restoration fails, user can create a new ride
+        setActiveRide(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    restoreActiveRide();
+  }, [user?.id, hasAttemptedRestore]);
 
   // Handle ride acceptance as driver
   useEffect(() => {
     if (!socket || !user?.id) return;
 
     const handleRideAccepted = (rideData: any) => {
-      console.log("[ACTIVE RIDE] Driver accepted ride:", rideData);
+      console.log("[ACTIVE_RIDE_RESTORE] Socket: Driver accepted ride:", rideData._id);
       // Set active ride for this driver
       setActiveRide(rideData);
     };
 
     const handleRideStarted = (rideData: any) => {
-      console.log("[ACTIVE RIDE] Ride started:", rideData);
+      console.log("[ACTIVE_RIDE_RESTORE] Socket: Ride started:", rideData._id);
       // Update active ride status
       setActiveRide(prev => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
@@ -98,20 +128,80 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
       });
     };
 
+    const handleRidePaymentPending = (rideData: any) => {
+      console.log("[ACTIVE_RIDE_RESTORE] Socket: Ride payment pending:", rideData._id);
+      // Update active ride status to payment_pending
+      setActiveRide(prev => {
+        if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
+          return { ...prev, ...rideData, status: "payment_pending" };
+        }
+        return rideData;
+      });
+    };
+
+    const handlePaymentConfirmed = (rideData: any) => {
+      console.log("[ACTIVE_RIDE_RESTORE] Socket: Payment confirmed:", rideData._id);
+      // Update active ride to completed
+      setActiveRide(prev => {
+        if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
+          return { ...prev, ...rideData, status: "completed", paymentStatus: "paid" };
+        }
+        return rideData;
+      });
+    };
+
     const handleRideCompleted = (rideData: any) => {
-      console.log("[ACTIVE RIDE] Ride completed:", rideData);
-      // Clear active ride when completed
-      clearActiveRide();
+      console.log("[ACTIVE_RIDE] Socket: Ride completed:", rideData._id);
+      // Keep ride in context with completed status for review/summary
+      setActiveRide(prev => {
+        if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
+          return { ...prev, ...rideData, status: "completed" };
+        }
+        return prev;
+      });
+    };
+
+    // [RIDE_STATE_MACHINE] ride-reviewed: clear context — ride lifecycle complete
+    const handleRideReviewed = (rideData: any) => {
+      console.log("[ACTIVE_RIDE] Socket: Ride reviewed:", rideData._id, "— clearing active ride");
+      setActiveRide(prev => {
+        if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
+          return null; // Clear immediately
+        }
+        return prev;
+      });
+    };
+
+    // [CANCEL_FLOW] ride-cancelled: clear context — ride lifecycle terminated
+    const handleRideCancelled = (data: any) => {
+      const cancelledRideId = data.rideId || data._id;
+      console.log("[ACTIVE_RIDE] Socket: Ride cancelled:", cancelledRideId, "— clearing active ride");
+      setActiveRide(prev => {
+        if (prev && (String(prev._id) === String(cancelledRideId) || String(prev.id) === String(cancelledRideId))) {
+          return null; // Clear immediately
+        }
+        return prev;
+      });
     };
 
     socket.on("ride-accepted-driver", handleRideAccepted);
     socket.on("ride-started", handleRideStarted);
-    socket.on("ride-ended", handleRideCompleted);
+    socket.on("ride-payment-pending", handleRidePaymentPending);
+    socket.on("payment-confirmed", handlePaymentConfirmed);
+    socket.on("ride-completed", handleRideCompleted);
+    socket.on("ride-reviewed", handleRideReviewed);
+    socket.on("ride-cancelled", handleRideCancelled);
+    socket.on("ride-ended", handleRidePaymentPending); // Alias for backward compatibility
 
     return () => {
       socket.off("ride-accepted-driver", handleRideAccepted);
       socket.off("ride-started", handleRideStarted);
-      socket.off("ride-ended", handleRideCompleted);
+      socket.off("ride-payment-pending", handleRidePaymentPending);
+      socket.off("payment-confirmed", handlePaymentConfirmed);
+      socket.off("ride-completed", handleRideCompleted);
+      socket.off("ride-reviewed", handleRideReviewed);
+      socket.off("ride-cancelled", handleRideCancelled);
+      socket.off("ride-ended", handleRidePaymentPending);
     };
   }, [socket, user?.id]);
 
@@ -120,7 +210,7 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     if (!socket || !user?.id) return;
 
     const handleRideConfirmed = (rideData: any) => {
-      console.log("[ACTIVE RIDE] Tourist ride confirmed:", rideData);
+      console.log("[ACTIVE_RIDE_RESTORE] Socket: Tourist ride confirmed:", rideData._id);
       // Set as active ride for tourist
       if (rideData.user?._id === user?.id || rideData.user === user?.id) {
         setActiveRide(rideData);
@@ -151,4 +241,12 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
       {children}
     </ActiveRideContext.Provider>
   );
+};
+
+export const useActiveRide = () => {
+  const context = useContext(ActiveRideContext);
+  if (!context) {
+    throw new Error("useActiveRide must be used within ActiveRideProvider");
+  }
+  return context;
 };

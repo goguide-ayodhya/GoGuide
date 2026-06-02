@@ -27,6 +27,7 @@ import payoutRoutes from "./routes/payout.routes";
 import supportRoutes from "./routes/setting.routes";
 import rideRoutes from "./routes/ride.routes";
 import mapRoutes from "./routes/maps.routes";
+import financeRoutes from "./routes/finance.routes";
 import path from "path";
 
 const app: Application = express();
@@ -88,6 +89,7 @@ app.use("/api/payout", payoutRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/maps", mapRoutes);
 app.use("/api/rides", rideRoutes);
+app.use("/api/finance", financeRoutes);
 
 // Serve uploaded files when using local fallback storage
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

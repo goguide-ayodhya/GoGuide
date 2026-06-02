@@ -1,7 +1,7 @@
 "use client";
 
 import { X, Phone, Navigation, MapPin, Clock, DollarSign, AlertTriangle } from "lucide-react";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { startRide, endRide } from "@/lib/api/rides";
 import { useRouter } from "next/navigation";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
@@ -20,7 +20,104 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
   const router = useRouter();
   const { socket } = useContext(SocketContext);
 
-  // Listen for ride started events
+  // GPS Watch ID ref for cleanup
+  const watchIdRef = useRef<number | null>(null);
+
+  // ====================================================
+  // REAL-TIME GPS TRACKING
+  // Starts when rideStatus is accepted or ongoing
+  // Emits driver-location-update via socket to backend
+  // Cleans up on unmount or ride completion
+  // ====================================================
+  useEffect(() => {
+    if (!socket || !ride?._id) return;
+
+    if (rideStatus !== "accepted" && rideStatus !== "ongoing") {
+      // If tracking was running, stop it
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+        console.log("[DRIVER TRACKING] GPS tracking stopped — ride not in accepted/ongoing state");
+      }
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      console.error("[DRIVER TRACKING] Geolocation is not supported by this browser");
+      return;
+    }
+
+    console.log("[DRIVER TRACKING] Starting real GPS tracking for ride:", ride._id);
+
+    // Clear any existing watch before starting new one
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+
+    // Emit the driver's current accurate location immediately when tracking starts
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const immediatePayload = {
+          rideId: ride._id,
+          lat: latitude,
+          lng: longitude,
+          eta: "5 min",
+        };
+        socket.emit("driver-location-update", immediatePayload);
+        console.log("[DRIVER TRACKING] Emitted initial driver-location-update:", immediatePayload);
+      },
+      (error) => {
+        console.warn("[DRIVER TRACKING] Initial geolocation fetch failed:", error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        console.log(`[DRIVER TRACKING] GPS position received: lat=${latitude}, lng=${longitude}, accuracy=${position.coords.accuracy}m`);
+
+        const locationPayload = {
+          rideId: ride._id,
+          lat: latitude,
+          lng: longitude,
+          eta: "5 min", // Can be enhanced with real distance calc
+        };
+
+        socket.emit("driver-location-update", locationPayload);
+        console.log("[DRIVER TRACKING] Emitted driver-location-update:", locationPayload);
+      },
+      (error) => {
+        console.error("[DRIVER TRACKING] Geolocation error:", error.code, error.message);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0, // Always get fresh position
+      }
+    );
+
+    console.log("[DRIVER TRACKING] watchPosition started with ID:", watchIdRef.current);
+
+    // Cleanup when rideStatus changes or component unmounts
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+        console.log("[DRIVER TRACKING] GPS tracking cleaned up");
+      }
+    };
+  }, [socket, ride?._id, rideStatus]);
+
+  // ====================================================
+  // LISTEN FOR RIDE STARTED (driver side)
+  // ====================================================
   useEffect(() => {
     if (!socket || !isDriver) return;
 
@@ -29,12 +126,27 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
       setRideStatus("ongoing");
     };
 
+    // [CANCEL_FLOW] Tourist cancelled the ride — close sheet and notify driver
+    const handleRideCancelled = (data: any) => {
+      const cancelledRideId = data.rideId || data._id;
+      const currentRideId = ride?._id;
+      if (String(cancelledRideId) !== String(currentRideId)) return;
+
+      console.log("[CANCEL_FLOW] Ride cancelled by tourist:", cancelledRideId);
+      // Short delay so the alert is seen before sheet closes
+      alert("⚠️ The tourist has cancelled this ride.");
+      onClose();
+    };
+
     socket.on("ride-started-driver", handleRideStarted);
+    socket.on("ride-cancelled", handleRideCancelled);
 
     return () => {
       socket.off("ride-started-driver", handleRideStarted);
+      socket.off("ride-cancelled", handleRideCancelled);
     };
-  }, [socket, isDriver]);
+  }, [socket, isDriver, ride?._id, onClose]);
+
 
   const tourist = ride?.user;
   const driver = ride?.driver;
@@ -69,7 +181,6 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
         status: "ongoing"
       });
       
-      console.log("[DRIVER] Ride started successfully, tourist notified");
     } catch (error) {
       console.error("[DRIVER] Error starting ride:", error);
       setOtpError("Invalid OTP. Please check with the tourist and try again.");
@@ -84,19 +195,27 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
     setIsLoading(true);
     try {
       console.log("[DRIVER] Ending ride:", ride._id);
+
+      // Stop GPS tracking BEFORE ending ride
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+        console.log("[DRIVER TRACKING] GPS tracking stopped on ride end");
+      }
+
       await endRide(ride._id);
-      setRideStatus("completed");
+      setRideStatus("payment_pending");
       
-      // Emit socket event to notify tourist that ride has ended
-      socket?.emit("ride-ended", {
+      // Emit socket event to notify tourist that ride is awaiting payment
+      socket?.emit("ride-payment-pending", {
         rideId: ride._id,
         driverId: ride?.driver?._id,
         userId: ride?.user?._id,
-        status: "completed",
+        status: "payment_pending",
         fare: ride?.fare
       });
       
-      console.log("[DRIVER] Ride ended successfully, tourist notified");
+      console.log("[DRIVER] Ride ended, waiting for payment confirmation");
       router.push("/driver/dashboard");
     } catch (error) {
       console.error("[DRIVER] Error ending ride:", error);
@@ -128,7 +247,7 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center no-scrollbar">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-t-2xl bg-white p-4 shadow-lg sm:rounded-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}

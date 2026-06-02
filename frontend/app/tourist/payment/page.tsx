@@ -9,7 +9,6 @@ import {
   setPaymentModeApi,
   createRazorpayOrderApi,
   getBookingPaymentsApi,
-  createCancellationRefundApi,
 } from "@/lib/api/payments";
 import { getBookingRefundsApi, type Refund } from "@/lib/api/refunds";
 
@@ -510,78 +509,6 @@ function PaymentPageContent() {
               {error}
             </p>
           )}
-          {/* Refund message and quick cancellation refund flow */}
-          {/* <div className="text-sm mt-2">
-            {(() => {
-              // compute refund percent
-              const now = new Date();
-              const start = new Date(booking.bookingDate as any);
-              if (booking.startTime && typeof booking.startTime === "string") {
-                const parts = booking.startTime
-                  .split(":")
-                  .map((s: any) => Number(s));
-                if (parts.length >= 1 && !isNaN(parts[0])) {
-                  const hh = parts[0] ?? 0;
-                  const mm = parts[1] ?? 0;
-                  start.setHours(hh, mm, 0, 0);
-                }
-              }
-              const hoursDiff =
-                (start.getTime() - now.getTime()) / (1000 * 60 * 60);
-              const pct = hoursDiff >= 3 ? 1 : 0.9;
-              return (
-                <div>
-                  <p className="text-muted-foreground">
-                    {pct === 1
-                      ? "Full refund available"
-                      : "90% refund applicable"}
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-2"
-                    onClick={async () => {
-                      const paid = booking.paidAmount ?? 0;
-                      const target = Math.round(paid * pct * 100) / 100;
-                      const already = refundHistory.reduce(
-                        (s, r) => s + (r.amount || 0),
-                        0,
-                      );
-                      const toRefund = Math.max(
-                        0,
-                        Math.round((target - already) * 100) / 100,
-                      );
-                      if (toRefund <= 0) {
-                        alert("No refundable amount available under policy");
-                        return;
-                      }
-                      const ok = confirm(
-                        `Refund amount calculated: ₹${formatRupee(toRefund)}. Proceed?`,
-                      );
-                      if (!ok) return;
-                      try {
-                        await createCancellationRefundApi(bookingId);
-                        await refreshBooking(bookingId);
-                        await refreshBookings();
-                        const [payments, refunds] = await Promise.all([
-                          getBookingPaymentsApi(bookingId),
-                          getBookingRefundsApi(bookingId),
-                        ]);
-                        setPaymentHistory(
-                          Array.isArray(payments) ? payments : [],
-                        );
-                        setRefundHistory(Array.isArray(refunds) ? refunds : []);
-                      } catch (e) {
-                        console.error(e);
-                        alert("Failed to request refund");
-                      }
-                    }}
-                  >
-                    Request cancellation refund
-                  </Button>
-                </div>
-              );
-            })()}
-          </div> */}
 
           <div className="space-y-3">
             <div className="hidden md:block">

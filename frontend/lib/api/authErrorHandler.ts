@@ -157,7 +157,6 @@ export async function handleApiResponse(
 
   try {
     responseText = await res.text();
-    console.log("RAW RESPONSE TEXT:", responseText);
 
     if (responseText) {
       if (parseAsText) {

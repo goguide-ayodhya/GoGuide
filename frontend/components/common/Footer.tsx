@@ -24,7 +24,7 @@ export function Footer() {
                   href="/tourist/cabs"
                   className="hover:text-slate-900 transition-colors"
                 >
-                  Cabs
+                  GoCabs
                 </Link>
               </li>
               <li>
@@ -48,14 +48,14 @@ export function Footer() {
           <div>
             <h3 className="font-semibold text-slate-900 mb-3">About</h3>
             <ul className="space-y-2 text-sm text-slate-600">
-              <li>
+              {/* <li>
                 <Link
                   href="/home/about-us"
                   className="hover:text-slate-900 transition-colors"
                 >
                   About Us
                 </Link>
-              </li>
+              </li> */}
               <li>
                 <Link
                   href="/contact-us"

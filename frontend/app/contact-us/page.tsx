@@ -15,6 +15,7 @@ import { useState } from "react";
 import { Header } from "@/components/common/Header";
 import { sendSupportMessageApi } from "@/lib/api/settings";
 import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { Footer } from "@/components/common/Footer";
 
 export default function ContactPage() {
   const [message, setMessage] = useState("");
@@ -201,6 +202,7 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

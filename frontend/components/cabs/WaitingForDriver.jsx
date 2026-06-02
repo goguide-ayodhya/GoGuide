@@ -12,26 +12,35 @@ const WaitingForDriver = (props) => {
         <i className="text-3xl text-gray-300 ri-arrow-down-wide-line"></i>
       </button>
 
+      {/* Driver + OTP Info */}
       <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-5 p-3 sm:p-4 border border-yellow-200 rounded-lg bg-yellow-50">
         <img
           className="h-16 sm:h-20 md:h-24 w-auto animate-pulse"
-          src={`/assets/vehicle/${props.vehicleType === "car" ? "goCab" : props.vehicleType === "moto" ? "goMoto" : "goAuto"}.webp`}
+          src={`/assets/vehicle/${
+            props.vehicleType === "car"
+              ? "goCab"
+              : props.vehicleType === "moto"
+              ? "goMoto"
+              : "goAuto"
+          }.webp`}
           alt="Vehicle"
         />
         <div className="flex-1 min-w-0">
           <h2 className="text-base sm:text-md font-medium capitalize truncate">
-            {props.ride?.driver?.userId?.fullname?.firstname && 
-             props.ride?.driver?.userId?.fullname?.lastname ? 
-             `${props.ride?.driver?.userId?.fullname?.firstname} ${props.ride?.driver?.userId?.fullname?.lastname}` :
-             props.ride?.driver?.userId?.fullname?.firstname ||
-             props.ride?.driver?.driverName || "Driver"}
+            {props.ride?.driver?.userId?.fullname?.firstname &&
+            props.ride?.driver?.userId?.fullname?.lastname
+              ? `${props.ride?.driver?.userId?.fullname?.firstname} ${props.ride?.driver?.userId?.fullname?.lastname}`
+              : props.ride?.driver?.userId?.fullname?.firstname ||
+                props.ride?.driver?.driverName ||
+                "Driver"}
           </h2>
           <h4 className="text-lg sm:text-md font-semibold text-gray-900">
             {props.ride?.driver?.vehicleNumber || "Loading..."}
           </h4>
           <p className="text-xs sm:text-sm text-gray-600">
-            {props.ride?.driver?.vehicleName || 
-             props.ride?.driver?.vehicleType || "Cab"}
+            {props.ride?.driver?.vehicleName ||
+              props.ride?.driver?.vehicleType ||
+              "Cab"}
           </p>
         </div>
         <div className="text-right">
@@ -42,6 +51,7 @@ const WaitingForDriver = (props) => {
         </div>
       </div>
 
+      {/* Ride Details */}
       <div className="flex gap-2 justify-between flex-col items-center">
         <div className="w-full space-y-0">
           <div className="flex items-center gap-3 sm:gap-5 p-3 sm:p-4 border-b-2">
@@ -75,6 +85,17 @@ const WaitingForDriver = (props) => {
           </div>
         </div>
       </div>
+
+      {/* [CANCEL_FLOW] Cancel ride button — allowed during accepted status */}
+      {props.onCancelRide && (
+        <button
+          onClick={props.onCancelRide}
+          disabled={props.isCancelling}
+          className="mt-4 w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium p-3 rounded-lg transition-colors disabled:opacity-50"
+        >
+          {props.isCancelling ? "Cancelling..." : "Cancel Ride"}
+        </button>
+      )}
     </div>
   );
 };

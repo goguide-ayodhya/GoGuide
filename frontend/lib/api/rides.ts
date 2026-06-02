@@ -115,3 +115,74 @@ export const endRide = async (rideId: string) => {
     throw error;
   }
 };
+
+export const confirmPayment = async (rideId: string, paymentMethod: "cash" | "card" | "wallet") => {
+  try {
+    const response = await fetch(`${base_url}rides/confirm-payment`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId, paymentMethod }),
+    });
+    return handleApiResponse(response);
+  } catch (error) {
+    console.error("Error confirming payment:", error);
+    throw error;
+  }
+};
+
+export const getActiveRide = async () => {
+  try {
+    console.log("[API] Fetching active ride...");
+    const response = await fetch(`${base_url}rides/active`, {
+      method: "GET",
+      headers: { ...authHeaders() },
+    });
+    const data = await handleApiResponse(response);
+    console.log("[API] Active ride response:", data);
+    return data;
+  } catch (error) {
+    console.error("[API] Error fetching active ride:", error);
+    throw error;
+  }
+};
+
+export const submitReview = async (
+  rideId: string,
+  rating: number,
+  text: string = "",
+  skip: boolean = false
+) => {
+  try {
+    console.log("[REVIEW_FLOW] Submitting review via API:", { rideId, rating, textLength: text.length, skip });
+    const response = await fetch(`${base_url}rides/submit-review`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId, rating, text, skip }),
+    });
+    const data = await handleApiResponse(response);
+    console.log("[REVIEW_FLOW] Review submission response:", data);
+    return data;
+  } catch (error) {
+    console.error("[REVIEW_FLOW] Error submitting review:", error);
+    throw error;
+  }
+};
+
+// [CANCEL_FLOW] Cancel ride — only allowed in pending/accepted status
+export const cancelRide = async (rideId: string) => {
+  try {
+    console.log("[CANCEL_FLOW] Cancelling ride via API:", rideId);
+    const response = await fetch(`${base_url}rides/cancel`, {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ rideId }),
+    });
+    const data = await handleApiResponse(response);
+    console.log("[CANCEL_FLOW] Cancel response:", data);
+    return data;
+  } catch (error) {
+    console.error("[CANCEL_FLOW] Error cancelling ride:", error);
+    throw error;
+  }
+};
+

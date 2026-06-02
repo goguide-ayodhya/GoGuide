@@ -28,15 +28,29 @@ import {
   Clock,
   AlertCircle,
   Banknote,
+  RefreshCw,
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
+import { useDriver } from "@/contexts/DriverContext";
+import { getDriverWalletApi } from "@/lib/api/finance";
+
+interface DriverWallet {
+  driverId: string;
+  totalEarned: number;
+  adminCommissionGenerated: number;
+  adminCommissionPaid: number;
+  pendingAdminCommission: number;
+}
 
 export default function EarningsPage() {
   const earningsContext = useEarnings();
+  const { myDriver, loading: driverLoading } = useDriver();
   const earnings = earningsContext?.earnings;
   const loading = earningsContext?.loading ?? false;
   const monthlyData = earningsContext?.monthlyData;
   const weeklyData = earningsContext?.weeklyData;
+  const [wallet, setWallet] = useState<DriverWallet | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [timeframe, setTimeframe] = useState<"week" | "month">("month");
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +73,28 @@ export default function EarningsPage() {
     fetchEarnings();
   }, []);
 
+  // Fetch wallet data
+  useEffect(() => {
+    if (myDriver?.id) {
+      fetchWalletData();
+    }
+  }, [myDriver?.id]);
+
+  const fetchWalletData = async () => {
+    if (!myDriver?.id) return;
+    
+    setWalletLoading(true);
+    try {
+      console.log("[EARNINGS] Fetching wallet for driver ID:", myDriver.id);
+      const data = await getDriverWalletApi(myDriver.id);
+      setWallet(data);
+    } catch (e) {
+      console.error("Failed to fetch wallet data", e);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
   const chartData =
     timeframe === "week"
       ? (weeklyData || []).map((w) => ({
@@ -75,6 +111,9 @@ export default function EarningsPage() {
         await earningsContext.fetchMonthlyEarnings();
         await earningsContext.fetchWeeklyEarnings();
       }
+      if (myDriver?.id) {
+        await fetchWalletData();
+      }
     } catch (e) {
       console.error("Failed to refresh earnings", e);
       setError(
@@ -83,9 +122,31 @@ export default function EarningsPage() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="space-y-3">
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Driver Earnings</h1>
+          <p className="text-muted-foreground mt-2">
+            Track your revenue and commission breakdown
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleRefresh}
+          disabled={loading || walletLoading}
+        >
+          <RefreshCw
+            size={16}
+            className={loading || walletLoading ? "animate-spin" : ""}
+          />
+          <span className="ml-2">Refresh</span>
+        </Button>
+      </div>
+
+      {error && (
         <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
           <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -95,41 +156,27 @@ export default function EarningsPage() {
             <p className="text-sm text-red-800 dark:text-red-300 mt-1">
               {error}
             </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRefresh}
-              className="mt-3"
-            >
-              Try Again
-            </Button>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Driver Earnings</h1>
-        <p className="text-muted-foreground mt-2">
-          Track your revenue and payment history
-        </p>
-      </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Gross Bookings"
-          value={`₹${earnings?.grossEarnings?.toLocaleString() ?? 0}`}
+          title="Gross Earnings"
+          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
           icon={Banknote}
-          description="Total booking amount paid by tourist"
+          description="Total ride earnings"
+        />
+        <StatsCard
+          title="Admin Commission"
+          value={`₹${wallet?.adminCommissionGenerated?.toLocaleString() ?? 0}`}
+          icon={TrendingUp}
+          description="Commission owed to admin"
         />
         <StatsCard
           title="Net Earnings"
-          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          value={`₹${((earnings?.totalEarnings ?? 0) - (wallet?.adminCommissionGenerated ?? 0)).toLocaleString()}`}
           icon={DollarSign}
           description="Your take-home earnings"
         />
@@ -138,12 +185,6 @@ export default function EarningsPage() {
           value={`₹${earnings?.bookingStats?.total?.toLocaleString() || 0}`}
           icon={TrendingUp}
           description={`Completed: ${earnings?.bookingStats?.completed || 0}`}
-        />
-        <StatsCard
-          title="Pending Payments"
-          value={`₹${earnings?.pendingAmount?.toLocaleString() || 0}`}
-          icon={Calendar}
-          description="Awaiting processing"
         />
       </div>
 

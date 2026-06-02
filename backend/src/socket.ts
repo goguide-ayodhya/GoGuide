@@ -33,73 +33,122 @@ export const initializeSocket = (server: HttpServer) => {
 
     socket.on('update-location-captain', async (data: { userId: string, location: { ltd: number, lng: number } }) => {
       const { userId, location } = data;
-      logger.info(`[SOCKET] Received location update from driver ${userId}:`, location);
+      logger.info(`[SOCKET] Received location update from driver userId=${userId}:`, location);
       
-      if (!userId || !location || !location.ltd || !location.lng) {
+      if (!userId || !location || location.ltd == null || location.lng == null) {
           logger.error(`[SOCKET] Invalid location data:`, data);
           return;
       }
       
-      // Update driver location in database
       const { Driver } = require('./models/Driver');
-      await Driver.findOneAndUpdate({ userId }, {
+      const { Ride } = require('./models/Ride');
+
+      const driver = await Driver.findOne({ userId });
+      if (!driver) {
+        logger.warn(`[SOCKET] No Driver document found for userId=${userId}`);
+        return;
+      }
+
+      await Driver.findByIdAndUpdate(driver._id, {
           currentLocation: {
               lat: location.ltd,
               lng: location.lng
           }
       });
 
-      // Find active rides for this driver and emit to tourists
-      const { Ride } = require('./models/Ride');
-      const { User } = require('./models/User');
-      
       try {
-        logger.info(`[SOCKET] Finding active rides for driver ${userId}...`);
+        logger.info(`[SOCKET] Finding active rides for driverId=${driver._id} (userId=${userId})...`);
         
-        // Try multiple ride status values
         const activeRides = await Ride.find({ 
-            driver: userId, 
-            status: { $in: ['accepted', 'ongoing', 'started', 'confirmed'] } 
+            driver: driver._id, 
+            status: { $in: ['accepted', 'ongoing'] } 
         }).populate('user');
 
-        logger.info(`[SOCKET] Found ${activeRides.length} active rides for driver ${userId}`);
-        
-        // Log details of each ride
-        activeRides.forEach((ride: { _id: any; status: any; driver: any; user: { _id: any; socketId: any; }; }, index: number) => {
-          logger.info(`[SOCKET] Ride ${index + 1}:`, {
-            rideId: ride._id,
-            status: ride.status,
-            driver: ride.driver,
-            user: ride.user?._id,
-            userSocketId: ride.user?.socketId
-          });
+        logger.info(`[SOCKET] Found ${activeRides.length} active rides for driverId=${driver._id}`);
+
+        let forwardedCount = 0;
+        activeRides.forEach((ride: any, index: number) => {
+          const touristSocketId = ride.user?.socketId;
+          if (ride.user && touristSocketId) {
+            logger.info(`[SOCKET] Ride ${index + 1}: rideId=${ride._id}, status=${ride.status}, touristId=${ride.user._id}, touristSocketId=${touristSocketId}`);
+
+            const locationData = {
+              rideId: ride._id,
+              lat: location.ltd,
+              lng: location.lng,
+              eta: '5 min',
+              timestamp: new Date().toISOString(),
+            };
+
+            io!.to(touristSocketId).emit('driver-location-update', locationData);
+            logger.info(`[SOCKET] driver-location-update emitted to tourist ${ride.user._id} for ride ${ride._id}`, locationData);
+            forwardedCount++;
+          } else {
+            logger.warn(`[SOCKET] No tourist socket ID for ride ${ride._id}`);
+          }
         });
 
-        // Emit location update to all tourists with active rides
-        let forwardedCount = 0;
-        activeRides.forEach((ride: { user: { socketId: string | string[]; _id: any; }; _id: any; }) => {
-            if (ride.user && ride.user.socketId) {
-                const locationData = {
-                    rideId: ride._id,
-                    lat: location.ltd,
-                    lng: location.lng,
-                    eta: '5 min', // You can calculate actual ETA based on distance
-                    timestamp: new Date().toISOString()
-                };
-                
-                io!.to(ride.user.socketId).emit('driver-location-update', locationData);
-                logger.info(`[SOCKET] Sent location update to tourist ${ride.user._id} for ride ${ride._id}`);
-                logger.info(`[SOCKET] Location data:`, locationData);
-                forwardedCount++;
-            } else {
-                logger.warn(`[SOCKET] No socket ID for user in ride ${ride._id}`);
-            }
-        });
-        
-        logger.info(`[SOCKET] Forwarded location to ${forwardedCount} tourists`);
-        
+        logger.info(`[SOCKET] Forwarded driver-location-update to ${forwardedCount} tourists`);
       } catch (error) {
         logger.error(`[SOCKET] Error forwarding location update: ${error}`);
+      }
+    });
+
+    // ====================================================
+    // REAL-TIME DRIVER GPS TRACKING
+    // Receives: { rideId, lat, lng, eta }
+    // Emits location ONLY to the tourist of that specific ride
+    // Supports: accepted, arriving, ongoing statuses
+    // ====================================================
+    socket.on('driver-location-update', async (data: { rideId: string; lat: number; lng: number; eta?: string }) => {
+      const { rideId, lat, lng, eta } = data;
+
+      if (!rideId || lat == null || lng == null) {
+        logger.warn(`[DRIVER TRACKING] Invalid data received:`, data);
+        return;
+      }
+
+      try {
+        const { Ride } = require('./models/Ride');
+        const { User } = require('./models/User');
+
+        // Find the ride and populate the user (tourist)
+        const ride = await Ride.findById(rideId).populate('user');
+
+        if (!ride) {
+          logger.warn(`[DRIVER TRACKING] Ride ${rideId} not found`);
+          return;
+        }
+
+        // [LIVE_TRACKING] Allow tracking during: accepted, arriving, ongoing
+        const trackableStatuses = ['accepted', 'arriving', 'ongoing'];
+        if (!trackableStatuses.includes(ride.status)) {
+          logger.warn(`[DRIVER TRACKING] Ride ${rideId} status not trackable (status: ${ride.status})`);
+          return;
+        }
+
+        const tourist = ride.user as any;
+
+        if (!tourist || !tourist.socketId) {
+          logger.warn(`[DRIVER TRACKING] Tourist has no socketId for ride ${rideId}`);
+          return;
+        }
+
+        const locationPayload = {
+          rideId: String(rideId),
+          lat: Number(lat),
+          lng: Number(lng),
+          eta: eta || '5 min',
+          timestamp: new Date().toISOString(),
+        };
+
+        // Emit ONLY to the specific tourist — not broadcast
+        io!.to(tourist.socketId).emit('driver-location-update', locationPayload);
+
+        logger.info(`[DRIVER TRACKING] Location update sent for ride ${rideId}: status=${ride.status}, lat=${lat}, lng=${lng}`);
+
+      } catch (error) {
+        logger.error(`[DRIVER TRACKING] Error processing GPS update: ${error}`);
       }
     });
 
