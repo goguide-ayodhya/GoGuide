@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function GalleryLightbox({ open, item, items = [], onClose, onNavigate }) {
+export default function GalleryLightbox({
+  open,
+  item,
+  items = [],
+  onClose,
+  onNavigate,
+}) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -38,7 +44,10 @@ export default function GalleryLightbox({ open, item, items = [], onClose, onNav
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-6"
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={onClose}
+          />
 
           <motion.div
             initial={{ scale: 0.98, opacity: 0 }}
@@ -46,10 +55,17 @@ export default function GalleryLightbox({ open, item, items = [], onClose, onNav
             exit={{ scale: 0.98, opacity: 0 }}
             className="relative z-50 max-w-5xl w-full mx-auto rounded-2xl overflow-hidden"
           >
-            <div className="relative w-full" style={{ paddingBottom: "56%" }}>
-              <Image src={item.image} alt={item.alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 1200px" />
+            <div className="relative w-full " style={{ paddingBottom: "56%" }}>
+              <Image
+                src={item.image}
+                alt={item.alt}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 1200px"
+              />
             </div>
 
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/30 to-transparent"></div>{" "}
             <div className="absolute left-4 top-4">
               <button
                 onClick={onClose}
@@ -77,9 +93,9 @@ export default function GalleryLightbox({ open, item, items = [], onClose, onNav
               </button>
             </div>
 
-            <div className="absolute bg-black/50 px-4 py-2 rounded-lg left-6 bottom-6 text-white z-50">
+            <div className="absolute left-6 bottom-6 text-white z-50">
               <h3 className="font-bold text-lg">{item.title}</h3>
-              <p className="text-sm opacity-90">{item.location} • {item.category}</p>
+              {/* <p className="text-sm opacity-90">{item.location} • {item.category}</p> */}
             </div>
           </motion.div>
         </motion.div>

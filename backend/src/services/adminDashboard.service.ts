@@ -15,7 +15,7 @@ export class DashboardService {
     const totalGuides = await Guide.countDocuments({
       verificationStatus: "VERIFIED",
       isDeleted: { $ne: true },
-      isActive: true,
+      isAvailable: true,
     });
 
     const totalBookings = await Booking.countDocuments();
@@ -52,7 +52,7 @@ export class DashboardService {
     const totalGuides = await Guide.countDocuments({
       verificationStatus: "VERIFIED",
       isDeleted: { $ne: true },
-      isActive: true,
+      isAvailable: true,
     });
 
     const totalBookings = await Booking.countDocuments(dateFilter);
@@ -89,7 +89,6 @@ export class DashboardService {
       verificationStatus: "VERIFIED",
       isAvailable: true,
       isDeleted: { $ne: true },
-      isActive: true,
       ...dateFilter
     });
 
