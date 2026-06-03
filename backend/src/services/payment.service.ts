@@ -36,7 +36,7 @@ function getProviderShareForPayment(p: any): number {
   const lineAmt = effectiveLineAmount(p);
   if (!p.bookingId || typeof p.bookingId === "string") {
     // If booking is not populated, fallback to estimated proportion based on PRICING_CONFIG
-    // We assume the payment amount includes GST (roughly +5%). So base = lineAmt / (1 + PRICING_CONFIG.GST_RATE).
+    // We assume the payment amount includes GST (roughly +0%). So base = lineAmt / (1 + PRICING_CONFIG.GST_RATE).
     const base = lineAmt / (1 + PRICING_CONFIG.GST_RATE);
     return base * PRICING_CONFIG.GUIDE_PAYOUT_RATE;
   }

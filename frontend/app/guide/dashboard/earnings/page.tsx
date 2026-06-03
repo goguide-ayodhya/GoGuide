@@ -64,8 +64,8 @@ export default function EarningsPage() {
     pending: 0,
   };
   const totalEarnings = earnings?.totalEarnings ?? 0;
-  const grossEarnings = earnings?.grossEarnings ?? 0;
-  const totalGst = earnings?.totalGst ?? 0;
+  const grossEarnings = (earnings as any)?.grossEarnings ?? 0;
+  // const totalGst = earnings?.totalGst ?? 0;
   const pendingAmount = earnings?.pendingAmount ?? 0;
   const recentTransactions = earnings?.recentTransactions ?? [];
   const revenueByTourType = earnings?.revenueByTourType ?? [];

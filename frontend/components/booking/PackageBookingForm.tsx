@@ -77,7 +77,7 @@ export function PackageBookingForm({
   const discountAmount = discount
     ? Math.round(packagePrice * (discount / 100))
     : 0;
-  const GST_RATE = 0.05; // 5% GST to match backend PRICING_CONFIG.GST_RATE
+  const GST_RATE = 0.0; // 0% GST to match backend PRICING_CONFIG.GST_RATE
   const gstAmount = Math.round(discountedUnitPrice * GST_RATE);
   const finalPrice = discountedUnitPrice + gstAmount;
   const totalPrice = discountedUnitPrice;
@@ -386,7 +386,7 @@ export function PackageBookingForm({
               </div>
             </div>
             <div className="flex items-center justify-between text-sm text-slate-700 mt-2">
-              <span className="text-slate-600">GST (5%)</span>
+              <span className="text-slate-600">GST (0%)</span>
               <span className="font-semibold text-slate-900">
                 ₹{gstAmount.toLocaleString()}
               </span>

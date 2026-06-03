@@ -158,7 +158,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     } else if (status === "COMPLETED") {
       await completeBookingApi(bookingId);
     } else if (status === "CANCELLED") {
-      await cancelBookingApi(bookingId);
+      await cancelBookingApi(bookingId, "CANCELLED");
     }
 
     setBookings((prev) =>
@@ -167,7 +167,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   };
 
   const cancelBooking = async (bookingId: string) => {
-    await cancelBookingApi(bookingId);
+    await cancelBookingApi(bookingId, "CANCELLED");
 
     setBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b)),

@@ -2,7 +2,7 @@ import { PRICING_CONFIG } from "../config/pricing";
 
 export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
 
-const GST_RATE = PRICING_CONFIG.GST_RATE; // 5% GST
+const GST_RATE = PRICING_CONFIG.GST_RATE; // 0% GST
 export const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments
 
 export function roundMoney(n: number): number {
@@ -17,8 +17,8 @@ export function roundMoney(n: number): number {
  */
 export function calculateFinalPrice(params: {
   totalPrice: number;
-  discountPercent?: number; // Optional override, defaults to 5% for partial
-  gstPercent?: number; // Optional override, defaults to 5%
+  discountPercent?: number; // Optional override, defaults to 0% for partial
+  gstPercent?: number; // Optional override, defaults to 0%
   paymentMode?: BookingPaymentMode;
 }): {
   totalPrice: number;

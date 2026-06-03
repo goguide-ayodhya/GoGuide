@@ -204,7 +204,7 @@ function PaymentPageContent() {
     const discountPercent = isFull ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
     discountDisplay = Math.round(originalPrice * discountPercent);
     const afterDiscount = originalPrice - discountDisplay;
-    gstAmount = Math.round(afterDiscount * 0.05);
+    gstAmount = Math.round(afterDiscount * 0.0);
     finalDisplay = Math.round(afterDiscount + gstAmount);
   }
 
@@ -225,7 +225,7 @@ function PaymentPageContent() {
     ...(roundedDiscount > 0
       ? [{ label: "Discount", amount: -roundedDiscount }]
       : []),
-    { label: "GST (5%)", amount: gstAmount },
+    { label: "GST (0%)", amount: gstAmount },
     { label: "Paid", amount: roundedPaid },
   ];
   // GST is included in the service amount

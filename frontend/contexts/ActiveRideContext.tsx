@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { SocketContext } from "./cabs/SocketContext";
 import { useAuth } from "./AuthContext";
+import { getActiveRide } from "@/lib/api/rides";
 
 export interface ActiveRide {
   _id: string;
@@ -37,7 +44,14 @@ export interface ActiveRide {
   pickup: string;
   destination: string;
   fare: number;
-  status: "pending" | "accepted" | "ongoing" | "payment_pending" | "completed" | "reviewed" | "cancelled";
+  status:
+    | "pending"
+    | "accepted"
+    | "ongoing"
+    | "payment_pending"
+    | "completed"
+    | "reviewed"
+    | "cancelled";
   paymentStatus?: "unpaid" | "paid";
   paymentConfirmedAt?: string;
   otp?: string;
@@ -54,7 +68,9 @@ interface ActiveRideContextType {
   isTourist: boolean;
 }
 
-const ActiveRideContext = createContext<ActiveRideContextType | undefined>(undefined);
+const ActiveRideContext = createContext<ActiveRideContextType | undefined>(
+  undefined,
+);
 
 interface ActiveRideProviderProps {
   children: ReactNode;
@@ -77,18 +93,26 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     const restoreActiveRide = async () => {
       if (!user?.id || hasAttemptedRestore) return;
 
+      if (user?.role !== "DRIVER" && user?.role !== "TOURIST") {
+        setIsLoading(false);
+
+        return; // Only attempt restore for drivers and tourists
+      }
+
       setHasAttemptedRestore(true);
       setIsLoading(true);
 
       try {
-        console.log("[ACTIVE_RIDE_RESTORE] Starting restoration for user:", user.id);
-        const { getActiveRide } = await import("@/lib/api/rides");
-        
+        console.log(
+          "[ACTIVE_RIDE_RESTORE] Starting restoration for user:",
+          user.id,
+        );
+
         const restoredRide = await getActiveRide();
 
         if (restoredRide) {
           console.log(
-            `[ACTIVE_RIDE_RESTORE] Successfully restored active ride: ${restoredRide._id}, status: ${restoredRide.status}`
+            `[ACTIVE_RIDE_RESTORE] Successfully restored active ride: ${restoredRide._id}, status: ${restoredRide.status}`,
           );
           setActiveRide(restoredRide);
         } else {
@@ -96,7 +120,10 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
           setActiveRide(null);
         }
       } catch (error) {
-        console.error("[ACTIVE_RIDE_RESTORE] Error restoring active ride:", error);
+        console.error(
+          "[ACTIVE_RIDE_RESTORE] Error restoring active ride:",
+          error,
+        );
         // Continue gracefully - if restoration fails, user can create a new ride
         setActiveRide(null);
       } finally {
@@ -112,7 +139,10 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     if (!socket || !user?.id) return;
 
     const handleRideAccepted = (rideData: any) => {
-      console.log("[ACTIVE_RIDE_RESTORE] Socket: Driver accepted ride:", rideData._id);
+      console.log(
+        "[ACTIVE_RIDE_RESTORE] Socket: Driver accepted ride:",
+        rideData._id,
+      );
       // Set active ride for this driver
       setActiveRide(rideData);
     };
@@ -120,7 +150,7 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     const handleRideStarted = (rideData: any) => {
       console.log("[ACTIVE_RIDE_RESTORE] Socket: Ride started:", rideData._id);
       // Update active ride status
-      setActiveRide(prev => {
+      setActiveRide((prev) => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
           return { ...prev, ...rideData, status: "ongoing" };
         }
@@ -129,9 +159,12 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     };
 
     const handleRidePaymentPending = (rideData: any) => {
-      console.log("[ACTIVE_RIDE_RESTORE] Socket: Ride payment pending:", rideData._id);
+      console.log(
+        "[ACTIVE_RIDE_RESTORE] Socket: Ride payment pending:",
+        rideData._id,
+      );
       // Update active ride status to payment_pending
-      setActiveRide(prev => {
+      setActiveRide((prev) => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
           return { ...prev, ...rideData, status: "payment_pending" };
         }
@@ -140,11 +173,19 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     };
 
     const handlePaymentConfirmed = (rideData: any) => {
-      console.log("[ACTIVE_RIDE_RESTORE] Socket: Payment confirmed:", rideData._id);
+      console.log(
+        "[ACTIVE_RIDE_RESTORE] Socket: Payment confirmed:",
+        rideData._id,
+      );
       // Update active ride to completed
-      setActiveRide(prev => {
+      setActiveRide((prev) => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
-          return { ...prev, ...rideData, status: "completed", paymentStatus: "paid" };
+          return {
+            ...prev,
+            ...rideData,
+            status: "completed",
+            paymentStatus: "paid",
+          };
         }
         return rideData;
       });
@@ -153,7 +194,7 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     const handleRideCompleted = (rideData: any) => {
       console.log("[ACTIVE_RIDE] Socket: Ride completed:", rideData._id);
       // Keep ride in context with completed status for review/summary
-      setActiveRide(prev => {
+      setActiveRide((prev) => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
           return { ...prev, ...rideData, status: "completed" };
         }
@@ -163,8 +204,12 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
 
     // [RIDE_STATE_MACHINE] ride-reviewed: clear context — ride lifecycle complete
     const handleRideReviewed = (rideData: any) => {
-      console.log("[ACTIVE_RIDE] Socket: Ride reviewed:", rideData._id, "— clearing active ride");
-      setActiveRide(prev => {
+      console.log(
+        "[ACTIVE_RIDE] Socket: Ride reviewed:",
+        rideData._id,
+        "— clearing active ride",
+      );
+      setActiveRide((prev) => {
         if (prev && (prev.id === rideData._id || prev._id === rideData._id)) {
           return null; // Clear immediately
         }
@@ -175,9 +220,17 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     // [CANCEL_FLOW] ride-cancelled: clear context — ride lifecycle terminated
     const handleRideCancelled = (data: any) => {
       const cancelledRideId = data.rideId || data._id;
-      console.log("[ACTIVE_RIDE] Socket: Ride cancelled:", cancelledRideId, "— clearing active ride");
-      setActiveRide(prev => {
-        if (prev && (String(prev._id) === String(cancelledRideId) || String(prev.id) === String(cancelledRideId))) {
+      console.log(
+        "[ACTIVE_RIDE] Socket: Ride cancelled:",
+        cancelledRideId,
+        "— clearing active ride",
+      );
+      setActiveRide((prev) => {
+        if (
+          prev &&
+          (String(prev._id) === String(cancelledRideId) ||
+            String(prev.id) === String(cancelledRideId))
+        ) {
           return null; // Clear immediately
         }
         return prev;
@@ -210,7 +263,10 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     if (!socket || !user?.id) return;
 
     const handleRideConfirmed = (rideData: any) => {
-      console.log("[ACTIVE_RIDE_RESTORE] Socket: Tourist ride confirmed:", rideData._id);
+      console.log(
+        "[ACTIVE_RIDE_RESTORE] Socket: Tourist ride confirmed:",
+        rideData._id,
+      );
       // Set as active ride for tourist
       if (rideData.user?._id === user?.id || rideData.user === user?.id) {
         setActiveRide(rideData);

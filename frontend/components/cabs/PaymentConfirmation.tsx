@@ -43,7 +43,7 @@ export default function PaymentConfirmation({
     }
   }
   
-  const taxPercentage = 5; // 5% tax as per app standard
+  const taxPercentage = 0; // 0% GST/Tax (previously 5%, now removed)
   const taxAmount = Math.round((fare * taxPercentage) / 100);
   const totalAmount = fare + taxAmount;
   

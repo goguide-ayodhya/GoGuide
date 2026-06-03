@@ -15,7 +15,7 @@ export default function PaymentSuccess({
   onClose,
 }: PaymentSuccessProps) {
   const fare = ride?.fare || 0;
-  const taxPercentage = 5;
+  const taxPercentage = 0; // 0% GST/Tax (previously 5%, now removed)
   const taxAmount = Math.round((fare * taxPercentage) / 100);
   const totalAmount = fare + taxAmount;
 

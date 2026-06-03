@@ -59,11 +59,11 @@ export function GuideBookingForm({
   const [open, setOpen] = useState(false);
 
   const totalPrice = price;
-  const gstAmount = Math.round(totalPrice - totalPrice / 1.05);
+  const gstAmount = Math.round(totalPrice - totalPrice / 1.0);
   const finalPrice = Math.round(totalPrice + gstAmount);
   const priceItems = [
     { label: "Base Price", amount: Math.round(totalPrice) },
-    { label: "GST (5%)", amount: gstAmount },
+    { label: "GST (0%)", amount: gstAmount },
   ];
 
   const validateForm = () => {
