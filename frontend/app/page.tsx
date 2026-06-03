@@ -77,9 +77,7 @@ export default function Home() {
   }, [user, loading, router, isLoggedIn]);
 
   if (loading) {
-    return (
-      <TouristLoader fullScreen />
-    );
+    return <TouristLoader fullScreen />;
   }
 
   return (
@@ -168,8 +166,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-        {/* Gallery Preview */}
-        <GalleryPreview />
 
         {/* Destinations */}
         <section className="py-12 px-4 sm:px-6 lg:px-8">
@@ -224,6 +220,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Gallery Preview */}
+        <GalleryPreview />
 
         {/* Top Guides */}
         <section className="py-12 px-4 sm:px-6 lg:px-8">
