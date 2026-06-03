@@ -93,9 +93,9 @@ export class PayoutService {
     const accrued = await this.getTotalAccruedGuideShare(guideMongoId);
     const paid = await this.getPaidOutSum(guideMongoId);
     const inFlight = await this.getPendingPayoutRecordsSum(guideMongoId);
-    const cashCollected = await this.getCashCollectedSum(guideMongoId);
-    // Allow negative balance if they owe money
-    return roundMoney(accrued - paid - inFlight - cashCollected);
+    // Available = Guide's earned share - Already paid - Pending confirmation
+    // (accrued already represents guide's 70% share for all payment methods including COD)
+    return roundMoney(accrued - paid - inFlight);
   }
 
   async getGuideWalletSummary(guideMongoId: string) {
