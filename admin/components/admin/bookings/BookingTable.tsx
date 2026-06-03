@@ -371,7 +371,7 @@ export function BookingTable({
                             </DropdownMenuItem>
                           </>
                         )}
-                        {(booking.status === "Confirmed" ||
+                        {/* {(booking.status === "Confirmed" ||
                           booking.status === "On the Way") && (
                             <>
                               <DropdownMenuItem
@@ -388,7 +388,7 @@ export function BookingTable({
                                 Cancel Booking
                               </DropdownMenuItem>
                             </>
-                          )}
+                          )} */}
                         {(booking.status === "Completed" || booking.status === "Cancelled") && booking.paymentStatus !== "REFUNDED" && (
                           <DropdownMenuItem
                             className="text-orange-600"
