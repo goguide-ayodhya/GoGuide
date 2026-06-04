@@ -12,8 +12,8 @@ import img_06 from "./tourist/img_06.webp";
 
 import p_01 from "./partners/p_01.png";
 import p_02 from "./partners/p_02.png";
-import p_03 from "./partners/p_03.png";
-import p_04 from "./partners/p_04.jpeg";
+import mj_wains from "./partners/mj_wains.jpeg";
+import aayovea from "./partners/aayovea.jpeg";
 
 import digambarJainMandir from "./destinations/DigambarJainMandir.webp";
 import hanumanGarhi from "./destinations/HanumanGarhi.webp";
@@ -51,8 +51,8 @@ export const assets = {
 
   p_01,
   p_02,
-  p_03,
-  p_04,
+  mj_wains,
+  aayovea,
 
   digambarJainMandir,
   hanumanGarhi,

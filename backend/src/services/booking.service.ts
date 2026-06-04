@@ -495,6 +495,11 @@ export class BookingService {
 
     booking.status = "ACCEPTED";
     booking.isSeenByAdmin = false;
+    
+    // Set fullPaymentDiscountEligible to true for GUIDE bookings
+    if (bookingType === "GUIDE") {
+      booking.fullPaymentDiscountEligible = true;
+    }
 
     await booking.save();
 
@@ -769,6 +774,56 @@ export class BookingService {
       status: "PENDING",
       paymentStatus: "PENDING",
     });
+
+    return booking;
+  }
+
+  async startTour(
+    bookingId: string,
+    guideId: string,
+  ) {
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) throw new NotFound("Booking not found");
+
+    // Verify this is a guide booking and belongs to the guide
+    if (booking.bookingType !== "GUIDE") {
+      throw new BadRequest("Only guide bookings support tour start");
+    }
+
+    if (booking.guideId?.toString() !== guideId) {
+      throw new BadRequest("Not your booking");
+    }
+
+    // Check if tour is already started (prevent duplicate actions)
+    if (booking.fullPaymentDiscountEligible === false) {
+      throw new BadRequest("Tour already started");
+    }
+
+    // Disable full-payment discount eligibility
+    booking.fullPaymentDiscountEligible = false;
+    await booking.save();
+
+    console.log(
+      `[BOOKING] 🎬 Tour Started: ${bookingId}, Guide: ${guideId}, Discount disabled`,
+    );
+
+    // Send notification to tourist about tour start and discount end
+    try {
+      await NotificationService.sendNotificationToUser(
+        booking.userId.toString(),
+        {
+          title: "Tour Started",
+          body: "Your guide has started the tour. Full payment discount offer has ended.",
+          data: {
+            type: "TOUR_STARTED",
+            bookingId: bookingId,
+          },
+        },
+      );
+    } catch (error) {
+      console.warn("Failed to send tour started notification (non-blocking):", error);
+    }
 
     return booking;
   }

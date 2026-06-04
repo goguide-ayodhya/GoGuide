@@ -2,13 +2,16 @@
 
 import { createContext, useContext, ReactNode, useState } from "react";
 import { LoadScript } from "@react-google-maps/api";
+import TouristLoader from "@/components/common/TouristLoader";
 
 interface GoogleMapsContextType {
   isLoaded: boolean;
   loadError: Error | undefined;
 }
 
-const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(undefined);
+const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(
+  undefined,
+);
 
 export const useGoogleMaps = () => {
   const context = useContext(GoogleMapsContext);
@@ -29,8 +32,8 @@ export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
   return (
     <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
       <LoadScript
-        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-        libraries={['places']}
+        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+        libraries={["places"]}
         onLoad={() => {
           console.log("[GOOGLE MAPS] Global provider loaded successfully");
           setIsLoaded(true);
@@ -39,7 +42,7 @@ export const GoogleMapsProvider = ({ children }: GoogleMapsProviderProps) => {
           console.error("[GOOGLE MAPS] Global provider failed to load:", error);
           setLoadError(error);
         }}
-        loadingElement={<div className="flex items-center justify-center h-full"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>}
+        loadingElement={<TouristLoader />}
       >
         {children}
       </LoadScript>

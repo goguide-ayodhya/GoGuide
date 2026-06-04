@@ -62,6 +62,10 @@ router.patch("/:bookingId/reject", authenticate, (req, res, next) => {
   bookingController.rejectBooking(req, res).catch(next);
 });
 
+router.patch("/:bookingId/start-tour", authenticate, (req, res, next) => {
+  bookingController.startTour(req, res).catch(next);
+});
+
 router.post("/:packageId/create-order", authenticate, (req, res, next) => {
   bookingController.createPackageBooking(req, res).catch(next);
 });

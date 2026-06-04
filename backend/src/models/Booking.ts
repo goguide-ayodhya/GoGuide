@@ -48,6 +48,9 @@ export interface IBooking extends Document {
   /** True once user chose the partial (30%) plan or switched from partial to full-pay while keeping the discount. */
   partialDiscountApplied: boolean;
 
+  /** True if 10% full-payment discount is eligible (GUIDE bookings only). Set to true on acceptance, false when guide starts tour. */
+  fullPaymentDiscountEligible?: boolean;
+
   status: "PENDING" | "ACCEPTED" | "REJECTED" | "COMPLETED" | "CANCELLED";
 
   bookingType: "GUIDE" | "DRIVER" | "TOKEN" | "PACKAGE";
@@ -174,6 +177,10 @@ const BookingSchema = new Schema<IBooking>(
     partialDiscountApplied: {
       type: Boolean,
       default: false,
+    },
+    fullPaymentDiscountEligible: {
+      type: Boolean,
+      default: true,
     },
     status: {
       type: String,

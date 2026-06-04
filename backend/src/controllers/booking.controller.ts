@@ -469,6 +469,58 @@ export class BookingController {
     );
     res.json(booking);
   }
+
+  async startTour(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { bookingId } = req.params;
+
+      console.log(
+        "[BOOKING] startTour - userId:",
+        userId,
+        "bookingId:",
+        bookingId,
+      );
+
+      const booking = await bookingService.getBookingById(bookingId);
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      // Verify this is a guide booking
+      if (booking.bookingType !== "GUIDE") {
+        return res.status(400).json({
+          success: false,
+          message: "Only guide bookings can start a tour",
+        });
+      }
+
+      // Get guide profile to verify ownership
+      const guide = await Guide.findOne({ userId });
+      if (!guide) {
+        return res.status(404).json({
+          success: false,
+          message: "Guide profile not found",
+        });
+      }
+
+      const updatedBooking = await bookingService.startTour(
+        bookingId,
+        guide._id.toString(),
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Tour started successfully. Full payment discount is no longer available.",
+        data: updatedBooking,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export const bookingController = new BookingController();

@@ -65,6 +65,7 @@ export function applyPaymentModePricing(params: {
   paidAmount: number;
   mode: BookingPaymentMode;
   partialDiscountApplied: boolean;
+  fullPaymentDiscountEligible?: boolean; // For GUIDE bookings: only apply full-payment discount if true
 }): {
   discount: number;
   finalPrice: number;
@@ -72,7 +73,7 @@ export function applyPaymentModePricing(params: {
   partialDiscountApplied: boolean;
   gstAmount: number;
 } {
-  const { originalPrice, paidAmount, mode } = params;
+  const { originalPrice, paidAmount, mode, fullPaymentDiscountEligible = true } = params;
 
   if (mode === "COD") {
     // COD: no discount, but GST still applies
@@ -105,10 +106,15 @@ export function applyPaymentModePricing(params: {
     };
   }
 
-  // FULL payment: 10% discount
+  // FULL payment: 10% discount (only if eligible for GUIDE bookings)
+  let discountPercent = 0;
+  if (fullPaymentDiscountEligible) {
+    discountPercent = PRICING_CONFIG.FULL_PAYMENT_DISCOUNT_RATE;
+  }
+  
   const pricing = calculateFinalPrice({
     totalPrice: originalPrice,
-    discountPercent: PRICING_CONFIG.FULL_PAYMENT_DISCOUNT_RATE, // Discount for full payment upfront
+    discountPercent,
     paymentMode: mode,
   });
   return {

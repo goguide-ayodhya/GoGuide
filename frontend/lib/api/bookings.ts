@@ -112,6 +112,16 @@ export const completeBookingApi = async (bookingId: string) => {
   return handleApiResponse(res);
 };
 
+export const startTourApi = async (bookingId: string) => {
+  console.log("[BOOKING-API] startTourApi called with bookingId:", bookingId);
+  const res = await fetch(`${base_url}bookings/${bookingId}/start-tour`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+
+  return handleApiResponse(res);
+};
+
 // Admin
 export const seenBooking = async (bookingId: string) => {
   const res = await fetch(`${base_url}bookings/${bookingId}/seen`, {

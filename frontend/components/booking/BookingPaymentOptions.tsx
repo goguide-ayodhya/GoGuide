@@ -11,12 +11,14 @@ interface BookingPaymentOptionsProps {
   value: BookingPaymentMode | null;
   onChange: (value: BookingPaymentMode) => void;
   disabled?: boolean;
+  fullPaymentDiscountEligible?: boolean; // For GUIDE bookings: show/hide discount message
 }
 
 export function BookingPaymentOptions({
   value,
   onChange,
   disabled,
+  fullPaymentDiscountEligible = true,
 }: BookingPaymentOptionsProps) {
   return (
     <div className="space-y-3">
@@ -62,11 +64,21 @@ export function BookingPaymentOptions({
               <div className="flex items-center gap-3">
                 <IndianRupee className="h-6 w-6 text-secondary shrink-0" />
                 <div className="flex-1">
-                  <p className="font-semibold text-foreground">Pay full</p>
+                  <p className="font-semibold text-foreground">
+                    {fullPaymentDiscountEligible ? "Pay Advance" : "Pay Full"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Complete payment online in one step and get 10% off
+                    {fullPaymentDiscountEligible
+                      ? "Complete payment online in one step and get 10% off"
+                      : "Complete payment online in one step"}
                   </p>
                 </div>
+                {fullPaymentDiscountEligible && (
+                  <Badge variant="default" className="ml-auto bg-green-500 hover:bg-green-600">
+                    <Percent className="h-3 w-3 mr-1" />
+                    10% Off
+                  </Badge>
+                )}
               </div>
             </Card>
           </label>

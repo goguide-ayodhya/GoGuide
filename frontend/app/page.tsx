@@ -58,12 +58,13 @@ export default function Home() {
   const partners = [
     { name: "GoGuide | Ayodhya", image: assets.p_01 },
     { name: "GoCabs", image: assets.p_02 },
-    { name: "Local Guides Co-op", image: assets.p_03 },
-    { name: "Ayodhya Passes", image: assets.p_04 },
+    { name: "AAYOVEA", image: assets.aayovea },
+    { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
+    
     { name: "Temple Tickets", image: assets.p_01 },
     { name: "City Tours Inc.", image: assets.p_02 },
-    { name: "Local Guides Co-op", image: assets.p_03 },
-    { name: "Ayodhya Passes", image: assets.p_04 },
+    { name: "AAYOVEA", image: assets.aayovea },
+    { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
   ];
 
   useEffect(() => {

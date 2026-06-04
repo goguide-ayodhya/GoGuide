@@ -1,8 +1,9 @@
 interface PriceBreakdownProps {
-  items: { label: string; amount: number }[];
+  items: { label: string; amount: number | string }[];
   total: number;
   paymentStatus?: string;
   remainingAmount?: number;
+  fullPaymentDiscountEligible?: boolean;
 }
 
 export function PriceBreakdown({
@@ -10,6 +11,7 @@ export function PriceBreakdown({
   total,
   paymentStatus,
   remainingAmount,
+  fullPaymentDiscountEligible = true,
 }: PriceBreakdownProps) {
   const isPartial = paymentStatus === "PARTIAL";
 
@@ -19,9 +21,9 @@ export function PriceBreakdown({
         <div key={idx} className="flex justify-between items-center text-sm">
           <span className="text-slate-600">{item.label}</span>
           <span
-            className={`font-medium ${item.amount < 0 ? "text-red-600" : "text-slate-900"}`}
+            className={`font-medium ${typeof item.amount === "number" && item.amount < 0 ? "text-red-600" : "text-slate-900"}`}
           >
-            {item.amount < 0 ? "-" : ""}₹{Math.abs(item.amount).toLocaleString("en-IN")}
+            {typeof item.amount === "string" ? item.amount : (item.amount < 0 ? "-" : "") + "₹" + Math.abs(item.amount).toLocaleString("en-IN")}
           </span>
         </div>
       ))}

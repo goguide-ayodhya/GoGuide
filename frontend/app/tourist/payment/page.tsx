@@ -197,11 +197,15 @@ function PaymentPageContent() {
   let gstAmount = booking.gstAmount ?? 0;
   let finalDisplay = booking.finalPrice ?? booking.totalPrice ?? 0;
 
-  // If payment mode not set yet, show preview using backend pricing logic
-  // But don't use these for actual payment - backend will recalculate
+  // If discount is not eligible, use original price (not discounted price)
+  if (booking.fullPaymentDiscountEligible === false) {
+    finalDisplay = originalPrice;
+    discountDisplay = 0;
+  }
+
   if (!booking.paymentType && selectedMode) {
     const isFull = selectedMode === "FULL";
-    const discountPercent = isFull ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
+    const discountPercent = isFull && booking.fullPaymentDiscountEligible !== false ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
     discountDisplay = Math.round(originalPrice * discountPercent);
     const afterDiscount = originalPrice - discountDisplay;
     gstAmount = Math.round(afterDiscount * 0.0);
@@ -220,9 +224,9 @@ function PaymentPageContent() {
   const roundedDiscount = Math.round(discountDisplay || 0);
   const roundedTotal = Math.round(finalDisplay || 0);
 
-  const priceItems: { label: string; amount: number }[] = [
+  const priceItems: { label: string; amount: number | string }[] = [
     { label: "Original price", amount: roundedOriginal },
-    ...(roundedDiscount > 0
+    ...(roundedDiscount > 0 && booking.fullPaymentDiscountEligible !== false
       ? [{ label: "Discount", amount: -roundedDiscount }]
       : []),
     { label: "GST (0%)", amount: gstAmount },
@@ -431,6 +435,7 @@ function PaymentPageContent() {
                 value={selectedMode}
                 onChange={setSelectedMode}
                 disabled={isProcessing}
+                fullPaymentDiscountEligible={booking.fullPaymentDiscountEligible !== false}
               />
             </Card>
           ) : (
@@ -455,7 +460,7 @@ function PaymentPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  Final price (offer)
+                  Final price {booking.fullPaymentDiscountEligible !== false && "(offer)"}
                 </span>
                 <span className="font-medium">
                   ₹{formatRupee(finalDisplay)}
@@ -469,7 +474,7 @@ function PaymentPageContent() {
                 <span className="text-muted-foreground">Remaining</span>
                 <span>₹{formatRupee(finalDisplay - paidAmount)}</span>
               </div>
-              {discountDisplay > 0 && (
+              {discountDisplay > 0 && booking.fullPaymentDiscountEligible !== false && (
                 <p className="text-sm text-green-600 dark:text-green-400 pt-2">
                   You saved ₹{formatRupee(discountDisplay)} with full-payment
                   offer.
@@ -488,6 +493,7 @@ function PaymentPageContent() {
                 0,
                 Math.round(roundedTotal - roundedPaid),
               )}
+              fullPaymentDiscountEligible={booking.fullPaymentDiscountEligible !== false}
             />
           </Card>
 

@@ -619,6 +619,11 @@ export class PaymentService {
         paidAmount,
         mode: paymentType,
         partialDiscountApplied: booking.partialDiscountApplied ?? false,
+        // For GUIDE bookings, only apply full-payment discount if eligible
+        fullPaymentDiscountEligible: 
+          booking.bookingType === "GUIDE" 
+            ? booking.fullPaymentDiscountEligible ?? true 
+            : true,
       });
     }
 

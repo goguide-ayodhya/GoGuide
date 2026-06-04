@@ -37,6 +37,7 @@ import {
   retryPaymentApi,
   getBookingPaymentsApi,
 } from "@/lib/api/payments";
+import { startTourApi } from "@/lib/api/bookings";
 import { getPaymentStatusLabel } from "@/lib/payment-status";
 import TouristLoader from "@/components/common/TouristLoader";
 import {
@@ -189,6 +190,55 @@ export default function BookingsPage() {
 
     // Refresh bookings to get updated status
     await refreshBookings();
+  };
+
+  const handleStartTour = async (bookingId: string) => {
+    setStatusLoadingId(bookingId);
+    try {
+      const updatedBooking = await startTourApi(bookingId);
+      
+      // Update local state
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId
+            ? {
+              ...b,
+              fullPaymentDiscountEligible: false,
+            }
+            : b
+        ),
+      );
+
+      setSelectedBooking((prev) =>
+        prev?.id === bookingId
+          ? {
+            ...prev,
+            fullPaymentDiscountEligible: false,
+          }
+          : prev,
+      );
+
+      toast({
+        title: "Tour started",
+        description: "Your tour has been started. Full payment discount is no longer available.",
+        variant: "success",
+      });
+
+      await refreshBookings();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to start tour.";
+      toast({
+        title: "Action failed",
+        description: message,
+        variant: "destructive",
+      });
+      console.error("Start tour failed", error);
+    } finally {
+      setStatusLoadingId(null);
+    }
   };
 
   const handleCancelBooking = (bookingId: string) => {
@@ -838,6 +888,20 @@ export default function BookingsPage() {
                                             Retry Payment
                                           </DropdownMenuItem>
                                         )}
+                                      {booking.fullPaymentDiscountEligible !== false && (
+                                        <DropdownMenuItem
+                                          disabled={
+                                            statusLoadingId === booking.id
+                                          }
+                                          onClick={() =>
+                                            handleStartTour(booking.id)
+                                          }
+                                          className="text-green-600"
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Start Tour
+                                        </DropdownMenuItem>
+                                      )}
                                     </>
                                   )}
                                   {(booking.status === "PENDING" ||
