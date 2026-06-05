@@ -882,53 +882,106 @@ export class PaymentService {
       }
     }
 
-    // CRITICAL FIX: Check for PENDING payment without razorpayOrderId with EXACT amount match
-    // This is the payment updated by retryFailedPayment() - reuse it instead of creating new
-    const pendingWithoutOrderId = await Payment.findOne({
+    // CRITICAL FIX: Check for FAILED/CANCELLED/EXPIRED payments and reuse them safely
+    // This allows retrying after failed/cancelled payments
+    const failedOrCancelledPayment = await Payment.findOne({
       bookingId,
-      status: "PENDING",
+      status: { $in: ["FAILED", "CANCELLED", "EXPIRED"] },
       paymentKind: "CHARGE",
       paymentStage,
-      razorpayOrderId: { $exists: false },
     });
 
-    // If still no pending doc to attach order to, create one
-    let paymentDoc = pendingWithoutOrderId;
+    let paymentDoc: any = null;
 
-    if (pendingWithoutOrderId) {
-      const amountDiff = Math.abs(pendingWithoutOrderId.amount - chargeAmount);
+    if (failedOrCancelledPayment) {
+      const amountDiff = Math.abs(failedOrCancelledPayment.amount - chargeAmount);
       if (amountDiff > 0.001) {
-        // Amount mismatch - invalidate this payment
-        console.log("🔄 Amount mismatch in PENDING without razorpayOrderId, invalidating:", {
-          paymentId: pendingWithoutOrderId._id,
-          oldAmount: pendingWithoutOrderId.amount,
+        // Amount mismatch - create new payment instead of reusing
+        console.log("🔄 Reusing failed payment with amount update:", {
+          paymentId: failedOrCancelledPayment._id,
+          oldAmount: failedOrCancelledPayment.amount,
           newAmount: chargeAmount,
           difference: amountDiff,
+          status: failedOrCancelledPayment.status,
         });
-        await Payment.findByIdAndUpdate(pendingWithoutOrderId._id, {
-          status: "FAILED",
-          failureReason: "Amount changed, invalidated",
-        });
-        paymentDoc = null;
-      } else {
-        // Exact match - reuse this payment (updated by retryFailedPayment)
-        console.log("♻️ Reusing PENDING payment without razorpayOrderId (updated by retry):", {
-          paymentId: pendingWithoutOrderId._id,
-          amount: chargeAmount,
-        });
-        // CRITICAL: Even when reusing, ensure amount is synced to latest chargeAmount
-        // This prevents any edge cases where amount might be slightly off
         paymentDoc = await Payment.findByIdAndUpdate(
-          pendingWithoutOrderId._id,
+          failedOrCancelledPayment._id,
           {
             amount: chargeAmount,
             type: paymentType,
             paymentStage,
+            status: "PENDING",
+            failureReason: undefined,
+            $unset: { razorpayOrderId: "" }, // Clear any stale razorpayOrderId
+          },
+          { new: true },
+        );
+      } else {
+        // Exact amount match - reuse the failed payment
+        console.log("♻️ Reusing failed/cancelled payment with exact amount match:", {
+          paymentId: failedOrCancelledPayment._id,
+          amount: chargeAmount,
+          previousStatus: failedOrCancelledPayment.status,
+        });
+        paymentDoc = await Payment.findByIdAndUpdate(
+          failedOrCancelledPayment._id,
+          {
+            status: "PENDING",
+            failureReason: undefined,
+            $unset: { razorpayOrderId: "" }, // Clear any stale razorpayOrderId
           },
           { new: true },
         );
       }
     }
+
+    // CRITICAL FIX: Check for PENDING payment without razorpayOrderId with EXACT amount match
+    // This is the payment updated by retryFailedPayment() - reuse it instead of creating new
+    if (!paymentDoc) {
+      const pendingWithoutOrderId = await Payment.findOne({
+        bookingId,
+        status: "PENDING",
+        paymentKind: "CHARGE",
+        paymentStage,
+        razorpayOrderId: { $exists: false },
+      });
+
+      if (pendingWithoutOrderId) {
+        const amountDiff = Math.abs(pendingWithoutOrderId.amount - chargeAmount);
+        if (amountDiff > 0.001) {
+          // Amount mismatch - invalidate this payment
+          console.log("🔄 Amount mismatch in PENDING without razorpayOrderId, invalidating:", {
+            paymentId: pendingWithoutOrderId._id,
+            oldAmount: pendingWithoutOrderId.amount,
+            newAmount: chargeAmount,
+            difference: amountDiff,
+          });
+          await Payment.findByIdAndUpdate(pendingWithoutOrderId._id, {
+            status: "FAILED",
+            failureReason: "Amount changed, invalidated",
+          });
+        } else {
+          // Exact match - reuse this payment (updated by retryFailedPayment)
+          console.log("♻️ Reusing PENDING payment without razorpayOrderId (updated by retry):", {
+            paymentId: pendingWithoutOrderId._id,
+            amount: chargeAmount,
+          });
+          // CRITICAL: Even when reusing, ensure amount is synced to latest chargeAmount
+          // This prevents any edge cases where amount might be slightly off
+          paymentDoc = await Payment.findByIdAndUpdate(
+            pendingWithoutOrderId._id,
+            {
+              amount: chargeAmount,
+              type: paymentType,
+              paymentStage,
+            },
+            { new: true },
+          );
+        }
+      }
+    }
+
+    // If still no pending doc to attach order to, create one
     if (!paymentDoc) {
       try {
         paymentDoc = await Payment.create({
@@ -945,24 +998,43 @@ export class PaymentService {
         console.log("🆕 Created fresh payment document:", {
           paymentId: paymentDoc._id,
           amount: chargeAmount,
+          bookingId,
+          paymentType,
+          paymentStage,
         });
       } catch (err: any) {
         if (err?.code === 11000) {
-          paymentDoc = await Payment.findOne({ bookingId, status: "PENDING" });
-          // console.log("♻️ Found existing payment after duplicate key error:", {
-          //   paymentId: paymentDoc._id,
-          //   oldAmount: paymentDoc.amount,
-          //   newAmount: chargeAmount,
-          // });
+          // Duplicate key error - try to find existing PENDING or FAILED payment
+          // Search without paymentKind filter to catch both INITIAL and CHARGE payments
+          console.log("⚠️ Duplicate key error during payment creation, looking for existing payment:", {
+            bookingId,
+            chargeAmount,
+            errorCode: err.code,
+          });
           
-          // CRITICAL FIX: When reusing payment after duplicate key error,
-          // ALWAYS update the amount to match the current chargeAmount
-          // This prevents stale amounts from persisting
+          paymentDoc = await Payment.findOne({
+            bookingId,
+            status: { $in: ["PENDING", "FAILED", "CANCELLED", "EXPIRED"] },
+            // Don't filter by paymentKind - could be INITIAL from ensureInitialPayment
+          });
+          
           if (paymentDoc) {
+            console.log("♻️ Found existing payment after duplicate key error:", {
+              paymentId: paymentDoc._id,
+              status: paymentDoc.status,
+              oldAmount: paymentDoc.amount,
+              newAmount: chargeAmount,
+            });
+            
+            // CRITICAL FIX: When reusing payment after duplicate key error,
+            // ALWAYS update the status to PENDING and amount to match current chargeAmount
+            // This prevents stale amounts and statuses from persisting
             const amountDiff = Math.abs(paymentDoc.amount - chargeAmount);
-            if (amountDiff > 0.001) {
-              console.log("🔄 Updating stale payment amount after duplicate key recovery:", {
+            if (amountDiff > 0.001 || paymentDoc.status !== "PENDING") {
+              console.log("🔄 Updating stale payment after duplicate key recovery:", {
                 paymentId: paymentDoc._id,
+                oldStatus: paymentDoc.status,
+                newStatus: "PENDING",
                 oldAmount: paymentDoc.amount,
                 newAmount: chargeAmount,
                 difference: amountDiff,
@@ -970,9 +1042,11 @@ export class PaymentService {
               paymentDoc = await Payment.findByIdAndUpdate(
                 paymentDoc._id,
                 {
+                  status: "PENDING",
                   amount: chargeAmount,
                   type: paymentType,
                   paymentStage,
+                  failureReason: undefined,
                   $unset: { razorpayOrderId: "" }, // Clear stale razorpayOrderId
                 },
                 { new: true },
@@ -987,15 +1061,25 @@ export class PaymentService {
 
     // At this point we have a paymentDoc to attach an order to.
     if (!paymentDoc) {
+      console.error("❌ CRITICAL: Failed to create or find payment document:", {
+        bookingId,
+        chargeAmount,
+        paymentStage,
+        paymentType,
+        error: "No payment document available after all lookup and creation attempts",
+      });
       throw new BadRequest("Failed to create or find payment document");
     }
+
     const receipt = `bk_${bookingId}_${paymentDoc._id}`.slice(0, 40);
-    console.log("🔄 RAZORPAY ORDER CREATION:", {
+    console.log("📋 RAZORPAY ORDER CREATION INITIATED:", {
       bookingId,
+      paymentId: paymentDoc._id,
       chargeAmount,
       chargeAmountPaise: Math.round(chargeAmount * 100),
       receipt,
-      paymentDocId: paymentDoc!._id,
+      paymentDocStatus: paymentDoc.status,
+      paymentMode: "razorpay",
     });
     const { order, amountPaise } = await createRazorpayOrder(
       chargeAmount,
@@ -1028,6 +1112,15 @@ export class PaymentService {
         const existing = await Payment.findById(paymentDoc!._id);
         const keyId = process.env.RAZORPAY_KEY_ID;
         if (!keyId) throw new BadRequest("Razorpay is not configured");
+        
+        console.log("⚠️ RAZORPAY ORDER ALREADY CLAIMED BY ANOTHER PROCESS:", {
+          bookingId,
+          paymentId: existing?._id,
+          orderId: existing?.razorpayOrderId,
+          amount: chargeAmount,
+          paymentMode: "razorpay",
+        });
+        
         return {
           payment: existing,
           orderId: existing?.razorpayOrderId,
@@ -1040,6 +1133,16 @@ export class PaymentService {
 
       const keyId = process.env.RAZORPAY_KEY_ID;
       if (!keyId) throw new BadRequest("Razorpay is not configured");
+
+      console.log("✅ RAZORPAY PAYMENT READY FOR CHECKOUT:", {
+        bookingId,
+        paymentId: updated._id,
+        orderId: order.id,
+        amount: chargeAmount,
+        currency: "INR",
+        paymentStage,
+        paymentMode: "razorpay",
+      });
 
       return {
         payment: updated,
@@ -1072,7 +1175,7 @@ export class PaymentService {
   private async invalidateStalePendingOrders(bookingId: string) {
     // Invalidate ALL PENDING payments with razorpayOrderId and CLEAR the razorpayOrderId field
     // This prevents stale order reuse and ensures clean retry flow
-    await Payment.updateMany(
+    const pendingUpdate = await Payment.updateMany(
       {
         bookingId,
         status: "PENDING",
@@ -1085,18 +1188,24 @@ export class PaymentService {
       },
     );
 
-    // Also invalidate FAILED payments with razorpayOrderId to prevent any confusion
+    // Also clear razorpayOrderId from any FAILED/CANCELLED/EXPIRED payments
     // This is critical for retry flow - old failed payments should not have active razorpayOrderId
-    await Payment.updateMany(
+    const failedUpdate = await Payment.updateMany(
       {
         bookingId,
-        status: "FAILED",
+        status: { $in: ["FAILED", "CANCELLED", "EXPIRED"] },
         razorpayOrderId: { $exists: true, $ne: null },
       },
       {
         $unset: { razorpayOrderId: "" }, // Clear stale razorpayOrderId from failed payments
       },
     );
+
+    console.log("🗑️ INVALIDATED STALE ORDERS:", {
+      bookingId,
+      pendingInvalidated: pendingUpdate.modifiedCount,
+      failedCleared: failedUpdate.modifiedCount,
+    });
   }
 
   async skipPayment(userId: string, bookingId: string) {
@@ -1710,6 +1819,15 @@ export class PaymentService {
 
     const bookingId = payment.bookingId.toString();
 
+    console.log("🔄 PAYMENT RETRY INITIATED:", {
+      paymentId,
+      bookingId,
+      currentPaymentStatus: payment.status,
+      paymentMode: "razorpay",
+      failureReason: payment.failureReason,
+      lastAttemptAmount: payment.amount,
+    });
+
     // CRITICAL: Invalidate ALL stale payments for this booking before retry
     // This ensures no stale PENDING or FAILED payments with old amounts can interfere
     await this.invalidateStalePendingOrders(bookingId);
@@ -1769,6 +1887,11 @@ export class PaymentService {
       paymentId,
       oldAmount: payment.amount,
       newAmount: remainingAmount,
+      oldStatus: payment.status,
+      newStatus: "PENDING",
+      paymentStage: payment.paymentStage,
+      paymentMode: "razorpay",
+      bookingId,
     });
 
     // Now create Razorpay order for the updated payment

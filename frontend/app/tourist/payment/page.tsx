@@ -400,11 +400,21 @@ function PaymentPageContent() {
         rzp.open();
       });
     } catch (e: unknown) {
-      console.error(e);
-      setError(
-        e instanceof Error ? e.message : "Payment could not be completed",
-      );
-      router.push("/tourist/payment-failed");
+      console.error("Payment error:", e);
+      const errorMessage =
+        e instanceof Error ? e.message : "Payment could not be completed";
+      setError(errorMessage);
+      
+      // Store payment error details in sessionStorage for payment-failed page
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("paymentError", errorMessage);
+        sessionStorage.setItem("failedBookingId", bookingId || "");
+      }
+      
+      // Redirect to payment-failed page
+      setTimeout(() => {
+        router.push("/tourist/payment-failed");
+      }, 500);
     } finally {
       setIsProcessing(false);
     }
