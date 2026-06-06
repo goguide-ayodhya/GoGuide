@@ -11,6 +11,7 @@ import {
   calculateFinalPrice,
   roundMoney,
   PARTIAL_DISCOUNT_RATE,
+  isWithinOneHourBeforeTourStart,
 } from "../utils/bookingPricing";
 import {
   createRazorpayOrder,
@@ -515,6 +516,19 @@ export class PaymentService {
       );
     }
 
+    // Check if within 1 hour of tour start - disable full payment discount if true
+    const withinOneHour = isWithinOneHourBeforeTourStart(
+      booking.bookingDate,
+      booking.startTime,
+    );
+    if (withinOneHour) {
+      console.log(
+        "⏰ Within 1 hour of tour start - disabling full payment discount for booking:",
+        bookingId,
+      );
+      booking.fullPaymentDiscountEligible = false;
+    }
+
     let pricing;
     if (booking.bookingType === "PACKAGE") {
       // CRITICAL FIX: For packages, apply payment mode discount ON TOP of package discount
@@ -605,14 +619,6 @@ export class PaymentService {
           totalDiscount: pricing.discount,
         });
       }
-      
-      console.log("📦 PACKAGE PAYMENT MODE FINAL PRICING:", {
-        totalPrice: pricing.totalPrice,
-        discount: pricing.discount,
-        gstAmount: pricing.gstAmount,
-        finalPrice: pricing.finalPrice,
-        remainingAmount: pricing.remainingAmount,
-      });
     } else {
       pricing = applyPaymentModePricing({
         originalPrice,
@@ -690,6 +696,53 @@ export class PaymentService {
 
     if (!booking.paymentType) {
       throw new BadRequest("Select a payment option first");
+    }
+
+    // Check if within 1 hour of tour start - recalculate pricing without discount if true
+    const withinOneHour = isWithinOneHourBeforeTourStart(
+      booking.bookingDate,
+      booking.startTime,
+    );
+    if (withinOneHour) {
+      console.log(
+        "⏰ Within 1 hour of tour start - recalculating pricing without full payment discount for booking:",
+        bookingId,
+      );
+      booking.fullPaymentDiscountEligible = false;
+
+      // Recalculate pricing with discount disabled for GUIDE bookings
+      const originalPrice = booking.originalPrice ?? booking.totalPrice;
+      const paidAmount = booking.paidAmount ?? 0;
+
+      if (booking.bookingType !== "PACKAGE") {
+        // For non-PACKAGE bookings, recalculate using applyPaymentModePricing
+        const newPricing = applyPaymentModePricing({
+          originalPrice,
+          paidAmount,
+          mode: booking.paymentType as any,
+          partialDiscountApplied: booking.partialDiscountApplied ?? false,
+          fullPaymentDiscountEligible: false, // Force discount disabled
+        });
+
+        booking.discount = newPricing.discount;
+        booking.finalPrice = newPricing.finalPrice;
+        booking.remainingAmount = newPricing.remainingAmount;
+        booking.gstAmount = newPricing.gstAmount;
+
+        console.log("♻️ PRICING RECALCULATED (WITHIN 1 HOUR):", {
+          bookingId,
+          paymentType: booking.paymentType,
+          originalPrice,
+          newDiscount: newPricing.discount,
+          newFinalPrice: newPricing.finalPrice,
+          newRemaining: newPricing.remainingAmount,
+        });
+      }
+      // For PACKAGE bookings, discount recalculation happens in the full pricing logic
+      // (packages already have their own discount handling)
+
+      // Save booking with updated pricing
+      await booking.save();
     }
 
     const finalPrice = booking.finalPrice ?? booking.totalPrice;

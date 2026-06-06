@@ -129,3 +129,62 @@ export function applyPaymentModePricing(params: {
 export function advanceAmountForPartial(finalPrice: number): number {
   return roundMoney(finalPrice * 0.3);
 }
+
+/**
+ * Check if current time is within 1 hour before tour start time.
+ * Returns true if discount should be disabled, false otherwise.
+ */
+export function isWithinOneHourBeforeTourStart(
+  bookingDate: Date | string,
+  startTime: string
+): boolean {
+  try {
+    // Convert bookingDate to Date if it's a string
+    const dateObj =
+      typeof bookingDate === "string" ? new Date(bookingDate) : bookingDate;
+
+    // Parse startTime - handle both "HH:mm" and "HH:mm AM/PM" formats
+    let hours = 0;
+    let minutes = 0;
+
+    const timeStr = startTime.trim().toUpperCase();
+    const isAfternoon = timeStr.includes("PM");
+    const isMorning = timeStr.includes("AM");
+    const cleanTime = timeStr.replace(/\s*(AM|PM)\s*$/i, "").trim();
+
+    // Parse HH:mm
+    const timeParts = cleanTime.split(":");
+    if (timeParts.length >= 2) {
+      hours = parseInt(timeParts[0], 10);
+      minutes = parseInt(timeParts[1], 10);
+
+      // Convert to 24-hour format
+      if (isAfternoon && hours !== 12) {
+        hours += 12;
+      } else if (isMorning && hours === 12) {
+        hours = 0;
+      }
+    }
+
+    // Create tour start datetime
+    const tourStart = new Date(dateObj);
+    tourStart.setHours(hours, minutes, 0, 0);
+
+    const now = new Date();
+    const oneHourBefore = new Date(tourStart.getTime() - 60 * 60 * 1000);
+
+    const isWithin = now >= oneHourBefore;
+
+    console.log("🕐 TOUR START TIME CHECK:", {
+      tourStartDatetime: tourStart.toISOString(),
+      oneHourBefore: oneHourBefore.toISOString(),
+      currentTime: now.toISOString(),
+      isWithinOneHour: isWithin,
+    });
+
+    return isWithin;
+  } catch (error) {
+    console.error("⚠️ Error checking tour start time:", error);
+    return false;
+  }
+}

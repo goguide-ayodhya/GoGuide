@@ -72,6 +72,32 @@ function PaymentPageContent() {
   const [selectedMode, setSelectedMode] = useState<BookingPaymentMode | null>(
     null,
   );
+  // When user selects a payment option, immediately persist it to backend
+  const handleModeSelect = async (mode: BookingPaymentMode | null) => {
+    setSelectedMode(mode);
+    if (!bookingId || !mode) return;
+
+    setError(null);
+    setIsProcessing(true);
+    try {
+      const updated = await setPaymentModeApi(bookingId, mode as any);
+      const merged = { ...(booking || {}), ...updated, id: updated._id || updated.id };
+      setBookingDetails(merged);
+      setCurrentBooking(merged);
+
+      // After changing to COD, keep behavior: refresh bookings and navigate back
+      if (mode === "COD") {
+        await refreshBookings();
+        router.push("/tourist/bookings");
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to set payment mode:", err);
+      setError(err instanceof Error ? err.message : "Could not set payment mode");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   const [error, setError] = useState<string | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [refundHistory, setRefundHistory] = useState<Refund[]>([]);
@@ -102,12 +128,11 @@ function PaymentPageContent() {
       return;
     }
 
-    if (currentBooking?.id === bookingId) {
-      return;
-    }
-
+    // Always fetch fresh booking data from backend to get latest fullPaymentDiscountEligible status
+    // Do not skip even if booking is in context - we need the latest values
     const fetchBooking = async () => {
       try {
+        console.log("Fetching fresh booking data for payment page:", bookingId);
         await refreshBooking(bookingId);
       } catch (e) {
         console.log("Failed to load booking by URL:", e);
@@ -116,7 +141,7 @@ function PaymentPageContent() {
     };
 
     fetchBooking();
-  }, [bookingId, currentBooking, router, refreshBooking]);
+  }, [bookingId, router, refreshBooking]);
 
   useEffect(() => {
     if (!booking) return;
@@ -197,15 +222,18 @@ function PaymentPageContent() {
   let gstAmount = booking.gstAmount ?? 0;
   let finalDisplay = booking.finalPrice ?? booking.totalPrice ?? 0;
 
-  // If discount is not eligible, use original price (not discounted price)
-  if (booking.fullPaymentDiscountEligible === false) {
+  // If discount is not eligible (backend flag), disable all discount display
+  const isDiscountEligible = booking.fullPaymentDiscountEligible !== false;
+  if (!isDiscountEligible) {
+    // Use original price, no discount
     finalDisplay = originalPrice;
     discountDisplay = 0;
   }
 
-  if (!booking.paymentType && selectedMode) {
+  // Only calculate local discount preview if payment mode not yet set AND discount is eligible
+  if (!booking.paymentType && selectedMode && isDiscountEligible) {
     const isFull = selectedMode === "FULL";
-    const discountPercent = isFull && booking.fullPaymentDiscountEligible !== false ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
+    const discountPercent = isFull ? 0.1 : (selectedMode === "PARTIAL" ? 0.05 : 0);
     discountDisplay = Math.round(originalPrice * discountPercent);
     const afterDiscount = originalPrice - discountDisplay;
     gstAmount = Math.round(afterDiscount * 0.0);
@@ -226,7 +254,7 @@ function PaymentPageContent() {
 
   const priceItems: { label: string; amount: number | string }[] = [
     { label: "Original price", amount: roundedOriginal },
-    ...(roundedDiscount > 0 && booking.fullPaymentDiscountEligible !== false
+    ...(roundedDiscount > 0 && isDiscountEligible
       ? [{ label: "Discount", amount: -roundedDiscount }]
       : []),
     { label: "GST (0%)", amount: gstAmount },
@@ -285,30 +313,8 @@ function PaymentPageContent() {
         selectedMode,
       });
 
-      // Only set payment mode when user explicitly chose a mode.
-      if (!isPayingRemaining) {
-        console.log(
-          "Setting payment mode:",
-          selectedMode,
-          "for booking:",
-          bookingId,
-        );
-        const updated = await setPaymentModeApi(bookingId, selectedMode as any);
-        console.log("Payment mode set successfully:", updated);
-        const merged = {
-          ...booking,
-          ...updated,
-          id: updated._id || booking.id,
-        };
-        setBookingDetails(merged);
-        setCurrentBooking(merged);
-
-        if (selectedMode === "COD") {
-          await refreshBookings();
-          router.push("/tourist/bookings");
-          return;
-        }
-      }
+      // Payment mode is expected to be set when the user selects an option.
+      // handlePay now only creates the Razorpay order using current booking state.
 
       console.log("Creating Razorpay order for booking:", bookingId, {
         isPayingRemaining,
@@ -443,9 +449,9 @@ function PaymentPageContent() {
             <Card className="p-6">
               <BookingPaymentOptions
                 value={selectedMode}
-                onChange={setSelectedMode}
+                onChange={handleModeSelect}
                 disabled={isProcessing}
-                fullPaymentDiscountEligible={booking.fullPaymentDiscountEligible !== false}
+                fullPaymentDiscountEligible={isDiscountEligible}
               />
             </Card>
           ) : (
@@ -470,7 +476,7 @@ function PaymentPageContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  Final price {booking.fullPaymentDiscountEligible !== false && "(offer)"}
+                  Final price {isDiscountEligible && "(offer)"}
                 </span>
                 <span className="font-medium">
                   ₹{formatRupee(finalDisplay)}
@@ -484,7 +490,7 @@ function PaymentPageContent() {
                 <span className="text-muted-foreground">Remaining</span>
                 <span>₹{formatRupee(finalDisplay - paidAmount)}</span>
               </div>
-              {discountDisplay > 0 && booking.fullPaymentDiscountEligible !== false && (
+              {roundedDiscount > 0 && isDiscountEligible && (
                 <p className="text-sm text-green-600 dark:text-green-400 pt-2">
                   You saved ₹{formatRupee(discountDisplay)} with full-payment
                   offer.
@@ -503,7 +509,7 @@ function PaymentPageContent() {
                 0,
                 Math.round(roundedTotal - roundedPaid),
               )}
-              fullPaymentDiscountEligible={booking.fullPaymentDiscountEligible !== false}
+              fullPaymentDiscountEligible={isDiscountEligible}
             />
           </Card>
 
