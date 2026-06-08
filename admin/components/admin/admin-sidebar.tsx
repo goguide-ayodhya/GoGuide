@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
 import { getAdminDashboard, getPendingGuides, getRecentUsers } from "@/lib/api/adminDashboard";
 import { getAllBookings } from "@/lib/api/bookings";
+import { getCommissionOverviewStatsApi } from "@/lib/api/finance";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminSidebarProps {
@@ -90,7 +91,7 @@ const menuItems = [
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
-  const [stats, setStats] = useState({ bookings: 0, pendingGuides: 0, newUsers: 0, pendingPackages: 0 });
+  const [stats, setStats] = useState({ bookings: 0, pendingGuides: 0, newUsers: 0, pendingPackages: 0, pendingCommissions: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -107,11 +108,21 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         const today = new Date().toDateString();
         const newUsersCount = users?.filter((u: any) => new Date(u.joinedAt).toDateString() === today)?.length || 0;
 
+        // Pending commission requests count
+        let pendingCommissions = 0;
+        try {
+          const commStats = await getCommissionOverviewStatsApi();
+          pendingCommissions = commStats?.pendingRequestsCount || 0;
+        } catch (e) {
+          // non-critical
+        }
+
         setStats({
           bookings: dashboard?.bookings?.unseen || 0,
           pendingGuides: pending?.length || 0,
           newUsers: newUsersCount,
-          pendingPackages: pendingPackagesCount
+          pendingPackages: pendingPackagesCount,
+          pendingCommissions,
         });
       } catch (err) {
         console.error("Error fetching sidebar stats", err);
@@ -210,6 +221,11 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                     {item.title === "Packages" && stats.pendingPackages > 0 && (
                       <Badge className="ml-auto bg-indigo-500 hover:bg-indigo-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
                         {stats.pendingPackages}
+                      </Badge>
+                    )}
+                    {item.title === "Driver Collections" && stats.pendingCommissions > 0 && (
+                      <Badge className="ml-auto bg-orange-500 hover:bg-orange-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.pendingCommissions}
                       </Badge>
                     )}
                   </Link>

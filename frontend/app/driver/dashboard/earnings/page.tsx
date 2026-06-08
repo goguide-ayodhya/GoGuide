@@ -170,21 +170,32 @@ export default function EarningsPage() {
         />
         <StatsCard
           title="Admin Commission"
-          value={`₹${wallet?.adminCommissionGenerated?.toLocaleString() ?? 0}`}
+          value={`₹${
+            wallet?.adminCommissionGenerated ??
+            (earnings as any)?.adminCommission ??
+            0
+          }`}
           icon={TrendingUp}
           description="Commission owed to admin"
         />
         <StatsCard
           title="Net Earnings"
-          value={`₹${((earnings?.totalEarnings ?? 0) - (wallet?.adminCommissionGenerated ?? 0)).toLocaleString()}`}
+          value={`₹${
+            (earnings as any)?.netEarnings ??
+            Math.max(0, (earnings?.totalEarnings ?? 0) - (wallet?.adminCommissionGenerated ?? 0))
+          }`}
           icon={DollarSign}
           description="Your take-home earnings"
         />
         <StatsCard
-          title={`This Month Revenue`}
-          value={`₹${earnings?.bookingStats?.total?.toLocaleString() || 0}`}
+          title="Pending Commission"
+          value={`₹${
+            wallet?.pendingAdminCommission ??
+            (earnings as any)?.pendingAdminCommission ??
+            0
+          }`}
           icon={TrendingUp}
-          description={`Completed: ${earnings?.bookingStats?.completed || 0}`}
+          description="Commission still owed"
         />
       </div>
 

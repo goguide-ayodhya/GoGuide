@@ -16,6 +16,11 @@ const authHeaders = () => {
   return headers;
 };
 
+const jsonHeaders = () => ({
+  ...authHeaders(),
+  "Content-Type": "application/json",
+});
+
 const handleRes = async (res: Response) => {
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || "API error");
@@ -30,28 +35,66 @@ const handleResOrError = async (res: Response) => {
   return json;
 };
 
-// Admin Settings APIs
+// ──────────────────────────────────────────────
+// Admin Settings
+// ──────────────────────────────────────────────
 export const getAdminSettingsApi = async () => {
-  const res = await fetch(`${base_url}finance/settings`, {
-    method: "GET",
-    headers: authHeaders(),
-  });
+  const res = await fetch(`${base_url}finance/settings`, { headers: authHeaders() });
   return handleRes(res);
 };
 
 export const updateCommissionPercentApi = async (driverCommissionPercent: number) => {
   const res = await fetch(`${base_url}finance/settings/commission`, {
     method: "PATCH",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
+    headers: jsonHeaders(),
     body: JSON.stringify({ driverCommissionPercent }),
   });
   return handleRes(res);
 };
 
-// Driver Commission Payment APIs
+// ──────────────────────────────────────────────
+// Admin: Commission Overview Stats
+// ──────────────────────────────────────────────
+export const getCommissionOverviewStatsApi = async () => {
+  const res = await fetch(`${base_url}finance/commission/overview`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// ──────────────────────────────────────────────
+// Admin: All Commission Requests (filterable)
+// ──────────────────────────────────────────────
+export const getAllCommissionRequestsApi = async (status: string = "ALL") => {
+  const res = await fetch(`${base_url}finance/commission/requests?status=${status}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// ──────────────────────────────────────────────
+// Admin: Approve / Reject
+// ──────────────────────────────────────────────
+export const approveCommissionRequestApi = async (paymentId: string) => {
+  const res = await fetch(`${base_url}finance/commission/${paymentId}/approve`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  return handleResOrError(res);
+};
+
+export const rejectCommissionRequestApi = async (paymentId: string, reason: string) => {
+  const res = await fetch(`${base_url}finance/commission/${paymentId}/reject`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+  return handleResOrError(res);
+};
+
+// ──────────────────────────────────────────────
+// Admin: Legacy endpoints
+// ──────────────────────────────────────────────
 export const recordCommissionPaymentApi = async (
   driverId: string,
   amount: number,
@@ -59,10 +102,7 @@ export const recordCommissionPaymentApi = async (
 ) => {
   const res = await fetch(`${base_url}finance/commission/record`, {
     method: "POST",
-    headers: {
-      ...authHeaders(),
-      "Content-Type": "application/json",
-    },
+    headers: jsonHeaders(),
     body: JSON.stringify({ driverId, amount, note }),
   });
   return handleRes(res);
@@ -76,10 +116,11 @@ export const confirmCommissionPaymentApi = async (paymentId: string) => {
   return handleResOrError(res);
 };
 
-// Driver Wallet APIs
+// ──────────────────────────────────────────────
+// Driver Wallet
+// ──────────────────────────────────────────────
 export const getDriverWalletApi = async (driverId: string) => {
   const res = await fetch(`${base_url}finance/driver/${driverId}/wallet`, {
-    method: "GET",
     headers: authHeaders(),
   });
   return handleRes(res);
@@ -87,16 +128,16 @@ export const getDriverWalletApi = async (driverId: string) => {
 
 export const getDriverPaymentHistoryApi = async (driverId: string) => {
   const res = await fetch(`${base_url}finance/driver/${driverId}/payments`, {
-    method: "GET",
     headers: authHeaders(),
   });
   return handleRes(res);
 };
 
-// Admin Finance Overview APIs
+// ──────────────────────────────────────────────
+// Admin: Driver Priority List (pending > 0 only)
+// ──────────────────────────────────────────────
 export const getPendingCommissionsApi = async () => {
   const res = await fetch(`${base_url}finance/commissions/pending`, {
-    method: "GET",
     headers: authHeaders(),
   });
   return handleRes(res);
@@ -104,7 +145,6 @@ export const getPendingCommissionsApi = async () => {
 
 export const getDriverCollectionOverviewApi = async () => {
   const res = await fetch(`${base_url}finance/drivers/collection/overview`, {
-    method: "GET",
     headers: authHeaders(),
   });
   return handleRes(res);

@@ -3,6 +3,8 @@ import { Booking, IBooking, PaymentType } from "../models/Booking";
 import { User } from "../models/User";
 import { Guide } from "../models/Guide";
 import { Driver } from "../models/Driver";
+import { DriverWallet } from "../models/DriverWallet";
+import { Ride } from "../models/Ride";
 import { NotFound, BadRequest, Unauthorized } from "../utils/httpException";
 import { NotificationService } from "./notification.service";
 import {
@@ -2336,105 +2338,74 @@ export class PaymentService {
   }
 
   async getDriverEarnings(driverId: string) {
-    const payments = await Payment.find()
-      .populate({
-        path: "bookingId",
-        match: { driverId },
-      })
-      .sort({ createdAt: -1 });
+    // ── SOURCE OF TRUTH: DriverWallet ──────────────────────────────────────────
+    // All monetary totals come from the wallet (updated atomically on each ride).
+    // This ensures cab rides (Ride model) and bookings (Booking model) are unified.
+    const { Types } = require("mongoose");
+    const driverObjectId = new Types.ObjectId(driverId);
+    let wallet = await DriverWallet.findOne({ driverId: driverObjectId }).lean();
+    if (!wallet) {
+      wallet = {
+        totalEarned: 0,
+        adminCommissionGenerated: 0,
+        adminCommissionPaid: 0,
+        pendingAdminCommission: 0,
+      } as any;
+    }
 
-    const validPayments = payments.filter((p) => p.bookingId !== null);
+    const totalEarnings = wallet!.totalEarned || 0;
+    const adminCommission = wallet!.adminCommissionGenerated || 0;
+    // Net = what driver keeps after commission
+    const netEarnings = Math.max(0, totalEarnings - adminCommission);
+    const pendingAmount = wallet!.pendingAdminCommission || 0;
 
-    const totalEarnings = validPayments
-      .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
-
-    const grossEarnings = validPayments
-      .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    const totalGst = validPayments
-      .filter((p) => p.status === "COMPLETED")
-      .reduce((sum, p) => {
-        const b = p.bookingId as any;
-        if (!b) return sum;
-        const totalPaid = b.paidAmount || b.totalPrice || 1;
-        const lineAmt = p.amount || 0;
-        const portion = lineAmt / totalPaid;
-        return sum + ((b.gstAmount || 0) * portion);
-      }, 0);
-
-    const pendingAmount = validPayments
-      .filter((p) => p.status === "PENDING")
-      .reduce((sum, p) => sum + getProviderShareForPayment(p), 0);
-
-    const bookings = await Booking.find({ driverId });
-
+    // ── RIDE STATS from Ride model ─────────────────────────────────────────────
+    const rides = await Ride.find({ driver: driverObjectId }).lean();
     const bookingStats = {
-      total: bookings.length,
-      completed: bookings.filter((b) => b.status === "COMPLETED").length,
-      pending: bookings.filter((b) => b.status === "PENDING").length,
+      total: rides.length,
+      completed: rides.filter((r: any) => r.status === "completed").length,
+      pending: rides.filter((r: any) => r.status === "pending" || r.status === "accepted").length,
     };
 
-    const tourTypeEarnings: {
-      [key: string]: { revenue: number; bookings: number };
-    } = {};
-
-    validPayments
-      .filter((p) => p.status === "COMPLETED" && p.bookingId)
-      .forEach((payment) => {
-        const tourType = (payment.bookingId as any).tourType || "Other";
-        if (!tourTypeEarnings[tourType]) {
-          tourTypeEarnings[tourType] = { revenue: 0, bookings: 0 };
-        }
-        tourTypeEarnings[tourType].revenue += getProviderShareForPayment(payment);
-        tourTypeEarnings[tourType].bookings += 1;
-      });
-
-    const revenueByTourType = Object.entries(tourTypeEarnings)
-      .map(([type, data]) => ({
-        type,
-        revenue: data.revenue,
-        bookings: data.bookings,
-      }))
-      .sort((a, b) => b.revenue - a.revenue);
-
-    const recentTransactions = validPayments
-      .map((payment) => ({
-        id: payment._id.toString(),
-        amount: Math.round(getProviderShareForPayment(payment)),
-        transactionDate: payment.paidAt?.toISOString() || payment.createdAt?.toISOString(),
-        status: payment.status?.toLowerCase() || "pending",
-      }))
-      .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime())
-      .slice(0, 5);
+    // ── RECENT TRANSACTIONS from completed rides ───────────────────────────────
+    const recentRides = rides
+      .filter((r: any) => r.status === "completed" && r.fare)
+      .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+      .slice(0, 5)
+      .map((r: any) => ({
+        id: r._id.toString(),
+        amount: Math.round(r.fare || 0),
+        transactionDate: (r.updatedAt || r.createdAt)?.toISOString?.() || new Date().toISOString(),
+        status: "completed",
+      }));
 
     return {
       totalEarnings,
-      grossEarnings,
-      totalGst,
-      pendingAmount,
+      netEarnings,
+      adminCommission,
+      pendingAdminCommission: pendingAmount,
+      pendingAmount: 0,
       bookingStats,
-      revenueByTourType,
-      recentTransactions,
+      revenueByTourType: [],
+      recentTransactions: recentRides,
     };
   }
 
   async getDriverMonthlyEarnings(driverId: string) {
-    const payments = await Payment.find({ status: "COMPLETED" })
-      .populate({
-        path: "bookingId",
-        match: { driverId },
-      })
-      .sort({ createdAt: -1 });
-
-    const validPayments = payments.filter((p) => p.bookingId !== null);
+    // Use Ride model — includes cab rides that have no Booking/Payment record
+    const { Types } = require("mongoose");
+    const driverObjectId = new Types.ObjectId(driverId);
+    const completedRides = await Ride.find({
+      driver: driverObjectId,
+      status: "completed",
+    }).lean();
 
     const monthlyData: { [key: string]: number } = {};
-
-    validPayments.forEach((p) => {
-      const month = new Date(p.paidAt || p.createdAt).toISOString().slice(0, 7);
-      monthlyData[month] = (monthlyData[month] || 0) + getProviderShareForPayment(p);
+    completedRides.forEach((r: any) => {
+      const date = r.updatedAt || r.createdAt;
+      if (!date || !r.fare) return;
+      const month = new Date(date).toISOString().slice(0, 7);
+      monthlyData[month] = (monthlyData[month] || 0) + (r.fare || 0);
     });
 
     const months = [];
@@ -2444,31 +2415,29 @@ export class PaymentService {
       const monthKey = date.toISOString().slice(0, 7);
       months.push({
         month: monthKey,
-        revenue: monthlyData[monthKey] || 0,
+        revenue: Math.round(monthlyData[monthKey] || 0),
       });
     }
-
     return months;
   }
 
   async getDriverWeeklyEarnings(driverId: string) {
-    const payments = await Payment.find({ status: "COMPLETED" })
-      .populate({
-        path: "bookingId",
-        match: { driverId },
-      })
-      .sort({ createdAt: -1 });
-
-    const validPayments = payments.filter((p) => p.bookingId !== null);
+    // Use Ride model — includes cab rides that have no Booking/Payment record
+    const { Types } = require("mongoose");
+    const driverObjectId = new Types.ObjectId(driverId);
+    const completedRides = await Ride.find({
+      driver: driverObjectId,
+      status: "completed",
+    }).lean();
 
     const weeklyData: { [key: string]: number } = {};
-
-    validPayments.forEach((p) => {
-      const date = new Date(p.paidAt || p.createdAt);
+    completedRides.forEach((r: any) => {
+      const date = new Date(r.updatedAt || r.createdAt);
+      if (!r.fare) return;
       const weekStart = new Date(date);
       weekStart.setDate(date.getDate() - date.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + getProviderShareForPayment(p);
+      weeklyData[weekKey] = (weeklyData[weekKey] || 0) + (r.fare || 0);
     });
 
     const weeks = [];
@@ -2481,10 +2450,9 @@ export class PaymentService {
       const weekKey = weekStart.toISOString().slice(0, 10);
       weeks.push({
         week: `Week ${4 - i}`,
-        revenue: weeklyData[weekKey] || 0,
+        revenue: Math.round(weeklyData[weekKey] || 0),
       });
     }
-
     return weeks;
   }
 

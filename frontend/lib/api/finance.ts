@@ -55,3 +55,17 @@ export const getAdminSettingsApi = async () => {
   });
   return handleRes(res);
 };
+
+// Driver submits own commission payment request
+export const submitCommissionPaymentRequestApi = async (
+  amount: number,
+  transactionReference: string,
+  notes?: string
+) => {
+  const res = await fetch(`${base_url}finance/commission/request`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, transactionReference, notes }),
+  });
+  return handleRes(res);
+};
