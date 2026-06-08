@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { useEarnings } from "@/contexts/EarningContext";
 import { useDriver } from "@/contexts/DriverContext";
-import { getDriverWalletApi } from "@/lib/api/finance";
+import { getDriverWalletApi, getAdminSettingsApi } from "@/lib/api/finance";
 
 interface DriverWallet {
   driverId: string;
@@ -51,6 +51,7 @@ export default function EarningsPage() {
   const weeklyData = earningsContext?.weeklyData;
   const [wallet, setWallet] = useState<DriverWallet | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
+  const [commissionRate, setCommissionRate] = useState<number | null>(null);
   const [timeframe, setTimeframe] = useState<"week" | "month">("month");
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +72,7 @@ export default function EarningsPage() {
       }
     };
     fetchEarnings();
+    fetchCommissionRate();
   }, []);
 
   // Fetch wallet data
@@ -82,7 +84,7 @@ export default function EarningsPage() {
 
   const fetchWalletData = async () => {
     if (!myDriver?.id) return;
-    
+
     setWalletLoading(true);
     try {
       console.log("[EARNINGS] Fetching wallet for driver ID:", myDriver.id);
@@ -95,12 +97,23 @@ export default function EarningsPage() {
     }
   };
 
+  const fetchCommissionRate = async () => {
+    try {
+      const settings = await getAdminSettingsApi();
+      if (settings && typeof settings.driverCommissionPercent === "number") {
+        setCommissionRate(settings.driverCommissionPercent);
+      }
+    } catch (e) {
+      console.error("Failed to fetch admin settings", e);
+    }
+  };
+
   const chartData =
     timeframe === "week"
       ? (weeklyData || []).map((w) => ({
-          month: w.week, // 👈 convert
-          revenue: w.revenue,
-        }))
+        month: w.week, // 👈 convert
+        revenue: w.revenue,
+      }))
       : monthlyData || [];
 
   const handleRefresh = async () => {
@@ -114,6 +127,7 @@ export default function EarningsPage() {
       if (myDriver?.id) {
         await fetchWalletData();
       }
+      await fetchCommissionRate();
     } catch (e) {
       console.error("Failed to refresh earnings", e);
       setError(
@@ -160,40 +174,50 @@ export default function EarningsPage() {
         </div>
       )}
 
+      {commissionRate !== null && (
+        <div className="bg-primary/10 border border-primary/20 text-foreground px-4 py-3 rounded-lg flex items-center justify-between">
+          <p className="text-sm">
+            Current Platform Commission Rate: <strong className="text-primary font-bold">{commissionRate}%</strong>
+          </p>
+          <span className="text-xs text-white bg-secondary px-2 py-1 rounded font-medium">Auto-calculated per completed ride</span>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Gross Earnings"
-          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          value={`₹${(wallet?.totalEarned ?? earnings?.totalEarnings ?? 0).toLocaleString()}`}
           icon={Banknote}
           description="Total ride earnings"
         />
         <StatsCard
           title="Admin Commission"
-          value={`₹${
+          value={`₹${(
             wallet?.adminCommissionGenerated ??
             (earnings as any)?.adminCommission ??
             0
-          }`}
+          ).toLocaleString()}`}
           icon={TrendingUp}
           description="Commission owed to admin"
         />
         <StatsCard
           title="Net Earnings"
-          value={`₹${
+          value={`₹${(
+            (wallet ? Math.max(0, wallet.totalEarned - wallet.adminCommissionGenerated) : null) ??
             (earnings as any)?.netEarnings ??
-            Math.max(0, (earnings?.totalEarnings ?? 0) - (wallet?.adminCommissionGenerated ?? 0))
-          }`}
+            Math.max(0, (earnings?.totalEarnings ?? 0) - ((earnings as any)?.adminCommission ?? 0))
+          ).toLocaleString()}`}
           icon={DollarSign}
           description="Your take-home earnings"
         />
         <StatsCard
           title="Pending Commission"
-          value={`₹${
+          value={`₹${(
             wallet?.pendingAdminCommission ??
             (earnings as any)?.pendingAdminCommission ??
             0
-          }`}
+          ).toLocaleString()}`}
           icon={TrendingUp}
           description="Commission still owed"
         />
@@ -360,13 +384,12 @@ export default function EarningsPage() {
                     </div>
                     <div className="w-full bg-secondary rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full transition-all ${
-                          status === "completed"
+                        className={`h-2 rounded-full transition-all ${status === "completed"
                             ? "bg-green-500"
                             : status === "pending"
                               ? "bg-yellow-500"
                               : "bg-red-500"
-                        }`}
+                          }`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -401,10 +424,10 @@ export default function EarningsPage() {
                   </span>
                 </div>
               )) || (
-                <p className="text-sm text-muted-foreground">
-                  No data available
-                </p>
-              )}
+                  <p className="text-sm text-muted-foreground">
+                    No data available
+                  </p>
+                )}
             </div>
           </CardContent>
         </Card>
@@ -419,7 +442,7 @@ export default function EarningsPage() {
         <CardContent>
           <div className="overflow-x-auto">
             {earnings?.recentTransactions &&
-            earnings.recentTransactions.length > 0 ? (
+              earnings.recentTransactions.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b border-border">
@@ -457,13 +480,12 @@ export default function EarningsPage() {
                         </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              payment.status === "completed"
+                            className={`px-2 py-1 rounded text-xs font-medium ${payment.status === "completed"
                                 ? "bg-green-500/20 text-green-600"
                                 : payment.status === "pending"
                                   ? "bg-yellow-500/20 text-yellow-600"
                                   : "bg-red-500/20 text-red-600"
-                            }`}
+                              }`}
                           >
                             {payment.status.charAt(0).toUpperCase() +
                               payment.status.slice(1)}

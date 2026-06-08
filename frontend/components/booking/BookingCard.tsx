@@ -58,11 +58,13 @@ export function BookingCard({
   const dateStr = booking.bookingDate.split("T")[0];
   const timeStr = booking.startTime || "00:00";
   const bookingDateTime = new Date(`${dateStr}T${timeStr}`);
-  const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
-  const isPastCancelWindow = bookingDateTime < oneHourFromNow;
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  const isWithinCancelWindow = bookingDateTime > now && bookingDateTime <= oneHourFromNow;
+  const isExpiredOrPast = bookingDateTime <= now;
 
   const canCancel =
-    (booking.status === "PENDING" || booking.status === "ACCEPTED") && !isPastCancelWindow;
+    (booking.status === "PENDING" || booking.status === "ACCEPTED") && !isWithinCancelWindow && !isExpiredOrPast;
   const canLeaveReview =
     booking.status === "COMPLETED" &&
     booking.paymentStatus === "COMPLETED" &&
@@ -96,12 +98,12 @@ export function BookingCard({
             {/* MAIN STATUS (BIG) */}
             <span
               className={`text-xs px-3 py-1.5 rounded-full font-semibold shadow-sm ${booking.status === "COMPLETED"
-                  ? "bg-green-500/10 text-green-600 border border-green-500/30"
-                  : booking.status === "PENDING"
-                    ? "bg-yellow-500/10 text-yellow-600 border border-yellow-500/30"
-                    : booking.status === "REJECTED"
-                      ? "bg-red-500/10 text-red-600 border border-red-500/30"
-                      : "bg-muted text-muted-foreground"
+                ? "bg-green-500/10 text-green-600 border border-green-500/30"
+                : booking.status === "PENDING"
+                  ? "bg-yellow-500/10 text-yellow-600 border border-yellow-500/30"
+                  : booking.status === "REJECTED"
+                    ? "bg-red-500/10 text-red-600 border border-red-500/30"
+                    : "bg-muted text-muted-foreground"
                 }`}
             >
               {booking.status}
@@ -110,10 +112,10 @@ export function BookingCard({
             {/* PAYMENT STATUS (SMALL + FADED) */}
             <span
               className={`text-[12px] px-2 py-1 rounded-full font-medium ${booking.paymentStatus === "COMPLETED"
-                  ? "text-green-500/80"
-                  : booking.paymentStatus === "FAILED"
-                    ? "text-red-500/80"
-                    : "text-secondary"
+                ? "text-green-500/80"
+                : booking.paymentStatus === "FAILED"
+                  ? "text-red-500/80"
+                  : "text-secondary"
                 }`}
             >
               Payment: {getPaymentStatusLabel(booking)}
@@ -215,11 +217,11 @@ export function BookingCard({
                 >
                   Cancel Booking
                 </Button>
-              ) : isPastCancelWindow && (booking.status === "PENDING" || booking.status === "ACCEPTED") ? (
+              ) : isWithinCancelWindow && (booking.status === "PENDING" || booking.status === "ACCEPTED") ? (
                 <p className="text-[11px] text-destructive/90 self-center font-medium bg-destructive/10 px-2 py-1 rounded">
                   Cancellation restricted within 1 hour of tour.
                 </p>
-              ) : null}
+              ) : ""}
 
               {canLeaveReview && onLeaveReview && (
                 <Button

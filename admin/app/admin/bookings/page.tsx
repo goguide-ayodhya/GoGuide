@@ -144,9 +144,11 @@ export default function BookingsPage() {
     null,
   );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch bookings on component mount and when filters change
   useEffect(() => {
+    setCurrentPage(1);
     const fetchBookings = async () => {
       try {
         setLoading(true);
@@ -309,7 +311,7 @@ export default function BookingsPage() {
 
           {/* Bookings Table */}
           <BookingTable
-            bookings={bookings}
+            bookings={bookings.slice((currentPage - 1) * 20, currentPage * 20)}
             onViewDetails={viewDetails}
             onApprove={handleApprove}
             onMarkSeen={handleMarkSeen}
@@ -317,6 +319,66 @@ export default function BookingsPage() {
             onComplete={handleComplete}
             onRefund={handleRefund}
           />
+
+          {/* Pagination Controls */}
+          {Math.ceil(bookings.length / 20) > 1 && (
+            <div className="flex items-center justify-between border-t border-border/40 px-4 py-3 sm:px-6 mt-4">
+              <div className="flex flex-1 justify-between sm:hidden">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(Math.ceil(bookings.length / 20), p + 1))}
+                  disabled={currentPage === Math.ceil(bookings.length / 20)}
+                >
+                  Next
+                </Button>
+              </div>
+              <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Showing <span className="font-medium">{(currentPage - 1) * 20 + 1}</span> to{" "}
+                    <span className="font-medium">
+                      {Math.min(currentPage * 20, bookings.length)}
+                    </span>{" "}
+                    of <span className="font-medium">{bookings.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-xs gap-1" aria-label="Pagination">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="rounded-l-md"
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center px-4 text-sm font-medium text-foreground">
+                      Page {currentPage} of {Math.ceil(bookings.length / 20)}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(bookings.length / 20), p + 1))}
+                      disabled={currentPage === Math.ceil(bookings.length / 20)}
+                      className="rounded-r-md"
+                    >
+                      Next
+                    </Button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Details Modal */}
           <BookingDetailsModal

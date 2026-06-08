@@ -124,7 +124,7 @@ export default function DashboardPage() {
     pendingBookings: adminData?.bookings?.pending || 0,
     completedBookings: adminData?.bookings?.completed || 0,
     totalGuides: adminData?.guides || 0,
-    activeGuides: adminData?.activeGuides || 0,
+    totalDrivers: adminData?.totalDrivers || 0,
     totalRevenue: adminData?.revenue || 0,
   }
 
@@ -158,9 +158,9 @@ export default function DashboardPage() {
       color: "text-chart-2"
     },
     {
-      title: "Active Guides",
-      value: dashboardStats.activeGuides,
-      icon: UserCheck,
+      title: "Total Drivers",
+      value: dashboardStats.totalDrivers,
+      icon: Users,
       trendUp: true,
       color: "text-primary"
     },

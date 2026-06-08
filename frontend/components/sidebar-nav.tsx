@@ -36,16 +36,24 @@ export function SidebarNav() {
     const basePath = user?.role === "DRIVER" ? "/driver/dashboard" : "/guide/dashboard";
     const professionalLabel = user?.role === "DRIVER" ? "Drivers" : "Guides";
 
-    return [
+    const baseItems = [
       { href: `${basePath}`, label: "Dashboard", icon: BarChart3 },
       { href: `${basePath}/bookings`, label: "Bookings", icon: Calendar },
       { href: `${basePath}/guides`, label: professionalLabel, icon: Users },
       { href: `${basePath}/earnings`, label: "Earnings", icon: PieChart },
       { href: `${basePath}/payouts`, label: "Payouts", icon: Wallet },
-      { href: `${basePath}/refunds`, label: "Refund History", icon: RotateCcw },
-      { href: `${basePath}/reviews`, label: "Reviews", icon: Star },
-      { href: `${basePath}/profile`, label: "Profile", icon: User },
     ];
+
+    // Refund History and Reviews are only shown to Guides, not Drivers
+    if (user?.role !== "DRIVER") {
+      baseItems.push(
+        { href: `${basePath}/refunds`, label: "Refund History", icon: RotateCcw },
+        { href: `${basePath}/reviews`, label: "Reviews", icon: Star },
+      );
+    }
+
+    baseItems.push({ href: `${basePath}/profile`, label: "Profile", icon: User });
+    return baseItems;
   }, [user?.role]);
 
   const handleNavigation = (href: string) => {

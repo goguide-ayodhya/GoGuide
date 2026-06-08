@@ -8,7 +8,7 @@ const router = Router();
 // ──────────────────────────────────────────────
 // Admin Settings Routes (admin only)
 // ──────────────────────────────────────────────
-router.get("/settings", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+router.get("/settings", authenticate, authorize(["ADMIN", "DRIVER"]), (req, res, next) => {
   adminSettingsController.getSettings(req, res).catch(next);
 });
 

@@ -11,7 +11,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, HandCoins, RefreshCw } from "lucide-react";
+import {
+  Loader2,
+  HandCoins,
+  RefreshCw,
+  Search,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Users,
+} from "lucide-react";
 import {
   getGuidesPayoutOverviewApi,
   createAdminPayoutApi,
@@ -64,6 +76,13 @@ export default function GuidePayoutsPage() {
   );
   const [amountDraft, setAmountDraft] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState<string | null>(null);
+
+  // Tabs & Filters
+  const [activeTab, setActiveTab] = useState<"GUIDES" | "HISTORY">("GUIDES");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -140,19 +159,64 @@ export default function GuidePayoutsPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("ALL");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const hasActiveFilters = search || statusFilter !== "ALL" || startDate || endDate;
+
+  // Compute stats card totals
+  const totalAccrued = guides.reduce((sum, g) => sum + g.totalEarnings, 0);
+  const totalPaidOut = guides.reduce((sum, g) => sum + g.paidOut, 0);
+  const totalPendingConfirmation = guides.reduce((sum, g) => sum + g.pendingConfirmation, 0);
+  const totalAvailable = guides.reduce((sum, g) => sum + (g.availableForPayout ?? g.pendingPayout ?? 0), 0);
+
+  // Filter lists
+  const filteredGuides = guides.filter((g) => {
+    const matchesSearch =
+      g.guideName.toLowerCase().includes(search.toLowerCase()) ||
+      (g.guideEmail && g.guideEmail.toLowerCase().includes(search.toLowerCase()));
+    return matchesSearch;
+  });
+
+  const filteredPayouts = payouts.filter((p) => {
+    const guideName = guideLabelFromPayout(p);
+    const matchesSearch = guideName.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "ALL" || p.status === statusFilter;
+
+    let matchesDate = true;
+    if (startDate) {
+      matchesDate = matchesDate && new Date(p.createdAt) >= new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1); // inclusive
+      matchesDate = matchesDate && new Date(p.createdAt) <= end;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[240px] text-muted-foreground gap-2">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        Loading guide payouts…
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm font-medium">Loading guide payouts overview...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-destructive text-sm space-y-2">
-        <p>{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="bg-destructive/10 text-destructive p-4 rounded-full">
+          <XCircle className="h-12 w-12" />
+        </div>
+        <p className="text-foreground font-semibold text-lg">Failed to load payouts data</p>
+        <p className="text-muted-foreground text-sm max-w-md text-center">{error}</p>
         <Button variant="outline" size="sm" onClick={handleRefresh}>
           Retry
         </Button>
@@ -162,37 +226,35 @@ export default function GuidePayoutsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground flex items-center gap-2">
-            <HandCoins className="h-6 w-6 text-primary" />
-            Guide payouts
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+            <HandCoins className="h-8 w-8 text-primary" />
+            Guide Payouts Management
           </h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1 max-w-2xl">
-            Send the guide&apos;s 70% share when you transfer funds. Amount cannot
-            exceed each guide&apos;s available balance. Guides confirm receipt in
-            their dashboard.
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage guide earnings distribution (70% share). Create payout records and monitor guide confirmation status.
           </p>
         </div>
         <Button
           variant="outline"
-          size="sm"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="shrink-0"
+          className="self-start md:self-auto"
         >
           <RefreshCw
             className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
           />
-          Refresh
+          Refresh Data
         </Button>
       </div>
 
       {banner && (
         <div
-          className={`rounded-lg border px-3 py-2 text-sm ${
+          className={`rounded-lg border p-4 text-sm font-medium transition-all ${
             banner.type === "ok"
-              ? "border-green-500/30 bg-green-500/10 text-green-900 dark:text-green-100"
+              ? "border-green-500/30 bg-green-500/10 text-green-800 dark:text-green-200"
               : "border-destructive/30 bg-destructive/10 text-destructive"
           }`}
         >
@@ -200,156 +262,277 @@ export default function GuidePayoutsPage() {
         </div>
       )}
 
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle>Verified guides</CardTitle>
-          <CardDescription>
-            Per-guide wallet: accrued 70% share, already paid out, and amount
-            you can send next (excludes unconfirmed payouts).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {guides.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No verified guides.</p>
+      {/* Metrics Overview Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-card/50 border-border/60 hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Accrued Share (70%)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">₹{totalAccrued.toLocaleString("en-IN")}</div>
+            <p className="text-xs text-muted-foreground mt-1">Accrued guide earnings</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-border/60 hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Paid Out</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">₹{totalPaidOut.toLocaleString("en-IN")}</div>
+            <p className="text-xs text-muted-foreground mt-1">Successfully disbursed</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-border/60 hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Confirmation</CardTitle>
+            <Clock className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">₹{totalPendingConfirmation.toLocaleString("en-IN")}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting guide approval</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 border-border/60 hover:border-border transition-all">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Available for Payout</CardTitle>
+            <DollarSign className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">₹{totalAvailable.toLocaleString("en-IN")}</div>
+            <p className="text-xs text-muted-foreground mt-1">Disbursable balance</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs Control */}
+      <div className="flex border-b border-border">
+        <button
+          onClick={() => setActiveTab("GUIDES")}
+          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-all ${
+            activeTab === "GUIDES"
+              ? "border-primary text-primary font-semibold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Verified Guides ({filteredGuides.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("HISTORY")}
+          className={`pb-3 px-4 text-sm font-medium border-b-2 transition-all ${
+            activeTab === "HISTORY"
+              ? "border-primary text-primary font-semibold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Payout History ({filteredPayouts.length})
+        </button>
+      </div>
+
+      {/* Filters Section */}
+      <div className="bg-card border border-border/60 rounded-xl p-4 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder={activeTab === "GUIDES" ? "Search guides by name or email..." : "Search payouts by guide name..."}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 bg-background/50 h-10 border-border/60 focus-visible:ring-primary"
+              />
+            </div>
+
+            {activeTab === "HISTORY" && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="h-10 px-3 rounded-md border border-border/60 bg-background/50 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending Review</option>
+                <option value="COMPLETED">Confirmed / Completed</option>
+              </select>
+            )}
+
+            {activeTab === "HISTORY" && (
+              <div className="flex items-center gap-2 border border-border/60 bg-background/50 rounded-md px-3 h-10">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent border-0 text-sm focus:outline-none focus:ring-0 text-foreground"
+                  title="Start Date"
+                />
+                <span className="text-muted-foreground text-xs">to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent border-0 text-sm focus:outline-none focus:ring-0 text-foreground"
+                  title="End Date"
+                />
+              </div>
+            )}
+          </div>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground">
+              Clear Filters
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Tab Content */}
+      <Card className="border-border/60 overflow-hidden">
+        <CardContent className="p-0">
+          {activeTab === "GUIDES" ? (
+            filteredGuides.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="font-medium">No verified guides found</p>
+                {search && <p className="text-xs text-muted-foreground mt-1">Try resetting your search filter.</p>}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40 text-left text-muted-foreground font-medium">
+                      <th className="p-4 font-semibold">Guide Information</th>
+                      <th className="p-4 font-semibold">Accrued Share (70%)</th>
+                      <th className="p-4 font-semibold">Unconfirmed Payouts</th>
+                      <th className="p-4 font-semibold">Paid Out</th>
+                      <th className="p-4 font-semibold">Available for Payout</th>
+                      <th className="p-4 font-semibold text-right">Send Payment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredGuides.map((g) => {
+                      const max = g.availableForPayout ?? g.pendingPayout ?? 0;
+                      return (
+                        <tr key={g.guideId} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
+                          <td className="p-4">
+                            <div className="font-semibold text-foreground">{g.guideName}</div>
+                            {g.guideEmail && <div className="text-xs text-muted-foreground">{g.guideEmail}</div>}
+                          </td>
+                          <td className="p-4 font-medium text-foreground">₹{g.totalEarnings.toLocaleString("en-IN")}</td>
+                          <td className="p-4 text-amber-600 dark:text-amber-400 font-medium">
+                            ₹{g.pendingConfirmation.toLocaleString("en-IN")}
+                          </td>
+                          <td className="p-4 text-green-600 dark:text-green-400 font-medium">
+                            ₹{g.paidOut.toLocaleString("en-IN")}
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${max > 0 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                              ₹{max.toLocaleString("en-IN")}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                placeholder="Amount"
+                                className="h-9 w-[120px] bg-background/50"
+                                value={amountDraft[g.guideId] ?? ""}
+                                onChange={(e) =>
+                                  setAmountDraft((prev) => ({
+                                    ...prev,
+                                    [g.guideId]: e.target.value,
+                                  }))
+                                }
+                                disabled={max <= 0 || sendingId === g.guideId}
+                              />
+                              <Button
+                                size="sm"
+                                disabled={max <= 0 || sendingId === g.guideId}
+                                onClick={() => handleSend(g.guideId, max)}
+                                className="h-9 px-3"
+                              >
+                                {sendingId === g.guideId ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                                    Processing
+                                  </>
+                                ) : (
+                                  "Disburse"
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm min-w-[720px]">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left">
-                    <th className="p-3 font-medium">Guide</th>
-                    <th className="p-3 font-medium">Accrued</th>
-                    <th className="p-3 font-medium">Unconfirmed</th>
-                    <th className="p-3 font-medium">Paid out</th>
-                    <th className="p-3 font-medium">Can send</th>
-                    <th className="p-3 font-medium w-[220px]">Send payment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {guides.map((g) => {
-                    const max = g.availableForPayout ?? g.pendingPayout ?? 0;
-                    return (
-                      <tr key={g.guideId} className="border-b border-border/60">
-                        <td className="p-3">
-                          <p className="font-medium text-foreground">
-                            {g.guideName}
-                          </p>
-                          {g.guideEmail && (
-                            <p className="text-xs text-muted-foreground">
-                              {g.guideEmail}
-                            </p>
+            filteredPayouts.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                <HandCoins className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="font-medium">No payouts history found</p>
+                {hasActiveFilters && <p className="text-xs text-muted-foreground mt-1">Try resetting your filters.</p>}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40 text-left text-muted-foreground font-medium">
+                      <th className="p-4 font-semibold">Guide Name</th>
+                      <th className="p-4 font-semibold">Amount</th>
+                      <th className="p-4 font-semibold">Payout Status</th>
+                      <th className="p-4 font-semibold">Initiated Date</th>
+                      <th className="p-4 font-semibold">Confirmed Date</th>
+                      <th className="p-4 font-semibold">Processed By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPayouts.map((row) => (
+                      <tr key={row._id} className="border-b border-border/40 hover:bg-secondary/20 transition-colors">
+                        <td className="p-4 font-semibold text-foreground">{guideLabelFromPayout(row)}</td>
+                        <td className="p-4 font-bold text-foreground">₹{row.amount.toLocaleString("en-IN")}</td>
+                        <td className="p-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                              row.status === "COMPLETED" || row.status === "APPROVED" || row.status === "CONFIRMED"
+                                ? "bg-green-500/10 border-green-500/30 text-green-800 dark:text-green-200"
+                                : "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-200"
+                            }`}
+                          >
+                            {row.status === "COMPLETED" || row.status === "APPROVED" || row.status === "CONFIRMED" ? (
+                              <CheckCircle2 className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Clock className="h-3 w-3 text-amber-600" />
+                            )}
+                            {row.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</td>
+                        <td className="p-4 text-muted-foreground">
+                          {row.confirmedAt ? (
+                            <span className="text-green-600 dark:text-green-400 font-medium">
+                              {new Date(row.confirmedAt).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
                           )}
                         </td>
-                        <td className="p-3">
-                          ₹{g.totalEarnings.toLocaleString("en-IN")}
-                        </td>
-                        <td className="p-3 text-amber-700 dark:text-amber-400">
-                          ₹{g.pendingConfirmation.toLocaleString("en-IN")}
-                        </td>
-                        <td className="p-3 text-green-700 dark:text-green-400">
-                          ₹{g.paidOut.toLocaleString("en-IN")}
-                        </td>
-                        <td className="p-3 font-semibold">
-                          ₹{max.toLocaleString("en-IN")}
-                        </td>
-                        <td className="p-3">
-                          <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              placeholder="Amount"
-                              className="h-9 max-w-[140px]"
-                              value={amountDraft[g.guideId] ?? ""}
-                              onChange={(e) =>
-                                setAmountDraft((prev) => ({
-                                  ...prev,
-                                  [g.guideId]: e.target.value,
-                                }))
-                              }
-                              disabled={max <= 0 || sendingId === g.guideId}
-                            />
-                            <Button
-                              size="sm"
-                              className="shrink-0"
-                              disabled={
-                                max <= 0 || sendingId === g.guideId
-                              }
-                              onClick={() => handleSend(g.guideId, max)}
-                            >
-                              {sendingId === g.guideId ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                  Sending…
-                                </>
-                              ) : (
-                                "Send payment"
-                              )}
-                            </Button>
-                          </div>
-                        </td>
+                        <td className="p-4 text-muted-foreground">{row.createdBy?.name || "System"}</td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-border">
-        <CardHeader>
-          <CardTitle>Payout history</CardTitle>
-          <CardDescription>All admin-initiated payouts and status.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {payouts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No payouts yet.</p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b border-border bg-muted/40 text-left">
-                    <th className="p-3 font-medium">Guide</th>
-                    <th className="p-3 font-medium">Amount</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Created</th>
-                    <th className="p-3 font-medium">Confirmed</th>
-                    <th className="p-3 font-medium">By</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payouts.map((row) => (
-                    <tr key={row._id} className="border-b border-border/60">
-                      <td className="p-3">{guideLabelFromPayout(row)}</td>
-                      <td className="p-3 font-semibold">
-                        ₹{row.amount.toLocaleString("en-IN")}
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          variant={
-                            row.status === "COMPLETED" ? "default" : "secondary"
-                          }
-                        >
-                          {row.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {new Date(row.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        {row.confirmedAt
-                          ? new Date(row.confirmedAt).toLocaleString()
-                          : "—"}
-                      </td>
-                      <td className="p-3 text-muted-foreground text-xs">
-                        {row.createdBy?.name ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
           )}
         </CardContent>
       </Card>

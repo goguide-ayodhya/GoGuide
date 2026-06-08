@@ -438,15 +438,15 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Earnings"
-          value={`₹${earnings?.totalEarnings?.toLocaleString() ?? 0}`}
+          value={`₹${(earnings?.totalEarnings ?? 0).toLocaleString()}`}
           icon={IndianRupee}
-          description="This month"
+          description="All time"
         />
         <StatsCard
           title="Upcoming Rides"
-          value={bookings.filter((b) => b.status === "ACCEPTED").length ?? 0}
+          value={earnings?.bookingStats?.pending ?? bookings.filter((b) => b.status === "ACCEPTED").length ?? 0}
           icon={Calendar}
-          description="Next 30 days"
+          description="Awaiting completion"
         />
         <StatsCard
           title="Average Rating"
@@ -456,7 +456,7 @@ export default function DashboardPage() {
         />
         <StatsCard
           title="Total Rides"
-          value={bookings.length}
+          value={earnings?.bookingStats?.total ?? bookings.length}
           icon={TrendingUp}
           description="All time"
         />

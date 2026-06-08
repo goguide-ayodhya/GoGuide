@@ -204,6 +204,7 @@ export default function GuidesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedUserDetails, setSelectedUserDetails] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -272,8 +273,13 @@ export default function GuidesPage() {
   }, [searchQuery]);
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined);
   }, [roleFilter, statusFilter, debouncedSearch]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [verificationFilter]);
 
   const filteredUsers = users; // search is now server-side
 
@@ -284,6 +290,8 @@ export default function GuidesPage() {
       return user.verificationStatus !== "VERIFIED";
     return true;
   });
+
+  const paginatedUsers = filteredByStatus.slice((currentPage - 1) * 20, currentPage * 20);
 
   const handleUserAction = async (
     action: "activate" | "block" | "suspend" | "delete" | "verify" | "unverify",
@@ -466,7 +474,7 @@ export default function GuidesPage() {
           </CardHeader>
           <CardContent>
             <div className="block lg:hidden space-y-3">
-              {filteredByStatus.map((user) => (
+              {paginatedUsers.map((user) => (
                 <div
                   key={user.id}
                   onClick={() => handleRowClick(user.id)}
@@ -636,7 +644,7 @@ export default function GuidesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredByStatus.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <tr
                       key={user.id}
                       className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -911,6 +919,66 @@ export default function GuidesPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {Math.ceil(filteredByStatus.length / 20) > 1 && (
+              <div className="flex items-center justify-between border-t border-border/40 px-4 py-3 sm:px-6 mt-4">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredByStatus.length / 20), p + 1))}
+                    disabled={currentPage === Math.ceil(filteredByStatus.length / 20)}
+                  >
+                    Next
+                  </Button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Showing <span className="font-medium">{(currentPage - 1) * 20 + 1}</span> to{" "}
+                      <span className="font-medium">
+                        {Math.min(currentPage * 20, filteredByStatus.length)}
+                      </span>{" "}
+                      of <span className="font-medium">{filteredByStatus.length}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-xs gap-1" aria-label="Pagination">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="rounded-l-md"
+                      >
+                        Previous
+                      </Button>
+                      <div className="flex items-center px-4 text-sm font-medium text-foreground">
+                        Page {currentPage} of {Math.ceil(filteredByStatus.length / 20)}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredByStatus.length / 20), p + 1))}
+                        disabled={currentPage === Math.ceil(filteredByStatus.length / 20)}
+                        className="rounded-r-md"
+                      >
+                        Next
+                      </Button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

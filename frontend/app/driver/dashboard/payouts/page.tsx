@@ -29,6 +29,7 @@ import {
   getDriverWalletApi,
   getDriverPaymentHistoryApi,
   submitCommissionPaymentRequestApi,
+  getAdminSettingsApi,
 } from "@/lib/api/finance";
 import TouristLoader from "@/components/common/TouristLoader";
 
@@ -72,6 +73,7 @@ export default function PayoutsPage() {
 
   const [wallet, setWallet] = useState<DriverWallet | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<CommissionPayment[]>([]);
+  const [commissionRate, setCommissionRate] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,9 +103,10 @@ export default function PayoutsPage() {
     setLoading(true);
     setError(null);
     try {
-      const [walletData, historyData] = await Promise.all([
+      const [walletData, historyData, settingsData] = await Promise.all([
         getDriverWalletApi(myDriver.id),
         getDriverPaymentHistoryApi(myDriver.id),
+        getAdminSettingsApi().catch(() => null),
       ]);
       setWallet(walletData);
       setPaymentHistory(
@@ -111,6 +114,9 @@ export default function PayoutsPage() {
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )
       );
+      if (settingsData && typeof settingsData.driverCommissionPercent === "number") {
+        setCommissionRate(settingsData.driverCommissionPercent);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load payout data");
     } finally {
@@ -175,6 +181,15 @@ export default function PayoutsPage() {
           Track your earnings, commissions, and payment history
         </p>
       </div>
+
+      {commissionRate !== null && (
+        <div className="bg-primary/10 border border-primary/20 text-foreground px-4 py-3 rounded-lg flex items-center justify-between">
+          <p className="text-sm">
+            Current Platform Commission Rate: <strong className="text-primary font-bold">{commissionRate}%</strong>
+          </p>
+          <span className="text-xs text-white bg-secondary px-2 py-1 rounded font-medium">Auto-calculated per completed ride</span>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">

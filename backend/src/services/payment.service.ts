@@ -2361,15 +2361,16 @@ export class PaymentService {
 
     // ── RIDE STATS from Ride model ─────────────────────────────────────────────
     const rides = await Ride.find({ driver: driverObjectId }).lean();
+    const completedRidesList = rides.filter((r: any) => r.status === "completed" || r.status === "reviewed");
     const bookingStats = {
       total: rides.length,
-      completed: rides.filter((r: any) => r.status === "completed").length,
-      pending: rides.filter((r: any) => r.status === "pending" || r.status === "accepted").length,
+      completed: completedRidesList.length,
+      pending: rides.filter((r: any) => r.status === "pending" || r.status === "accepted" || r.status === "ongoing" || r.status === "payment_pending").length,
     };
 
-    // ── RECENT TRANSACTIONS from completed rides ───────────────────────────────
+    // ── RECENT TRANSACTIONS from completed/reviewed rides ──────────────────────
     const recentRides = rides
-      .filter((r: any) => r.status === "completed" && r.fare)
+      .filter((r: any) => (r.status === "completed" || r.status === "reviewed") && r.fare)
       .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
       .slice(0, 5)
       .map((r: any) => ({
@@ -2379,6 +2380,15 @@ export class PaymentService {
         status: "completed",
       }));
 
+    const totalCabRevenue = completedRidesList.reduce((sum: number, r: any) => sum + (r.fare || 0), 0);
+    const revenueByTourType = [
+      {
+        type: "Cab Rides",
+        revenue: Math.round(totalCabRevenue),
+        bookings: completedRidesList.length,
+      },
+    ];
+
     return {
       totalEarnings,
       netEarnings,
@@ -2386,7 +2396,7 @@ export class PaymentService {
       pendingAdminCommission: pendingAmount,
       pendingAmount: 0,
       bookingStats,
-      revenueByTourType: [],
+      revenueByTourType,
       recentTransactions: recentRides,
     };
   }
@@ -2397,7 +2407,7 @@ export class PaymentService {
     const driverObjectId = new Types.ObjectId(driverId);
     const completedRides = await Ride.find({
       driver: driverObjectId,
-      status: "completed",
+      status: { $in: ["completed", "reviewed"] },
     }).lean();
 
     const monthlyData: { [key: string]: number } = {};
@@ -2427,7 +2437,7 @@ export class PaymentService {
     const driverObjectId = new Types.ObjectId(driverId);
     const completedRides = await Ride.find({
       driver: driverObjectId,
-      status: "completed",
+      status: { $in: ["completed", "reviewed"] },
     }).lean();
 
     const weeklyData: { [key: string]: number } = {};
