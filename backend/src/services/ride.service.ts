@@ -130,9 +130,22 @@ export const startRide = async ({
     throw new Error("Invalid OTP");
   }
 
-  await Ride.findOneAndUpdate({ _id: rideId }, { status: "ongoing" });
+  const updatedRide = await Ride.findOneAndUpdate(
+    { _id: rideId },
+    { status: "ongoing" },
+    { new: true }
+  )
+    .populate("user")
+    .populate({
+      path: "driver",
+      populate: { path: "userId", model: "User" },
+    });
 
-  return ride;
+  if (!updatedRide) {
+    throw new Error("Ride not found after update");
+  }
+
+  return updatedRide;
 };
 
 export const endRide = async ({
@@ -228,11 +241,19 @@ export const cancelRide = async ({
     );
   }
 
-  // Verify the user requesting cancel is the ride owner
+  // Verify the user requesting cancel is the ride owner (tourist) OR the assigned driver
   const rideUser = ride.user as any;
-  if (rideUser._id.toString() !== userId) {
-    throw new Error("Unauthorized: only the ride owner can cancel");
+  const rideDriver = ride.driver as any;
+  const isTourist = rideUser?._id?.toString() === userId;
+  const isAssignedDriver = rideDriver?.userId?._id?.toString() === userId ||
+    rideDriver?.userId?.toString() === userId;
+
+  if (!isTourist && !isAssignedDriver) {
+    throw new Error("Unauthorized: only the ride owner or assigned driver can cancel");
   }
+
+  const cancelledBy = isTourist ? "tourist" : "driver";
+  console.log(`[RIDE_STATE_MACHINE] Ride ${rideId} being cancelled by ${cancelledBy} (userId=${userId})`);
 
   await Ride.findByIdAndUpdate(rideId, { status: "cancelled" });
 
@@ -246,4 +267,162 @@ export const cancelRide = async ({
 
   console.log(`[RIDE_STATE_MACHINE] Ride ${rideId} → cancelled (by user ${userId})`);
   return updatedRide;
+};
+
+export const cleanupStaleRides = async () => {
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  try {
+    const { sendMessageToSocketId, sendMessageToRoom } = require("../socket");
+
+    // 1. Clean up pending rides (no driver found within 5 minutes)
+    const stalePendingRides = await Ride.find({
+      status: "pending",
+      createdAt: { $lt: fiveMinutesAgo }
+    }).populate("user");
+
+    for (const ride of stalePendingRides) {
+      await Ride.findByIdAndUpdate(ride._id, { status: "cancelled" });
+      console.log(`[RIDE CLEANUP] Auto-expired pending ride ${ride._id}`);
+
+      // Trigger push notification asynchronously
+      const { NotificationService } = require("./notification.service");
+      NotificationService.sendRideCancelledNotification(ride._id.toString(), "SYSTEM").catch((err: any) => {
+        console.error("Failed to send auto-expiry push notification:", err);
+      });
+      
+      const cancelPayload = {
+        rideId: ride._id,
+        status: "cancelled",
+        message: "Ride request expired due to no driver availability",
+      };
+
+      sendMessageToRoom(`ride_${ride._id}`, {
+        event: "ride-cancelled",
+        data: cancelPayload
+      });
+
+      const tourist = ride.user as any;
+      if (tourist && tourist.socketId) {
+        sendMessageToSocketId(tourist.socketId, {
+          event: "ride-cancelled",
+          data: cancelPayload
+        });
+      }
+    }
+
+    // 2. Clean up accepted rides
+    const staleAcceptedRides = await Ride.find({
+      status: "accepted",
+      updatedAt: { $lt: twentyMinutesAgo }
+    }).populate("user").populate({
+      path: "driver",
+      populate: { path: "userId", model: "User" }
+    });
+
+    for (const ride of staleAcceptedRides) {
+      await Ride.findByIdAndUpdate(ride._id, { status: "cancelled" });
+      console.log(`[RIDE CLEANUP] Auto-expired accepted ride ${ride._id} (driver did not arrive/start)`);
+
+      // Trigger push notification asynchronously
+      const { NotificationService } = require("./notification.service");
+      NotificationService.sendRideCancelledNotification(ride._id.toString(), "SYSTEM").catch((err: any) => {
+        console.error("Failed to send auto-expiry push notification:", err);
+      });
+
+      const cancelPayload = {
+        rideId: ride._id,
+        status: "cancelled",
+        message: "Ride cancelled automatically due to driver startup delay",
+      };
+
+      sendMessageToRoom(`ride_${ride._id}`, {
+        event: "ride-cancelled",
+        data: cancelPayload
+      });
+
+      const tourist = ride.user as any;
+      if (tourist && tourist.socketId) {
+        sendMessageToSocketId(tourist.socketId, {
+          event: "ride-cancelled",
+          data: cancelPayload
+        });
+      }
+
+      const driver = ride.driver as any;
+      if (driver && driver.userId && driver.userId.socketId) {
+        sendMessageToSocketId(driver.userId.socketId, {
+          event: "ride-cancelled",
+          data: cancelPayload
+        });
+      }
+    }
+
+    // 3. Clean up stale ongoing rides (abandoned for 24+ hours)
+    const staleOngoingRides = await Ride.find({
+      status: "ongoing",
+      updatedAt: { $lt: twentyFourHoursAgo }
+    }).populate("user").populate({
+      path: "driver",
+      populate: { path: "userId", model: "User" }
+    });
+
+    for (const ride of staleOngoingRides) {
+      await Ride.findByIdAndUpdate(ride._id, { status: "cancelled" });
+      console.log(`[RIDE CLEANUP] Auto-expired stale ongoing ride ${ride._id} (24h cutoff)`);
+
+      const cancelPayload = {
+        rideId: ride._id,
+        status: "cancelled",
+        message: "Ride cancelled automatically — session expired after 24 hours",
+      };
+
+      sendMessageToRoom(`ride_${ride._id}`, { event: "ride-cancelled", data: cancelPayload });
+
+      const tourist = ride.user as any;
+      if (tourist && tourist.socketId) {
+        sendMessageToSocketId(tourist.socketId, { event: "ride-cancelled", data: cancelPayload });
+      }
+      const driver = ride.driver as any;
+      if (driver && driver.userId && driver.userId.socketId) {
+        sendMessageToSocketId(driver.userId.socketId, { event: "ride-cancelled", data: cancelPayload });
+      }
+    }
+
+    // 4. Clean up stale payment_pending rides (abandoned for 24+ hours)
+    const stalePaymentPendingRides = await Ride.find({
+      status: "payment_pending",
+      updatedAt: { $lt: twentyFourHoursAgo }
+    }).populate("user").populate({
+      path: "driver",
+      populate: { path: "userId", model: "User" }
+    });
+
+    for (const ride of stalePaymentPendingRides) {
+      await Ride.findByIdAndUpdate(ride._id, { status: "cancelled" });
+      console.log(`[RIDE CLEANUP] Auto-expired stale payment_pending ride ${ride._id} (24h cutoff)`);
+
+      const cancelPayload = {
+        rideId: ride._id,
+        status: "cancelled",
+        message: "Ride cancelled automatically — payment session expired after 24 hours",
+      };
+
+      sendMessageToRoom(`ride_${ride._id}`, { event: "ride-cancelled", data: cancelPayload });
+
+      const tourist = ride.user as any;
+      if (tourist && tourist.socketId) {
+        sendMessageToSocketId(tourist.socketId, { event: "ride-cancelled", data: cancelPayload });
+      }
+      const driver = ride.driver as any;
+      if (driver && driver.userId && driver.userId.socketId) {
+        sendMessageToSocketId(driver.userId.socketId, { event: "ride-cancelled", data: cancelPayload });
+      }
+    }
+
+  } catch (error) {
+    console.error("[RIDE CLEANUP] Error during stale rides cleanup:", error);
+  }
 };

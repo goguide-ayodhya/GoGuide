@@ -3,11 +3,12 @@ import { validationResult } from 'express-validator';
 import * as rideService from '../services/ride.service';
 import * as mapService from '../services/maps.service';
 import { driverCommissionService } from '../services/driverCommission.service';
-import { sendMessageToSocketId } from '../socket';
+import { sendMessageToSocketId, sendMessageToRoom } from '../socket';
 import { Ride } from '../models/Ride';
 import { AuthRequest } from '../middleware/auth';
 import { Driver, IDriver } from '../models/Driver';
 import { User, IUser } from '../models/User';
+import { NotificationService } from '../services/notification.service';
 
 // Helper function to calculate distance between two coordinates
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -160,13 +161,27 @@ export const confirmRide = async (req: AuthRequest, res: Response) => {
 
         const ride = await rideService.confirmRide({ rideId, driver });
 
+        // Trigger push notification to user (tourist) asynchronously
+        NotificationService.sendRideAcceptedNotification(rideId).catch(err => {
+            console.error('Failed to send ride accepted push notification:', err);
+        });
+
         // populate to get the user's socketId and driver details
         const user = await User.findById(ride.user);
         
         // Get driver details with user info
         const driverWithUser = await Driver.findById(driver._id).populate('userId');
 
-        // Send confirmation to user
+        // Send confirmation to user and room
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-confirmed',
+            data: ride
+        });
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-accepted-driver',
+            data: ride
+        });
+
         if (user && user.socketId) {
             sendMessageToSocketId(user.socketId, {
                 event: 'ride-confirmed',
@@ -233,7 +248,22 @@ export const startRide = async (req: AuthRequest, res: Response) => {
 
         const ride = await rideService.startRide({ rideId, otp, driver });
 
+        // Trigger push notification to user (tourist) asynchronously
+        NotificationService.sendRideStartedNotification(rideId).catch(err => {
+            console.error('Failed to send ride started push notification:', err);
+        });
+
         const user = await User.findById(ride.user);
+
+        // Send ride-started event to room
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-started',
+            data: ride
+        });
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-started-driver',
+            data: ride
+        });
 
         // Send ride-started event to user
         if (user && user.socketId) {
@@ -284,6 +314,15 @@ export const endRide = async (req: AuthRequest, res: Response) => {
         });
 
         const user = await User.findById(ride.user);
+
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-payment-pending',
+            data: ride
+        });
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-ended',
+            data: ride
+        });
 
         if (user && user.socketId) {
             sendMessageToSocketId(user.socketId, {
@@ -375,6 +414,12 @@ export const confirmPayment = async (req: AuthRequest, res: Response) => {
             pickup: updatedRide.pickup,
             fare: updatedRide.fare
         }));
+
+        // Notify room that payment is confirmed
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'payment-confirmed',
+            data: updatedRide
+        });
 
         // Notify driver that payment is confirmed
         const driverUser = driver.userId;
@@ -505,6 +550,7 @@ export const getActiveRide = async (req: AuthRequest, res: Response) => {
                         model: 'User',
                     }
                 })
+                .select('+otp')
                 .sort({ createdAt: -1 });
 
             if (activeRide) {
@@ -598,6 +644,11 @@ export const submitReview = async (req: AuthRequest, res: Response) => {
         await ride.save();
 
         console.log(`[REVIEW_FLOW] Ride ${rideId} status updated to 'reviewed'`);
+        // Notify room about the review/skip
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-reviewed',
+            data: ride.toObject()
+        });
 
         // Notify driver about the review/skip
         const driver = ride.driver as any;
@@ -648,20 +699,39 @@ export const cancelRide = async (req: AuthRequest, res: Response) => {
     const { rideId } = req.body;
 
     try {
-        console.log(`[CANCEL_FLOW] Tourist ${req.userId} requesting cancel for ride ${rideId}`);
+        console.log(`[CANCEL_FLOW] User ${req.userId} requesting cancel for ride ${rideId}`);
 
         // Delegate to service (includes status guard + ownership check)
         const ride = await rideService.cancelRide({ rideId, userId: req.userId! });
+
+        // Trigger push notification asynchronously
+        NotificationService.sendRideCancelledNotification(rideId, 'TOURIST').catch(err => {
+            console.error('Failed to send ride cancelled push notification:', err);
+        });
 
         if (!ride) {
             return res.status(404).json({ message: 'Ride not found after cancellation' });
         }
 
+        // Determine who cancelled — driver or tourist
+        const requesterDriver = await Driver.findOne({ userId: req.userId });
+        const cancelledByDriver = !!requesterDriver;
+        const cancelMessage = cancelledByDriver
+            ? 'Ride has been cancelled by the driver'
+            : 'Ride has been cancelled by the tourist';
+
         const cancelPayload = {
             rideId: ride._id,
             status: 'cancelled',
-            message: 'Ride has been cancelled by the tourist',
+            cancelledBy: cancelledByDriver ? 'driver' : 'tourist',
+            message: cancelMessage,
         };
+
+        // Notify room that ride is cancelled
+        sendMessageToRoom(`ride_${rideId}`, {
+            event: 'ride-cancelled',
+            data: cancelPayload,
+        });
 
         // Notify tourist (for multi-tab/refresh safety)
         const tourist = ride.user as any;

@@ -2,7 +2,7 @@
 
 import { X, Phone, Navigation, MapPin, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { useState, useEffect, useRef, useContext } from "react";
-import { startRide, endRide } from "@/lib/api/rides";
+import { startRide, endRide, cancelRide as cancelRideApi } from "@/lib/api/rides";
 import { useRouter } from "next/navigation";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
 
@@ -54,7 +54,42 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
       navigator.geolocation.clearWatch(watchIdRef.current);
     }
 
-    // Emit the driver's current accurate location immediately when tracking starts
+    const startTracking = (highAccuracy: boolean) => {
+      console.log(`[DRIVER TRACKING] Starting watchPosition (highAccuracy=${highAccuracy})`);
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log(`[DRIVER TRACKING] GPS position received: lat=${latitude}, lng=${longitude}, accuracy=${position.coords.accuracy}m`);
+          const locationPayload = {
+            rideId: ride._id,
+            lat: latitude,
+            lng: longitude,
+            eta: "5 min",
+          };
+          socket.emit("driver-location-update", locationPayload);
+          console.log("[DRIVER TRACKING] Emitted driver-location-update:", locationPayload);
+        },
+        (error) => {
+          console.error(`[DRIVER TRACKING] watchPosition error (highAccuracy=${highAccuracy}):`, error.code, error.message);
+          // If high accuracy failed/timeout, try falling back to low accuracy
+          if (highAccuracy && (error.code === 3 || error.code === 2)) {
+            console.log("[DRIVER TRACKING] Falling back to low accuracy tracking");
+            if (watchIdRef.current !== null) {
+              navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+            startTracking(false);
+          }
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 10000 : 30000,
+          maximumAge: highAccuracy ? 0 : 10000,
+        }
+      );
+      console.log("[DRIVER TRACKING] watchPosition started with ID:", watchIdRef.current);
+    };
+
+    // Emit the driver's current location immediately when tracking starts, with fallback
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -66,9 +101,33 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
         };
         socket.emit("driver-location-update", immediatePayload);
         console.log("[DRIVER TRACKING] Emitted initial driver-location-update:", immediatePayload);
+        startTracking(true);
       },
       (error) => {
-        console.warn("[DRIVER TRACKING] Initial geolocation fetch failed:", error.message);
+        console.warn("[DRIVER TRACKING] Initial high-accuracy fetch failed, trying low accuracy:", error.message);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const immediatePayload = {
+              rideId: ride._id,
+              lat: latitude,
+              lng: longitude,
+              eta: "5 min",
+            };
+            socket.emit("driver-location-update", immediatePayload);
+            console.log("[DRIVER TRACKING] Emitted initial low-accuracy location:", immediatePayload);
+            startTracking(false);
+          },
+          (err) => {
+            console.error("[DRIVER TRACKING] Geolocation completely failed:", err.message);
+            startTracking(false);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 20000,
+            maximumAge: 10000,
+          }
+        );
       },
       {
         enableHighAccuracy: true,
@@ -76,34 +135,6 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
         maximumAge: 0,
       }
     );
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-
-        console.log(`[DRIVER TRACKING] GPS position received: lat=${latitude}, lng=${longitude}, accuracy=${position.coords.accuracy}m`);
-
-        const locationPayload = {
-          rideId: ride._id,
-          lat: latitude,
-          lng: longitude,
-          eta: "5 min", // Can be enhanced with real distance calc
-        };
-
-        socket.emit("driver-location-update", locationPayload);
-        console.log("[DRIVER TRACKING] Emitted driver-location-update:", locationPayload);
-      },
-      (error) => {
-        console.error("[DRIVER TRACKING] Geolocation error:", error.code, error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0, // Always get fresh position
-      }
-    );
-
-    console.log("[DRIVER TRACKING] watchPosition started with ID:", watchIdRef.current);
 
     // Cleanup when rideStatus changes or component unmounts
     return () => {
@@ -132,9 +163,10 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
       const currentRideId = ride?._id;
       if (String(cancelledRideId) !== String(currentRideId)) return;
 
-      console.log("[CANCEL_FLOW] Ride cancelled by tourist:", cancelledRideId);
+      const reason = data.message || "The tourist has cancelled this ride.";
+      console.log("[CANCEL_FLOW] Ride cancelled:", cancelledRideId, "reason:", reason);
       // Short delay so the alert is seen before sheet closes
-      alert("⚠️ The tourist has cancelled this ride.");
+      alert(`⚠️ ${reason}`);
       onClose();
     };
 
@@ -238,11 +270,20 @@ export default function DriverAssignedSheet({ ride, onClose, isDriver = false }:
     }
   };
 
-  const handleCancelRide = () => {
-    if (confirm("Are you sure you want to cancel this ride?")) {
-      // TODO: Implement cancel ride API
-      console.log("[DRIVER] Cancel ride:", ride._id);
-      router.push("/driver/dashboard");
+  const handleCancelRide = async () => {
+    if (!ride?._id) return;
+    if (!confirm("Are you sure you want to cancel this ride?")) return;
+
+    try {
+      console.log("[DRIVER] Cancelling ride via API:", ride._id);
+      await cancelRideApi(ride._id);
+      console.log("[DRIVER] Ride cancelled successfully");
+      // Socket will notify tourist automatically from backend
+      // Just close the sheet on driver's side
+      onClose();
+    } catch (error: any) {
+      console.error("[DRIVER] Failed to cancel ride:", error.message);
+      alert(`Failed to cancel ride: ${error.message}`);
     }
   };
 

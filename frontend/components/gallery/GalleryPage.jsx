@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Header } from "@/components/common/Header";
+import { Footer } from "@/components/common/Footer";
 import { galleryData } from "../../public/assets/galleryData";
 import GalleryGrid from "./GalleryGrid";
 import GalleryLightbox from "./GalleryLightbox";
@@ -31,7 +31,7 @@ export default function GalleryPage() {
           <h1 className="text-4xl sm:text-6xl font-extrabold text-center">Travel <b className="text-secondary">Memories</b></h1>
           <p className="mt-2 text-slate-600 max-w-2xl mx-auto italic">
             Explore curated moments from guided tours, spiritual journeys, and premium experiences.
-          </p>  
+          </p>
         </header>
 
         <div className="flex flex-wrap items-center gap-2 mb-8 p-4 bg-white rounded-xl shadow-sm">
@@ -39,11 +39,10 @@ export default function GalleryPage() {
             <button
               key={c}
               onClick={() => setActive(c)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
-                active === c
+              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-300 ${active === c
                   ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-lg scale-105"
                   : "bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200"
-              }`}
+                }`}
             >
               {c}
             </button>
@@ -60,6 +59,7 @@ export default function GalleryPage() {
           onNavigate={(next) => setSelected(next)}
         />
       </div>
+      <Footer />
     </main>
   );
 }

@@ -86,8 +86,8 @@ const WaitingForDriver = (props) => {
         </div>
       </div>
 
-      {/* [CANCEL_FLOW] Cancel ride button — allowed during accepted status */}
-      {props.onCancelRide && (
+      {/* [CANCEL_FLOW] Cancel ride button — only allowed during accepted status, hidden once ongoing */}
+      {props.onCancelRide && props.ride?.status === "accepted" && (
         <button
           onClick={props.onCancelRide}
           disabled={props.isCancelling}

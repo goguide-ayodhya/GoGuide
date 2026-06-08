@@ -8,11 +8,11 @@ export const metadata = {
     title: "Gallery — Travel Memories | Tourist",
     description:
       "Explore a curated gallery of travel memories: guided tours, spiritual visits, cab journeys and premium experiences.",
-    url: "https://your-site.com/gallery",
-    siteName: "Tourist",
+    url: "https://www.goguide.in/gallery",
+    siteName: "GoGuide",
     images: [
       {
-        url: "/assets/meta/gallery-og.jpg",
+        url: "/assets/goguide.png",
         width: 1200,
         height: 630,
       },

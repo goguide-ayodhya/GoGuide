@@ -134,6 +134,23 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     restoreActiveRide();
   }, [user?.id, hasAttemptedRestore]);
 
+  // Join ride room when activeRide changes or socket reconnects
+  useEffect(() => {
+    if (!socket || !activeRide?._id) return;
+
+    const joinRoom = () => {
+      console.log(`[ACTIVE_RIDE] Emitting join-ride for room: ride_${activeRide._id}`);
+      socket.emit("join-ride", { rideId: activeRide._id });
+    };
+
+    joinRoom();
+
+    socket.on("connect", joinRoom);
+    return () => {
+      socket.off("connect", joinRoom);
+    };
+  }, [socket, activeRide?._id]);
+
   // Handle ride acceptance as driver
   useEffect(() => {
     if (!socket || !user?.id) return;
@@ -239,6 +256,7 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
 
     socket.on("ride-accepted-driver", handleRideAccepted);
     socket.on("ride-started", handleRideStarted);
+    socket.on("ride-started-driver", handleRideStarted);
     socket.on("ride-payment-pending", handleRidePaymentPending);
     socket.on("payment-confirmed", handlePaymentConfirmed);
     socket.on("ride-completed", handleRideCompleted);
@@ -249,6 +267,7 @@ export const ActiveRideProvider = ({ children }: ActiveRideProviderProps) => {
     return () => {
       socket.off("ride-accepted-driver", handleRideAccepted);
       socket.off("ride-started", handleRideStarted);
+      socket.off("ride-started-driver", handleRideStarted);
       socket.off("ride-payment-pending", handleRidePaymentPending);
       socket.off("payment-confirmed", handlePaymentConfirmed);
       socket.off("ride-completed", handleRideCompleted);

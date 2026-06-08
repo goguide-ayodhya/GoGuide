@@ -116,6 +116,11 @@ const startServer = async () => {
     const server = http.createServer(app);
     initializeSocket(server);
 
+    // Start periodic background cleanup for stale rides
+    const { cleanupStaleRides } = require("./services/ride.service");
+    setInterval(cleanupStaleRides, 60 * 1000);
+    logger.info("[RIDE CLEANUP] Stale ride cleanup runner initialized (1 min interval)");
+
     server.listen(PORT, () => {
       logger.info(
         `Server running on port ${PORT} in ${env.NODE_ENV} environment`,

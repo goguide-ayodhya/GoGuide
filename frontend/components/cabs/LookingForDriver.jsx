@@ -1,6 +1,56 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const LookingForDriver = (props) => {
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  // ====================================================
+  // COUNTDOWN TIMER
+  // Computes remaining time from ride.createdAt so it
+  // survives page refreshes (consistent 5-min window).
+  // Auto-triggers onCancelRide when countdown hits 0.
+  // ====================================================
+  useEffect(() => {
+    if (!props.ride?.createdAt) return;
+
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const createdAt = new Date(props.ride.createdAt).getTime();
+
+    const computeTimeLeft = () => {
+      const elapsed = Date.now() - createdAt;
+      const remaining = Math.max(0, TIMEOUT_MS - elapsed);
+      return Math.ceil(remaining / 1000); // seconds
+    };
+
+    // Set initial value
+    setTimeLeft(computeTimeLeft());
+
+    const interval = setInterval(() => {
+      const secs = computeTimeLeft();
+      setTimeLeft(secs);
+
+      if (secs === 0) {
+        clearInterval(interval);
+        console.log("[CANCEL_FLOW] Looking for driver timed out after 5 minutes");
+        alert("⏰ No driver found within 5 minutes. Your ride has been automatically cancelled.");
+        if (props.onCancelRide) {
+          props.onCancelRide();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [props.ride?.createdAt]);
+
+  // Format seconds as MM:SS
+  const formatTime = (secs) => {
+    if (secs === null) return "5:00";
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const isUrgent = timeLeft !== null && timeLeft <= 60;
+
   return (
     <div className="w-full">
       <button
@@ -33,6 +83,18 @@ const LookingForDriver = (props) => {
         <p className="text-sm text-gray-500 text-center">
           Searching nearby drivers for your ride
         </p>
+
+        {/* Countdown Timer */}
+        <div
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${
+            isUrgent
+              ? "bg-red-100 text-red-600 border border-red-300 animate-pulse"
+              : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+          }`}
+        >
+          <i className="ri-time-line"></i>
+          <span>Auto-cancels in {formatTime(timeLeft)}</span>
+        </div>
       </div>
 
       {/* Ride Summary */}

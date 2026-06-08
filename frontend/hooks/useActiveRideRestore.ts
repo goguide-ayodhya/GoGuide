@@ -1,6 +1,7 @@
 import { useEffect, useRef, useContext } from "react";
 import { useActiveRide } from "@/contexts/ActiveRideContext";
 import { SocketContext } from "@/contexts/cabs/SocketContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UseActiveRideRestoreOptions {
   onRestored?: (ride: any) => void;
@@ -21,6 +22,7 @@ interface UseActiveRideRestoreOptions {
 export const useActiveRideRestore = (options: UseActiveRideRestoreOptions = {}) => {
   const { activeRide, isLoading } = useActiveRide();
   const { socket } = useContext(SocketContext);
+  const { user } = useAuth();
 
   // [RESTORE_FLOW] Track whether we've already triggered the restore callback
   // Using a ref (not state) prevents triggering another render cycle
@@ -83,9 +85,9 @@ export const useActiveRideRestore = (options: UseActiveRideRestoreOptions = {}) 
     }
 
     // Re-join socket room after restore so events continue flowing
-    if (socket && activeRide.user?._id) {
-      console.log("[RESTORE_FLOW] Re-joining socket room for user:", activeRide.user._id);
-      socket.emit("join", { userType: "user", userId: activeRide.user._id });
+    if (socket && user?.id) {
+      console.log(`[RESTORE_FLOW] Re-joining socket room for ${user.role}:`, user.id);
+      socket.emit("join", { userType: user.role === "DRIVER" ? "driver" : "user", userId: user.id });
     }
 
     options.onRestored?.(activeRide);

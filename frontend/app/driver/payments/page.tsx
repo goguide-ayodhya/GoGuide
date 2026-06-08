@@ -15,6 +15,7 @@ import {
   getDriverPaymentHistoryApi,
 } from "../../../lib/api/finance";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDriver } from "@/contexts/DriverContext";
 import TouristLoader from "@/components/common/TouristLoader";
 
 type Wallet = {
@@ -37,24 +38,30 @@ type PaymentRecord = {
 
 export default function DriverPaymentHistoryPage() {
   const { user } = useAuth();
+  const { myDriver } = useDriver();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
+    // Wait for myDriver to be loaded (it's the correct Driver document ID)
+    if (myDriver?.id) {
       fetchData();
     }
-  }, [user?.id]);
+  }, [myDriver?.id]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
+      // Use myDriver.id (Driver document ID) — NOT user?.id (User document ID)
+      // Using user?.id would create a duplicate empty wallet under the wrong ID
+      const driverId = myDriver?.id || "";
+      console.log("[PAYMENTS] Fetching wallet for driver ID:", driverId);
       const [walletData, paymentData] = await Promise.all([
-        getDriverWalletApi(user?.id || ""),
-        getDriverPaymentHistoryApi(user?.id || ""),
+        getDriverWalletApi(driverId),
+        getDriverPaymentHistoryApi(driverId),
       ]);
       setWallet(walletData);
       setPayments(Array.isArray(paymentData) ? paymentData : []);

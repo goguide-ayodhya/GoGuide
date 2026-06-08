@@ -227,9 +227,14 @@ const RideForm = () => {
       }, 3000);
     };
 
-    // [CANCEL_FLOW] Ride cancelled — clear everything immediately
+    // [CANCEL_FLOW] Ride cancelled — clear everything and show reason
     const handleRideCancelled = (data: any) => {
       console.log("[CANCEL_FLOW] ride-cancelled received:", data);
+      const reason = data?.message || "Your ride has been cancelled.";
+      // Show reason only if it's an auto-cancellation (not triggered by the tourist themselves)
+      if (data?.cancelledBy !== 'tourist') {
+        alert(`\u26a0\ufe0f ${reason}`);
+      }
       resetRideState();
     };
 
@@ -338,14 +343,27 @@ const RideForm = () => {
 
   const handleUseCurrentLocation = async () => {
     if (!activeField) return;
-    if (typeof window === "undefined" || !navigator.geolocation) return;
+    if (typeof window === "undefined") return;
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser. Please ensure you are using a secure connection (HTTPS).");
+      return;
+    }
 
     setLoadingLocation(true);
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+        // Try high accuracy first
+        navigator.geolocation.getCurrentPosition(resolve, (err) => {
+          console.warn("[RIDE_STATUS] High accuracy GPS failed, trying fallback...", err);
+          // Fallback to low accuracy
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 10000,
+          });
+        }, {
           enableHighAccuracy: true,
-          timeout: 15000,
+          timeout: 10000,
         });
       });
       const { latitude, longitude } = position.coords;
@@ -362,8 +380,17 @@ const RideForm = () => {
         setDestinationSuggestions([]);
       }
       setPanelOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("[RIDE_STATUS] Location error:", error);
+      let errMsg = "Unable to retrieve location. ";
+      if (error.code === 1) {
+        errMsg += "Location permission was denied. Please enable location services in your browser settings.";
+      } else if (error.code === 3) {
+        errMsg += "The request timed out. Please check your network connection and GPS signal.";
+      } else {
+        errMsg += error.message || "Please ensure you are using HTTPS.";
+      }
+      alert(errMsg);
     } finally {
       setLoadingLocation(false);
     }
@@ -389,7 +416,15 @@ const RideForm = () => {
     console.log("[REVIEW_FLOW] Submitting review:", { rideId: ride._id, rating });
     try {
       await submitReview(ride._id, rating, reviewText, false);
-      // Socket 'ride-reviewed' will fire → sets ride.status = 'reviewed' → RideCompletionSummary shows
+      // Update local state immediately on API success (don't wait for socket)
+      console.log("[REVIEW_FLOW] Review submitted successfully, updating local state");
+      setRide((prev: any) => prev ? { ...prev, status: 'reviewed' } : prev);
+      setShowReviewPopup(false);
+      // Auto-reset after 3s (socket event will also fire but is now redundant)
+      setTimeout(() => {
+        console.log("[RIDE_STATE_MACHINE] Auto-resetting after review submit");
+        resetRideState();
+      }, 3000);
     } catch (err) {
       console.error("[REVIEW_FLOW] Error submitting review:", err);
     }
@@ -400,7 +435,15 @@ const RideForm = () => {
     console.log("[REVIEW_FLOW] Skipping review for ride:", ride._id);
     try {
       await submitReview(ride._id, 0, "", true);
-      // Socket 'ride-reviewed' fires → same flow
+      // Update local state immediately on API success (don't wait for socket)
+      console.log("[REVIEW_FLOW] Review skipped successfully, updating local state");
+      setRide((prev: any) => prev ? { ...prev, status: 'reviewed' } : prev);
+      setShowReviewPopup(false);
+      // Auto-reset after 3s
+      setTimeout(() => {
+        console.log("[RIDE_STATE_MACHINE] Auto-resetting after review skip");
+        resetRideState();
+      }, 3000);
     } catch (err) {
       console.error("[REVIEW_FLOW] Error skipping review:", err);
     }
@@ -534,6 +577,7 @@ const RideForm = () => {
         className="fixed inset-x-0 bottom-0 z-30 bg-white px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 pt-8 sm:pt-10 md:pt-12 max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-t-2xl shadow-2xl md:shadow-xl md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
       >
         <LookingForDriver
+          ride={ride}
           pickup={pickup}
           destination={destination}
           fare={fare}

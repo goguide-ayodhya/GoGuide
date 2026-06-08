@@ -75,9 +75,10 @@ router.post('/submit-review',
 );
 
 // [RIDE_STATE_MACHINE] Cancel ride — only allowed in pending/accepted status
+// Allowed by TOURIST or DRIVER (driver may cancel an accepted ride they cannot service)
 router.post('/cancel',
     authenticate,
-    authorize(['TOURIST']),
+    authorize(['TOURIST', 'DRIVER']),
     body('rideId').isMongoId().withMessage('Invalid ride id'),
     rideController.cancelRide
 );

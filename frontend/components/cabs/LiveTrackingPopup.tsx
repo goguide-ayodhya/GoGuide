@@ -22,38 +22,48 @@ export default function LiveTrackingPopup({
   const [driverLocation, setDriverLocation] = useState<{
     lat: number;
     lng: number;
-  } | null>(null);
+  } | null>(() => {
+    if (ride?.driver?.currentLocation?.lat && ride?.driver?.currentLocation?.lng) {
+      return {
+        lat: Number(ride.driver.currentLocation.lat),
+        lng: Number(ride.driver.currentLocation.lng),
+      };
+    }
+    return null;
+  });
+
   const [previousLocation, setPreviousLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [eta, setEta] = useState("5 min");
+
+  // Use React STATE for map instance (not just a Ref) so that centering/marker
+  // effects re-run properly after the map finishes loading.
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
   const { socket } = useContext(SocketContext);
   const { activeRide } = useActiveRide();
   const { isLoaded, loadError } = useGoogleMaps();
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   // Animate marker smoothly between two positions
   const animateMarker = useCallback((from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
     if (!markerRef.current) return;
 
-    const steps = 20; // Number of steps for smooth animation
+    const steps = 20;
     let currentStep = 0;
 
     const animate = () => {
       currentStep++;
       const progress = currentStep / steps;
-
-      // Easing function for smooth animation
-      const easeProgress = progress < 0.5 
-        ? 2 * progress * progress 
+      const easeProgress = progress < 0.5
+        ? 2 * progress * progress
         : -1 + (4 - 2 * progress) * progress;
 
       const newLat = from.lat + (to.lat - from.lat) * easeProgress;
       const newLng = from.lng + (to.lng - from.lng) * easeProgress;
-
       markerRef.current?.setPosition({ lat: newLat, lng: newLng });
 
       if (currentStep < steps) {
@@ -61,11 +71,9 @@ export default function LiveTrackingPopup({
       }
     };
 
-    // Cancel any previous animation
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
-
     animate();
   }, []);
 
@@ -75,12 +83,10 @@ export default function LiveTrackingPopup({
       console.log("[LIVE TRACKING] No socket");
       return;
     }
-
     if (!ride?._id) {
       console.log("[LIVE TRACKING] No ride ID");
       return;
     }
-
     if (!isOpen) {
       console.log("[LIVE TRACKING] Popup closed");
       return;
@@ -104,7 +110,6 @@ export default function LiveTrackingPopup({
         lng: Number(data.lng),
       };
 
-      // Animate marker if we have a previous location
       if (previousLocation && driverLocation) {
         animateMarker(driverLocation, newLocation);
       }
@@ -128,49 +133,79 @@ export default function LiveTrackingPopup({
   }, [socket, ride?._id, isOpen, animateMarker, driverLocation, previousLocation]);
 
   const defaultCenter = {
-    lat: 26.9124, // Default to a reasonable location
-    lng: 75.7873, // Default to a reasonable location
+    lat: 26.9124,
+    lng: 75.7873,
   };
 
-
-  // Cleanup socket listener on unmount
+  // Cleanup socket listener and markers on unmount
   useEffect(() => {
     return () => {
       if (socket) {
         socket.off("driver-location-update");
       }
-      // Cancel any pending animations
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
       }
     };
   }, [socket]);
 
-  // Create and update marker on the map
+  // Create/update marker whenever map (state) or driverLocation changes
+  // Using map as STATE (not just ref) ensures this fires after map loads
   useEffect(() => {
-    if (mapRef.current && driverLocation?.lat && driverLocation?.lng && isLoaded) {
-      if (!markerRef.current) {
-        // Create marker
-        markerRef.current = new google.maps.Marker({
-          position: { lat: driverLocation.lat, lng: driverLocation.lng },
-          map: mapRef.current,
-          title: "Your Driver",
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: "#4F46E5",
-            fillOpacity: 1,
-            strokeColor: "#FFFFFF",
-            strokeWeight: 2,
-          },
-        });
-      }
+    if (!map || !driverLocation?.lat || !driverLocation?.lng || !isLoaded) return;
 
-      // Pan map to driver location
-      mapRef.current.panTo({ lat: driverLocation.lat, lng: driverLocation.lng });
-      mapRef.current.setZoom(16);
+    if (!markerRef.current) {
+      markerRef.current = new google.maps.Marker({
+        position: { lat: driverLocation.lat, lng: driverLocation.lng },
+        map: map,
+        title: "Your Driver",
+        icon: {
+          url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+          scaledSize: new google.maps.Size(45, 45),
+        },
+      });
+      console.log("[LIVE TRACKING] Driver marker created at:", driverLocation);
+    } else {
+      markerRef.current.setPosition({ lat: driverLocation.lat, lng: driverLocation.lng });
     }
-  }, [driverLocation, isLoaded]);
+
+    // Pan map to driver location
+    map.panTo({ lat: driverLocation.lat, lng: driverLocation.lng });
+    map.setZoom(16);
+    console.log("[LIVE TRACKING] Map centered on driver:", driverLocation);
+  }, [map, driverLocation, isLoaded]);
+
+  // Lock body scroll (but NOT pointer events — removing that so map stays interactive)
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = "0";
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.bottom = "0";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.bottom = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.bottom = "";
+    };
+  }, [isOpen]);
 
   const handleCallDriver = () => {
     const driverPhone = ride?.driver?.userId?.phone || ride?.driver?.phone;
@@ -187,7 +222,6 @@ export default function LiveTrackingPopup({
         url: window.location.href,
       });
     } else {
-      // Fallback: copy to clipboard
       const text = `I'm on a GoGuide cab from ${ride?.pickup} to ${ride?.destination}. ETA: ${eta}`;
       navigator.clipboard.writeText(text);
       alert("Ride details copied to clipboard!");
@@ -201,55 +235,12 @@ export default function LiveTrackingPopup({
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      // Prevent body scroll and touch events
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.top = "0";
-      document.body.style.left = "0";
-      document.body.style.right = "0";
-      document.body.style.bottom = "0";
-      document.body.style.touchAction = "none";
-      document.body.style.webkitUserSelect = "none";
-      document.body.style.userSelect = "none";
-      document.body.style.pointerEvents = "none";
-    } else {
-      // Restore body scroll and touch events
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.bottom = "";
-      document.body.style.touchAction = "";
-      document.body.style.webkitUserSelect = "";
-      document.body.style.userSelect = "";
-      document.body.style.pointerEvents = "";
-    }
-
-    return () => {
-      // Cleanup on unmount
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.bottom = "";
-      document.body.style.touchAction = "";
-      document.body.style.webkitUserSelect = "";
-      document.body.style.userSelect = "";
-      document.body.style.pointerEvents = "";
-    };
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
     <div
       className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={(e) => {
-        // Only close if clicking the backdrop, not the modal content
         if (e.target === e.currentTarget) {
           onClose();
         }
@@ -259,7 +250,6 @@ export default function LiveTrackingPopup({
         className="relative w-full max-w-4xl h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {" "}
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-white z-10">
           <div>
@@ -273,15 +263,14 @@ export default function LiveTrackingPopup({
             <X size={20} />
           </button>
         </div>
+
         {/* Google Map */}
         <div className="relative h-[45vh] min-h-[300px] flex-shrink-0 bg-gray-100">
           {loadError ? (
             <div className="absolute inset-0 flex items-center justify-center bg-red-50">
               <div className="text-center">
                 <p className="text-red-600 font-medium">Map Error</p>
-                <p className="text-sm text-gray-600">
-                  Failed to load Google Maps
-                </p>
+                <p className="text-sm text-gray-600">Failed to load Google Maps</p>
               </div>
             </div>
           ) : !isLoaded ? (
@@ -295,10 +284,17 @@ export default function LiveTrackingPopup({
                 height: "100%",
               }}
               center={driverLocation || defaultCenter}
-              zoom={15}
-              onLoad={(map) => {
-                mapRef.current = map;
-                console.log("[LIVE TRACKING] Map loaded successfully");
+              zoom={driverLocation ? 16 : 13}
+              onLoad={(mapInstance) => {
+                setMap(mapInstance);
+                console.log("[LIVE TRACKING] Map loaded successfully, driver location:", driverLocation);
+              }}
+              onUnmount={() => {
+                if (markerRef.current) {
+                  markerRef.current.setMap(null);
+                  markerRef.current = null;
+                }
+                setMap(null);
               }}
               options={{
                 fullscreenControl: true,
@@ -308,20 +304,6 @@ export default function LiveTrackingPopup({
                 gestureHandling: "greedy",
               }}
             >
-              {/* Driver Marker - only shown when real GPS data arrives */}
-              {driverLocation && driverLocation.lat && driverLocation.lng && (
-                <Marker
-                  position={{
-                    lat: Number(driverLocation.lat),
-                    lng: Number(driverLocation.lng),
-                  }}
-                  icon={{
-                    url: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-                    scaledSize: new google.maps.Size(45, 45),
-                  }}
-                  title="Driver Location"
-                />
-              )}
             </GoogleMap>
           )}
 
@@ -329,7 +311,15 @@ export default function LiveTrackingPopup({
           <div className="absolute top-4 right-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold z-10 shadow-lg">
             ETA: {eta}
           </div>
+
+          {/* No location warning */}
+          {isLoaded && !driverLocation && (
+            <div className="absolute bottom-4 left-4 right-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs px-3 py-2 rounded-lg text-center">
+              Waiting for driver location...
+            </div>
+          )}
         </div>
+
         {/* Content Area - Scrollable */}
         <div className="flex-1 overflow-y-auto bg-gray-50">
           {/* Driver Info */}

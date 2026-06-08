@@ -18,16 +18,22 @@ export const initializeSocket = (server: HttpServer) => {
     path: "/socket.io",
   });
 
-  io.on("connection", (socket: { id: any; on: (arg0: string, arg1: (...args: any[]) => void) => void; }) => {
+  io.on("connection", (socket: any) => {
     logger.info(`Socket connected: ${socket.id}`);
 
     socket.on('join', async (data: { userId: string, userType: string }) => {
       const { userId, userType } = data;
       if (userId) {
-          // Assuming we use User model for both TOURIST and DRIVER sockets
-          // Wait, we need to import User and Driver. We can do that lazily or at the top.
           const { User } = require('./models/User');
           await User.findByIdAndUpdate(userId, { socketId: socket.id });
+      }
+    });
+
+    socket.on('join-ride', (data: { rideId: string }) => {
+      const { rideId } = data;
+      if (rideId) {
+        socket.join(`ride_${rideId}`);
+        logger.info(`Socket ${socket.id} joined room ride_${rideId}`);
       }
     });
 
@@ -69,26 +75,29 @@ export const initializeSocket = (server: HttpServer) => {
         let forwardedCount = 0;
         activeRides.forEach((ride: any, index: number) => {
           const touristSocketId = ride.user?.socketId;
+          const locationData = {
+            rideId: ride._id,
+            lat: location.ltd,
+            lng: location.lng,
+            eta: '5 min',
+            timestamp: new Date().toISOString(),
+          };
+
+          // Emit to ride room first (most reliable)
+          socket.to(`ride_${ride._id}`).emit('driver-location-update', locationData);
+          logger.info(`[SOCKET] driver-location-update emitted to room ride_${ride._id}`);
+
           if (ride.user && touristSocketId) {
             logger.info(`[SOCKET] Ride ${index + 1}: rideId=${ride._id}, status=${ride.status}, touristId=${ride.user._id}, touristSocketId=${touristSocketId}`);
-
-            const locationData = {
-              rideId: ride._id,
-              lat: location.ltd,
-              lng: location.lng,
-              eta: '5 min',
-              timestamp: new Date().toISOString(),
-            };
-
             io!.to(touristSocketId).emit('driver-location-update', locationData);
-            logger.info(`[SOCKET] driver-location-update emitted to tourist ${ride.user._id} for ride ${ride._id}`, locationData);
+            logger.info(`[SOCKET] driver-location-update emitted to tourist fallback socket ${touristSocketId}`);
             forwardedCount++;
           } else {
             logger.warn(`[SOCKET] No tourist socket ID for ride ${ride._id}`);
           }
         });
 
-        logger.info(`[SOCKET] Forwarded driver-location-update to ${forwardedCount} tourists`);
+        logger.info(`[SOCKET] Forwarded driver-location-update to ${forwardedCount} tourists via socketId`);
       } catch (error) {
         logger.error(`[SOCKET] Error forwarding location update: ${error}`);
       }
@@ -111,6 +120,7 @@ export const initializeSocket = (server: HttpServer) => {
       try {
         const { Ride } = require('./models/Ride');
         const { User } = require('./models/User');
+        const { Driver } = require('./models/Driver');
 
         // Find the ride and populate the user (tourist)
         const ride = await Ride.findById(rideId).populate('user');
@@ -127,11 +137,15 @@ export const initializeSocket = (server: HttpServer) => {
           return;
         }
 
-        const tourist = ride.user as any;
-
-        if (!tourist || !tourist.socketId) {
-          logger.warn(`[DRIVER TRACKING] Tourist has no socketId for ride ${rideId}`);
-          return;
+        // Update Driver currentLocation in the database
+        if (ride.driver) {
+          await Driver.findByIdAndUpdate(ride.driver, {
+            currentLocation: {
+              lat: Number(lat),
+              lng: Number(lng),
+            }
+          });
+          logger.info(`[DRIVER TRACKING] Updated Driver ${ride.driver} currentLocation in DB to lat=${lat}, lng=${lng}`);
         }
 
         const locationPayload = {
@@ -142,10 +156,16 @@ export const initializeSocket = (server: HttpServer) => {
           timestamp: new Date().toISOString(),
         };
 
-        // Emit ONLY to the specific tourist — not broadcast
-        io!.to(tourist.socketId).emit('driver-location-update', locationPayload);
+        // Emit to the ride room (excluding the driver who emitted it)
+        socket.to(`ride_${rideId}`).emit('driver-location-update', locationPayload);
+        logger.info(`[DRIVER TRACKING] Location update sent to room ride_${rideId}`);
 
-        logger.info(`[DRIVER TRACKING] Location update sent for ride ${rideId}: status=${ride.status}, lat=${lat}, lng=${lng}`);
+        // Fallback to direct tourist socketId if available
+        const tourist = ride.user as any;
+        if (tourist && tourist.socketId) {
+          io!.to(tourist.socketId).emit('driver-location-update', locationPayload);
+          logger.info(`[DRIVER TRACKING] Location update sent to tourist fallback socket ${tourist.socketId}`);
+        }
 
       } catch (error) {
         logger.error(`[DRIVER TRACKING] Error processing GPS update: ${error}`);
@@ -168,4 +188,16 @@ export const sendMessageToSocketId = (
   }
 
   io.to(socketId).emit(messageObject.event, messageObject.data);
+};
+
+export const sendMessageToRoom = (
+  roomName: string,
+  messageObject: { event: string; data: any },
+) => {
+  if (!io) {
+    logger.warn("Socket.io not initialized.");
+    return;
+  }
+
+  io.to(roomName).emit(messageObject.event, messageObject.data);
 };

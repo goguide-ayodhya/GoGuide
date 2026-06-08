@@ -455,6 +455,171 @@ export class NotificationService {
   }
 
   /**
+   * Send notification to tourist when driver accepts the ride
+   */
+  static async sendRideAcceptedNotification(rideId: string): Promise<boolean> {
+    try {
+      const { Ride } = require("../models/Ride");
+      const ride = await Ride.findById(rideId)
+        .populate("user")
+        .populate({
+          path: "driver",
+          populate: { path: "userId", model: "User" }
+        });
+
+      if (!ride || !ride.user) {
+        console.warn(`Ride ${rideId} or tourist user not found`);
+        return false;
+      }
+
+      const driverUser = (ride.driver as any)?.userId;
+      const driverName = driverUser?.fullname 
+        ? `${driverUser.fullname.firstname} ${driverUser.fullname.lastname}`.trim()
+        : (ride.driver as any)?.driverName || "driver";
+
+      return await this.sendNotificationToUser(ride.user._id.toString(), {
+        title: "Driver Assigned!",
+        body: `Your ride request has been accepted by ${driverName}.`,
+        data: {
+          rideId: rideId.toString(),
+          type: "ride_accepted",
+        },
+        clickAction: `/tourist/cabs`,
+      });
+    } catch (error) {
+      console.error(`Error sending ride accepted notification for ${rideId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Send notification to tourist when ride starts
+   */
+  static async sendRideStartedNotification(rideId: string): Promise<boolean> {
+    try {
+      const { Ride } = require("../models/Ride");
+      const ride = await Ride.findById(rideId).populate("user");
+
+      if (!ride || !ride.user) {
+        console.warn(`Ride ${rideId} or tourist user not found`);
+        return false;
+      }
+
+      return await this.sendNotificationToUser(ride.user._id.toString(), {
+        title: "Ride Started!",
+        body: "Your ride has started. Have a safe journey!",
+        data: {
+          rideId: rideId.toString(),
+          type: "ride_started",
+        },
+        clickAction: `/tourist/cabs`,
+      });
+    } catch (error) {
+      console.error(`Error sending ride started notification for ${rideId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Send notification when ride is cancelled (by tourist, driver, or system)
+   */
+  static async sendRideCancelledNotification(
+    rideId: string,
+    cancelledBy: "TOURIST" | "DRIVER" | "SYSTEM"
+  ): Promise<boolean> {
+    try {
+      const { Ride } = require("../models/Ride");
+      const ride = await Ride.findById(rideId)
+        .populate("user")
+        .populate({
+          path: "driver",
+          populate: { path: "userId", model: "User" }
+        });
+
+      if (!ride) {
+        console.warn(`Ride ${rideId} not found`);
+        return false;
+      }
+
+      let success = true;
+
+      if (cancelledBy === "TOURIST") {
+        // Notify driver
+        const driverUser = (ride.driver as any)?.userId;
+        if (driverUser) {
+          success = await this.sendNotificationToUser(driverUser._id.toString(), {
+            title: "Ride Cancelled",
+            body: "The tourist has cancelled the ride.",
+            data: {
+              rideId: rideId.toString(),
+              type: "ride_cancelled",
+            },
+            clickAction: `/driver/dashboard`,
+          });
+        }
+      } else if (cancelledBy === "DRIVER") {
+        // Notify tourist
+        if (ride.user) {
+          success = await this.sendNotificationToUser(ride.user._id.toString(), {
+            title: "Ride Cancelled",
+            body: "The driver has cancelled the ride.",
+            data: {
+              rideId: rideId.toString(),
+              type: "ride_cancelled",
+            },
+            clickAction: `/tourist/cabs`,
+          });
+        }
+      } else if (cancelledBy === "SYSTEM") {
+        // Notify tourist of expiry (if pending) or cancellation (if accepted)
+        if (ride.status === "pending" || !ride.driver) {
+          if (ride.user) {
+            success = await this.sendNotificationToUser(ride.user._id.toString(), {
+              title: "Ride Request Expired",
+              body: "No driver accepted your ride request. Please request again.",
+              data: {
+                rideId: rideId.toString(),
+                type: "ride_cancelled",
+              },
+              clickAction: `/tourist/cabs`,
+            });
+          }
+        } else {
+          // Accepted ride was expired/cancelled by system
+          if (ride.user) {
+            await this.sendNotificationToUser(ride.user._id.toString(), {
+              title: "Ride Cancelled",
+              body: "The ride was cancelled automatically as the driver did not arrive/start the ride in time.",
+              data: {
+                rideId: rideId.toString(),
+                type: "ride_cancelled",
+              },
+              clickAction: `/tourist/cabs`,
+            });
+          }
+          const driverUser = (ride.driver as any)?.userId;
+          if (driverUser) {
+            await this.sendNotificationToUser(driverUser._id.toString(), {
+              title: "Ride Cancelled",
+              body: "The ride was cancelled automatically as you did not start it in time.",
+              data: {
+                rideId: rideId.toString(),
+                type: "ride_cancelled",
+              },
+              clickAction: `/driver/dashboard`,
+            });
+          }
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error(`Error sending ride cancelled notification for ${rideId}:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Send test notification (for debugging/setup)
    */
   static async sendTestNotification(userId: string): Promise<boolean> {
