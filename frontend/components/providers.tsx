@@ -16,12 +16,15 @@ import { FCMNotificationProvider } from "@/contexts/FCMNotificationContext";
 import SocketProvider from "@/contexts/cabs/SocketContext";
 import { ActiveRideProvider } from "@/contexts/ActiveRideContext";
 import { GoogleMapsProvider } from "@/contexts/GoogleMapsContext";
+import { DisableConsole } from "./disable-console";
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
+    <>
+      <DisableConsole />
+      <GoogleOAuthProvider clientId={googleClientId}>
       <NotificationProvider>
         <FCMNotificationProvider>
           <AuthProvider>
@@ -52,5 +55,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         </FCMNotificationProvider>
       </NotificationProvider>
     </GoogleOAuthProvider>
+    </>
   );
 }

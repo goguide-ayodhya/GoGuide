@@ -129,11 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Clear invalid tokens and users
       if (token === "null" || token === "undefined") {
-        console.log("[AUTH] Clearing invalid token");
+        // console.log("[AUTH] Clearing invalid token");
         localStorage.removeItem("token");
       }
       if (storedUser === "null" || storedUser === "undefined") {
-        console.log("[AUTH] Clearing invalid user");
+        // console.log("[AUTH] Clearing invalid user");
         localStorage.removeItem("user");
       }
 
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(storedUserData);
           }
         } catch (parseError) {
-          console.warn("[AUTH] Failed to parse stored user data:", parseError);
+          // console.warn("[AUTH] Failed to parse stored user data:", parseError);
           localStorage.removeItem("user");
           localStorage.removeItem("signupRole");
           localStorage.removeItem("signupProgress");
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Check if stored role matches backend role
         if (storedSignupRole && storedSignupRole !== normalizedUser.role) {
-          console.warn("[AUTH] Role mismatch detected, clearing signup state");
+          // console.warn("[AUTH] Role mismatch detected, clearing signup state");
           localStorage.removeItem("signupRole");
           localStorage.removeItem("signupProgress");
           localStorage.removeItem("driver-signup-draft");
@@ -272,7 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleAuthExpired = (event: Event) => {
-      console.warn("[AUTH] authExpired event received", event);
+      // console.warn("[AUTH] authExpired event received", event);
 
       // Clear auth state in the client and redirect via Next router
       localStorage.removeItem("token");
@@ -298,19 +298,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (data: LoginData) => {
     try {
       setLoading(true);
-      console.log("[AUTH] Logging in user:", data.identifier);
+      // console.log("[AUTH] Logging in user:", data.identifier);
       const res = await loginUser(data);
       if (!res || !res.user || !res.token) {
         throw new Error("Invalid login response");
       }
 
       const normalizedUser = normalizeUser(res.user);
-      console.log("[AUTH] Login successful, saving to localStorage");
+      // console.log("[AUTH] Login successful, saving to localStorage");
       console.log(
         "[AUTH] Token being stored:",
         res.token.substring(0, 20) + "...",
       );
-      console.log("[AUTH] User profileStep:", normalizedUser.profileStep);
+      // console.log("[AUTH] User profileStep:", normalizedUser.profileStep);
       console.log(
         "[AUTH] User isProfileComplete:",
         normalizedUser.isProfileComplete,
@@ -390,8 +390,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (data: SignupData) => {
     try {
       setLoading(true);
-      console.log("[AUTH] Signing up user:", data.email || data.phone);
-      console.log("🔥 SENDING SIGNUP PAYLOAD:", data);
+      // console.log("[AUTH] Signing up user:", data.email || data.phone);
+      // console.log("🔥 SENDING SIGNUP PAYLOAD:", data);
       const res = await signupUser(data);
 
       if (!res || !res.user || !res.token) {
@@ -400,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("FINAL SIGNUP DATA:", data);
 
       const normalizedUser = normalizeUser(res.user);
-      console.log("[AUTH] Signup successful, saving to localStorage");
+      // console.log("[AUTH] Signup successful, saving to localStorage");
       setUser(normalizedUser);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       localStorage.setItem("token", res.token);
@@ -421,12 +421,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      console.log("[AUTH] Logging out");
+      // console.log("[AUTH] Logging out");
       await logoutUser();
     } catch (error) {
-      console.warn("[AUTH] Logout error (ignored):", error);
+      // console.warn("[AUTH] Logout error (ignored):", error);
     }
-    console.log("[AUTH] Clearing auth state and localStorage");
+    // console.log("[AUTH] Clearing auth state and localStorage");
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");

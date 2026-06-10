@@ -43,7 +43,7 @@ export const AdminProvider = ({ children }: any) => {
       // ❗ backend res.json() return kar raha → direct use
       setUsers(data);
     } catch (err) {
-      console.log("Fetch users error", err);
+      // console.log("Fetch users error", err);
     } finally {
       setLoading(false);
     }

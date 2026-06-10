@@ -86,17 +86,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchBookings = async () => {
-      console.log("Fetching bookings for user:", user);
-      console.log("User role:", user?.role);
-      console.log("Auth loading:", authLoading);
+      // console.log("Fetching bookings for user:", user);
+      // console.log("User role:", user?.role);
+      // console.log("Auth loading:", authLoading);
 
       if (authLoading) {
-        console.log("Auth still loading, skipping fetch");
+        // console.log("Auth still loading, skipping fetch");
         return;
       }
 
       if (!user) {
-        console.log("No user, setting empty bookings");
+        // console.log("No user, setting empty bookings");
         setBookings([]);
         setLoading(false);
         return;
@@ -110,7 +110,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
               ? await getDriverBookings()
               : await getMyBookings();
 
-        console.log("API response data:", data);
+        // console.log("API response data:", data);
         const formattedData = data.map((b: any) => ({
           id: b._id,
           guideId: typeof b.guideId === "object" ? b.guideId._id : b.guideId,
@@ -135,10 +135,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           reviewed: b.reviewed || false,
         }));
 
-        console.log("Formatted bookings:", formattedData);
+        // console.log("Formatted bookings:", formattedData);
         setBookings(formattedData);
       } catch (error) {
-        console.log("Error fetching bookings", error);
+        // console.log("Error fetching bookings", error);
       } finally {
         setLoading(false);
       }

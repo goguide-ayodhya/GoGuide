@@ -37,7 +37,7 @@ const vehicleTypeMap: Record<string, string> = {
 
 // Helper function to convert API cab format to UI cab format
 const convertApiCabToUi = (apiCab: any): Cab => {
-  console.log("Converting cab:", apiCab);
+  // console.log("Converting cab:", apiCab);
   
   const status =
     apiCab.verificationStatus !== "VERIFIED"
@@ -74,18 +74,18 @@ export default function CabsPage() {
         // Fetch cabs
         try {
           const cabsData = await getAllCabsApi();
-          console.log("Cabs data received:", cabsData);
+          // console.log("Cabs data received:", cabsData);
           
           // Handle both array and object responses
           const driversArray = Array.isArray(cabsData) ? cabsData : cabsData?.data || [];
-          console.log("Drivers array:", driversArray);
+          // console.log("Drivers array:", driversArray);
           
           if (!Array.isArray(driversArray)) {
             throw new Error("Invalid response format from API");
           }
           
           const uiCabs = driversArray.map((cab: any) => convertApiCabToUi(cab));
-          console.log("Converted cabs:", uiCabs);
+          // console.log("Converted cabs:", uiCabs);
           setCabs(uiCabs);
         } catch (cabErr: any) {
           console.error("Failed to fetch cabs:", cabErr);

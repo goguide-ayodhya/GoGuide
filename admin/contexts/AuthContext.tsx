@@ -109,10 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     } catch (error: unknown) {
-      console.log(
-        "Login error:",
-        error instanceof Error ? error.message : String(error),
-      );
+      // console.log(
+      //   "Login error:",
+      //   error instanceof Error ? error.message : String(error),
+      // );
       throw error;
     } finally {
       setLoading(false);
@@ -129,10 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return res.user;
     } catch (error: unknown) {
-      console.log(
-        "Signup error:",
-        error instanceof Error ? error.message : String(error),
-      );
+      // console.log(
+      //   "Signup error:",
+      //   error instanceof Error ? error.message : String(error),
+      // );
       throw error;
     }
   };
@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await logoutUser();
     } catch (error) {
-      console.log("Logout error (ignored): ", error);
+      // console.log("Logout error (ignored): ", error);
     }
     setUser(null);
     localStorage.removeItem("user");

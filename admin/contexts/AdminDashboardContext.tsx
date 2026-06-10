@@ -51,7 +51,7 @@ export const AdminDashboardProvider = ({
       // ❗ API already data return karti hai
       setAdminData(data);
     } catch (err) {
-      console.log("Admin Dashboard Error", err);
+      // console.log("Admin Dashboard Error", err);
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export const AdminDashboardProvider = ({
       const data = await getGuideDashboard();
       setGuideData(data);
     } catch (err) {
-      console.log("Guide Dashboard Error", err);
+      // console.log("Guide Dashboard Error", err);
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export const AdminDashboardProvider = ({
       const data = await getUserDashboard();
       setUserData(data);
     } catch (err) {
-      console.log("User Dashboard Error", err);
+      // console.log("User Dashboard Error", err);
     } finally {
       setLoading(false);
     }
