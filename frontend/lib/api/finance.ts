@@ -56,6 +56,14 @@ export const getAdminSettingsApi = async () => {
   return handleRes(res);
 };
 
+export const getPublicSettingsApi = async () => {
+  const res = await fetch(`${base_url}finance/settings/public`, {
+    method: "GET",
+  });
+  return handleRes(res);
+};
+
+
 // Driver submits own commission payment request
 export const submitCommissionPaymentRequestApi = async (
   amount: number,

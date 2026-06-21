@@ -28,6 +28,8 @@ import supportRoutes from "./routes/setting.routes";
 import rideRoutes from "./routes/ride.routes";
 import mapRoutes from "./routes/maps.routes";
 import financeRoutes from "./routes/finance.routes";
+import reviewQRRoutes from "./routes/reviewQR.routes";
+import messageRoutes from "./routes/message.routes";
 import path from "path";
 
 const app: Application = express();
@@ -90,6 +92,8 @@ app.use("/api/support", supportRoutes);
 app.use("/api/maps", mapRoutes);
 app.use("/api/rides", rideRoutes);
 app.use("/api/finance", financeRoutes);
+app.use("/api/review-qr", reviewQRRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Serve uploaded files when using local fallback storage
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

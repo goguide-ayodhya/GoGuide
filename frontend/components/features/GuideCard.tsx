@@ -11,6 +11,10 @@ import { useState } from "react";
 
 interface GuideCardProps {
   guide: Guide;
+  pricing?: {
+    halfDayPrice?: number;
+    fullDayPrice?: number;
+  };
 }
 
 function getStatusBadge(isAvailable: boolean) {
@@ -30,7 +34,7 @@ function getStatusBadge(isAvailable: boolean) {
   };
 }
 
-export function GuideCard({ guide }: GuideCardProps) {
+export function GuideCard({ guide, pricing }: GuideCardProps) {
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const statusBadge = getStatusBadge(guide.isAvailable);
@@ -64,6 +68,7 @@ export function GuideCard({ guide }: GuideCardProps) {
                   fill
                   className="object-cover"
                   sizes="96px"
+                  unoptimized={typeof profileImage === 'string' && profileImage.startsWith('http')}
                 />
               </div>
             </div>
@@ -121,8 +126,20 @@ export function GuideCard({ guide }: GuideCardProps) {
               <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
                 {guide.experience} yrs experience
               </div>
-              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
-                ₹{guide.price} <br /> for {guide.duration}
+              <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground text-center">
+                {pricing?.halfDayPrice && pricing?.fullDayPrice ? (
+                  <>
+                    ₹{pricing.halfDayPrice} / ₹{pricing.fullDayPrice}
+                    <br />
+                    Half / Full Day
+                  </>
+                ) : (
+                  <>
+                    Fixed Pricing
+                    <br />
+                    Half / Full Day
+                  </>
+                )}
               </div>
               <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
                 {guide.languages
@@ -134,18 +151,7 @@ export function GuideCard({ guide }: GuideCardProps) {
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <p className="text-xs pt-1">Locations:</p>
-              {(guide.locations || []).map((loc: string) => (
-                <Badge
-                  key={loc}
-                  variant="secondary"
-                  className="text-[11px] bg-primary/10 text-foreground border border-primary/15"
-                >
-                  {loc}
-                </Badge>
-              ))}
-            </div>
+
 
             <div className="mt-4 flex flex-wrap gap-2">
               <p className="text-xs pt-1">Certificates:</p>

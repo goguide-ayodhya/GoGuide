@@ -10,13 +10,19 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Banknote, RefreshCw } from "lucide-react";
+import { AlertCircle, Banknote, RefreshCw, IndianRupee, Info } from "lucide-react";
 import {
   getPayoutSummaryApi,
   getPayoutHistoryApi,
   confirmPayoutApi,
   type PayoutWalletSummary,
 } from "@/lib/api/payout";
+import { getPublicSettingsApi } from "@/lib/api/finance";
+
+interface GuidePricing {
+  halfDay: { touristPrice: number; guideEarning: number; maxLocations: number };
+  fullDay: { touristPrice: number; guideEarning: number; maxLocations: number };
+}
 
 export default function PayoutsPage() {
   const [wallet, setWallet] = useState<PayoutWalletSummary | null>(null);
@@ -32,25 +38,27 @@ export default function PayoutsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [guidePricing, setGuidePricing] = useState<GuidePricing | null>(null);
 
   useEffect(() => {
     fetchPayoutData();
+    getPublicSettingsApi()
+      .then((data: any) => {
+        if (data?.guidePricing) setGuidePricing(data.guidePricing);
+      })
+      .catch(() => {});
   }, []);
 
   const fetchPayoutData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [s, h] = await Promise.all([
-        getPayoutSummaryApi(),
-        getPayoutHistoryApi(),
-      ]);
+      const [s, h] = await Promise.all([getPayoutSummaryApi(), getPayoutHistoryApi()]);
       setWallet(s);
       setPayoutRows(
         (Array.isArray(h) ? h : []).sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ),
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
       );
     } catch (e) {
       console.error("Failed to fetch payout data", e);
@@ -64,14 +72,11 @@ export default function PayoutsPage() {
     setConfirmingId(payoutId);
     try {
       await confirmPayoutApi(payoutId);
-      // Refresh data after confirmation
       await fetchPayoutData();
       window.alert("Payout confirmed successfully");
     } catch (e) {
       console.error("Failed to confirm payout", e);
-      window.alert(
-        e instanceof Error ? e.message : "Failed to confirm payout"
-      );
+      window.alert(e instanceof Error ? e.message : "Failed to confirm payout");
     } finally {
       setConfirmingId(null);
     }
@@ -90,7 +95,7 @@ export default function PayoutsPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Payouts</h1>
         <p className="text-muted-foreground mt-2">
-          Track your payout wallet and confirm payments received (70% share)
+          Track your earnings and confirm payments received from admin
         </p>
       </div>
 
@@ -98,21 +103,55 @@ export default function PayoutsPage() {
         <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
           <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-medium text-red-900 dark:text-red-200">
-              Failed to load payout data
-            </p>
-            <p className="text-sm text-red-800 dark:text-red-300 mt-1">
-              {error}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={fetchPayoutData}
-              className="mt-3"
-            >
+            <p className="font-medium text-red-900 dark:text-red-200">Failed to load payout data</p>
+            <p className="text-sm text-red-800 dark:text-red-300 mt-1">{error}</p>
+            <Button size="sm" variant="outline" onClick={fetchPayoutData} className="mt-3">
               Try Again
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Package Pricing Info — above everything */}
+      {guidePricing && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-primary">
+                <IndianRupee size={15} />
+                Half Day Package
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tourist Price</span>
+                <span className="font-semibold">₹{guidePricing.halfDay.touristPrice.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-border/50 pt-2">
+                <span className="text-muted-foreground">Your Earning</span>
+                <span className="font-bold text-green-600">₹{guidePricing.halfDay.guideEarning.toLocaleString("en-IN")}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-secondary/20 bg-gradient-to-br from-secondary/5 to-secondary/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2 text-secondary">
+                <IndianRupee size={15} />
+                Full Day Package
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tourist Price</span>
+                <span className="font-semibold">₹{guidePricing.fullDay.touristPrice.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-border/50 pt-2">
+                <span className="text-muted-foreground">Your Earning</span>
+                <span className="font-bold text-green-600">₹{guidePricing.fullDay.guideEarning.toLocaleString("en-IN")}</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -130,9 +169,7 @@ export default function PayoutsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Total Earnings (Accrued)
-                    </p>
+                    <p className="text-xs text-muted-foreground">Total Earnings</p>
                     <p className="text-2xl font-bold text-foreground mt-2">
                       ₹{stats.totalEarnings.toLocaleString("en-IN")}
                     </p>
@@ -146,9 +183,7 @@ export default function PayoutsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Paid Out
-                    </p>
+                    <p className="text-xs text-muted-foreground">Paid Amount</p>
                     <p className="text-2xl font-bold text-green-600 mt-2">
                       ₹{stats.paidOut.toLocaleString("en-IN")}
                     </p>
@@ -162,9 +197,7 @@ export default function PayoutsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Pending Confirmation
-                    </p>
+                    <p className="text-xs text-muted-foreground">Pending Payout</p>
                     <p className="text-2xl font-bold text-amber-600 mt-2">
                       ₹{stats.pendingConfirmation.toLocaleString("en-IN")}
                     </p>
@@ -178,14 +211,12 @@ export default function PayoutsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Available for Next Payout
-                    </p>
+                    <p className="text-xs text-muted-foreground">Next Payout</p>
                     <p className="text-2xl font-bold text-primary mt-2">
                       ₹{stats.availableForPayout.toLocaleString("en-IN")}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-2">
-                      After 70% share & pending sends
+                      Available for next transfer
                     </p>
                   </div>
                   <Banknote size={24} className="text-primary/30" />
@@ -194,20 +225,18 @@ export default function PayoutsPage() {
             </Card>
           </div>
 
-          {/* Important Note */}
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          {/* How Payouts Work */}
+          <Card className="border-blue-500/20 bg-blue-500/5">
             <CardContent className="pt-6">
               <div className="flex items-start gap-3">
-                <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <Info size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-200">
-                    How Payouts Work
-                  </p>
-                  <ul className="text-sm text-amber-800 dark:text-amber-300 mt-2 space-y-1 ml-4 list-disc">
+                  <p className="font-medium text-blue-900 dark:text-blue-200">How Payouts Work</p>
+                  <ul className="text-sm text-blue-800 dark:text-blue-300 mt-2 space-y-1 ml-4 list-disc">
                     <li>Admin sends payouts to your configured account</li>
-                    <li>You receive 70% of completed bookings after platform fees</li>
+                    <li>Your earning per booking is shown in the package info above</li>
                     <li>Confirm here once you receive the payment</li>
-                    <li>Pending confirmation amount shows what's waiting for your confirmation</li>
+                    <li>Pending amount shows what's awaiting your confirmation</li>
                   </ul>
                 </div>
               </div>
@@ -224,25 +253,15 @@ export default function PayoutsPage() {
                     {payoutRows.length} payout{payoutRows.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={fetchPayoutData}
-                  disabled={loading}
-                >
-                  <RefreshCw
-                    size={16}
-                    className={loading ? "animate-spin" : ""}
-                  />
+                <Button size="sm" variant="outline" onClick={fetchPayoutData} disabled={loading}>
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                   <span className="ml-2">Refresh</span>
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {payoutRows.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No payouts yet
-                </div>
+                <div className="text-center py-8 text-muted-foreground">No payouts yet</div>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-sm">
@@ -265,13 +284,7 @@ export default function PayoutsPage() {
                             ₹{row.amount.toLocaleString("en-IN")}
                           </td>
                           <td className="p-3">
-                            <Badge
-                              variant={
-                                row.status === "COMPLETED"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
+                            <Badge variant={row.status === "COMPLETED" ? "default" : "secondary"}>
                               {row.status}
                             </Badge>
                           </td>
@@ -303,9 +316,7 @@ export default function PayoutsPage() {
                                 disabled={confirmingId === row._id}
                                 className="bg-primary hover:bg-primary/90"
                               >
-                                {confirmingId === row._id
-                                  ? "Confirming..."
-                                  : "Confirm Received"}
+                                {confirmingId === row._id ? "Confirming..." : "Confirm Received"}
                               </Button>
                             )}
                             {row.status === "COMPLETED" && (

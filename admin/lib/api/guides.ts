@@ -124,3 +124,19 @@ export const rejectGuide = async (id: string) => {
 
   return handleRes(res);
 };
+
+export const regenerateReviewQR = async (guideId: string) => {
+  const res = await fetch(`${base_url}review-qr/${guideId}/regenerate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const toggleReviewCollection = async (guideId: string) => {
+  const res = await fetch(`${base_url}review-qr/${guideId}/toggle-collection`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};

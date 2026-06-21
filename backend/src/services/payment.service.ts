@@ -48,6 +48,10 @@ function getProviderShareForPayment(p: any): number {
   const finalPrice = booking.finalPrice || booking.totalPrice;
   if (!finalPrice) return 0;
   
+  if (booking.baseGuideEarning != null) {
+    return (lineAmt / finalPrice) * booking.baseGuideEarning;
+  }
+  
   if (booking.guideEarning && booking.guideEarning > 0) {
     return (lineAmt / finalPrice) * booking.guideEarning;
   }

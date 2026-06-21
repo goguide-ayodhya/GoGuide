@@ -13,13 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
-import { Upload, Save, Lock, X } from "lucide-react";
+import { Upload, Save, Lock, X, QrCode, Download, Share2, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
 import { changePassword } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCropModal } from "@/components/common/ImageCropModal";
+import { getMyReviewQRApi } from "@/lib/api/guide-extras";
+import { QRCodeCanvas } from "qrcode.react";
 
 export default function ProfilePage() {
   const { myGuide, updateGuideData } = useGuide();
@@ -30,8 +32,6 @@ export default function ProfilePage() {
     bio: myGuide?.bio || "",
     specialities: myGuide?.specialities || [],
     locations: myGuide?.locations || [],
-    price: myGuide?.price || 0,
-    duration: myGuide?.duration || "4 hours",
     certificates: myGuide?.certificates || [],
     yearsOfExperience: myGuide?.yearsOfExperience || 0,
     languages: (myGuide?.languages || []) as string[],
@@ -58,6 +58,9 @@ export default function ProfilePage() {
   const [rawAvatarSrc, setRawAvatarSrc] = useState<string | null>(null);
   const [avatarCropOpen, setAvatarCropOpen] = useState(false);
   const { toast } = useToast();
+  const [reviewQRToken, setReviewQRToken] = useState<string | null>(null);
+  const [reviewCollectionEnabled, setReviewCollectionEnabled] = useState(true);
+  const [qrCopied, setQrCopied] = useState(false);
 
   // Sync form as soon as guide profile is available
   useEffect(() => {
@@ -66,8 +69,6 @@ export default function ProfilePage() {
       bio: myGuide.bio || "",
       specialities: myGuide.specialities || [],
       locations: myGuide.locations || [],
-      price: myGuide.price || 0,
-      duration: myGuide.duration || "4 hours",
       certificates: myGuide.certificates || [],
       yearsOfExperience: myGuide.yearsOfExperience || 0,
       languages: myGuide.languages || [],
@@ -75,16 +76,21 @@ export default function ProfilePage() {
     });
   }, [myGuide]);
 
+  // Fetch review QR token
+  useEffect(() => {
+    getMyReviewQRApi()
+      .then((data: any) => {
+        if (data?.reviewQRToken) setReviewQRToken(data.reviewQRToken);
+        setReviewCollectionEnabled(data?.reviewCollectionEnabled ?? true);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSave = async () => {
     if (!myGuide) return;
 
-    if (formData.price < 0) return;
-
     const updateData = {
       specialities: formData.specialities,
-      locations: formData.locations,
-      price: formData.price,
-      duration: formData.duration,
       bio: formData.bio,
       yearsOfExperience: formData.yearsOfExperience,
       languages: formData.languages,
@@ -106,7 +112,7 @@ export default function ProfilePage() {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "yearsOfExperience" || name === "price"
+        name === "yearsOfExperience"
           ? parseInt(value)
           : value,
     }));
@@ -153,22 +159,7 @@ export default function ProfilePage() {
     }));
   };
 
-  const addLocation = () => {
-    if (newLocation && !formData.locations.includes(newLocation)) {
-      setFormData((prev) => ({
-        ...prev,
-        locations: [...prev.locations, newLocation],
-      }));
-      setNewLocation("");
-    }
-  };
 
-  const removeLocation = (loc: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      locations: prev.locations.filter((l) => l !== loc),
-    }));
-  };
 
   const addCertificate = async () => {
     if (newCertificateName && selectedCertificateImage) {
@@ -590,86 +581,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Locations
-                </label>
-                {isEditing ? (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        value={newLocation}
-                        onChange={(e) => setNewLocation(e.target.value)}
-                        className="bg-muted border-border flex-1"
-                        placeholder="Enter a location"
-                        onKeyPress={(e) => e.key === "Enter" && addLocation()}
-                      />
-                      <Button onClick={addLocation} variant="outline">
-                        Add
-                      </Button>
-                    </div>
-                    {formData.locations.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.locations.map((loc) => (
-                          <Badge
-                            key={loc}
-                            variant="secondary"
-                            className="flex items-center gap-1"
-                          >
-                            {loc}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() => removeLocation(loc)}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {formData.locations.map((loc) => (
-                      <Badge key={loc} variant="secondary">
-                        {loc}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">
-                    Price (₹)
-                  </label>
-                  <Input
-                    name="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="bg-muted border-border"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">
-                    Duration
-                  </label>
-                  <select
-                    name="duration"
-                    value={formData.duration}
-                    onChange={handleChange}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 bg-muted border border-border rounded-md"
-                  >
-                    <option value="2 hours">2 hours</option>
-                    <option value="4 hours">4 hours</option>
-                    <option value="6 hours">6 hours</option>
-                    <option value="8 hours">8 hours</option>
-                    <option value="Full day">Full day</option>
-                  </select>
-                </div>
-              </div>
 
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
@@ -914,6 +826,102 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Review QR Code */}
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              Review QR Code
+            </CardTitle>
+            <CardDescription>
+              Share this QR with tourists to collect reviews directly
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!reviewCollectionEnabled ? (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                Review collection is currently disabled. Contact admin to enable it.
+              </div>
+            ) : reviewQRToken ? (
+              <div className="flex flex-col items-center gap-5">
+                {/* QR Canvas */}
+                <div
+                  id="guide-review-qr"
+                  className="p-4 bg-white rounded-2xl border border-border shadow-sm"
+                >
+                  <QRCodeCanvas
+                    value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || ''}/review/${reviewQRToken}`}
+                    size={200}
+                    level="M"
+                    includeMargin
+                  />
+                </div>
+
+                {/* Review link */}
+                <p className="text-xs text-muted-foreground text-center break-all max-w-xs">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/review/{reviewQRToken}
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {/* Copy Link */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      const url = `${window.location.origin}/review/${reviewQRToken}`;
+                      navigator.clipboard.writeText(url);
+                      setQrCopied(true);
+                      setTimeout(() => setQrCopied(false), 2000);
+                    }}
+                  >
+                    {qrCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    {qrCopied ? 'Copied!' : 'Copy Link'}
+                  </Button>
+
+                  {/* Share via WhatsApp */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      const url = `${window.location.origin}/review/${reviewQRToken}`;
+                      const msg = encodeURIComponent(`Please share your experience with me on GoGuide: ${url}`);
+                      window.open(`https://wa.me/?text=${msg}`, '_blank');
+                    }}
+                  >
+                    <Share2 className="h-4 w-4 text-green-600" />
+                    Share on WhatsApp
+                  </Button>
+
+                  {/* Download QR */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      const canvas = document.querySelector('#guide-review-qr canvas') as HTMLCanvasElement;
+                      if (!canvas) return;
+                      const link = document.createElement('a');
+                      link.download = 'review-qr.png';
+                      link.href = canvas.toDataURL('image/png');
+                      link.click();
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                    Download QR
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                Loading QR code...
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

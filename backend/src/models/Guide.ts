@@ -1,12 +1,10 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { v4 as uuidv4 } from "uuid";
 
 export interface IGuide extends Document {
   userId: Types.ObjectId;
   specialities: string[];
   bio?: string;
-  locations: string[];
-  price: number;
-  duration: string;
   certificates: {
     name: string;
     image: string;
@@ -18,7 +16,9 @@ export interface IGuide extends Document {
   isAvailable: boolean;
   isDeleted?: boolean;
   isActive?: boolean;
-
+  reviewQRToken: string;
+  reviewCollectionEnabled: boolean;
+  reviewQRImage?: string;
   verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
   createdAt: Date;
   updatedAt: Date;
@@ -37,18 +37,6 @@ const GuideSchema = new Schema<IGuide>(
       default: [],
     },
     bio: String,
-    locations: {
-      type: [String],
-      default: [],
-    },
-    price: {
-      type: Number,
-      default: 500,
-    },
-    duration: {
-      type: String,
-      default: "4 hours",
-    },
     certificates: [{
       name: String,
       image: String,
@@ -72,7 +60,8 @@ const GuideSchema = new Schema<IGuide>(
     isAvailable: {
       type: Boolean,
       default: false,
-    },    isDeleted: {
+    },
+    isDeleted: {
       type: Boolean,
       default: false,
       index: true,
@@ -81,10 +70,21 @@ const GuideSchema = new Schema<IGuide>(
       type: Boolean,
       default: true,
       index: true,
-    },    // isOnline: {
-    //   type: Boolean,
-    //   default: false,
-    // },
+    },
+    reviewQRToken: {
+      type: String,
+      default: () => uuidv4(),
+      unique: true,
+      index: true,
+    },
+    reviewQRImage: {
+      type: String,
+      default: "",
+    },
+    reviewCollectionEnabled: {
+      type: Boolean,
+      default: true,
+    },
     verificationStatus: {
       type: String,
       enum: ["PENDING", "VERIFIED", "REJECTED"],

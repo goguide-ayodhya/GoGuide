@@ -37,6 +37,63 @@ export class AdminSettingsService {
     const settings = await this.getSettings();
     return settings.driverCommissionPercent;
   }
+
+  async updateGuidePricing(
+    pricing: NonNullable<IAdminSettings["guidePricing"]>,
+    adminId: string
+  ): Promise<IAdminSettings> {
+    let settings = await AdminSettings.findOne({});
+    if (!settings) {
+      settings = await AdminSettings.create({
+        driverCommissionPercent: 20,
+        guidePricing: pricing,
+        lastUpdatedBy: adminId,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      settings.guidePricing = pricing;
+      settings.lastUpdatedBy = adminId;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+    return settings;
+  }
+
+  async updateLocations(locations: string[], adminId: string): Promise<IAdminSettings> {
+    let settings = await AdminSettings.findOne({});
+    if (!settings) {
+      settings = await AdminSettings.create({
+        driverCommissionPercent: 20,
+        locations,
+        lastUpdatedBy: adminId,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      settings.locations = locations;
+      settings.lastUpdatedBy = adminId;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+    return settings;
+  }
+
+  async updatePaymentQR(qr: { url: string; isEnabled: boolean }, adminId: string): Promise<IAdminSettings> {
+    let settings = await AdminSettings.findOne({});
+    if (!settings) {
+      settings = await AdminSettings.create({
+        driverCommissionPercent: 20,
+        paymentQR: qr,
+        lastUpdatedBy: adminId,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      settings.paymentQR = qr;
+      settings.lastUpdatedBy = adminId;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+    return settings;
+  }
 }
 
 export const adminSettingsService = new AdminSettingsService();

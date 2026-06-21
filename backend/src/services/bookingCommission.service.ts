@@ -21,7 +21,15 @@ export function applyPlatformSplitToBooking(booking: IBooking): void {
   const originalPrice = booking.originalPrice ?? booking.totalPrice ?? 0;
   const discount = booking.discount ?? 0;
   
-  const { guideEarning, adminCommission } = computePlatformSplit(originalPrice, discount);
-  booking.guideEarning = guideEarning;
-  booking.adminCommission = adminCommission;
+  if (booking.baseGuideEarning != null) {
+    // New logic: Use fixed baseGuideEarning
+    booking.guideEarning = booking.baseGuideEarning;
+    // Admin gets the rest of the original price, minus the discount given to the tourist
+    booking.adminCommission = Math.round((originalPrice - booking.baseGuideEarning - discount) * 100) / 100;
+  } else {
+    // Fallback to legacy split logic if baseGuideEarning is not set (for old bookings)
+    const { guideEarning, adminCommission } = computePlatformSplit(originalPrice, discount);
+    booking.guideEarning = guideEarning;
+    booking.adminCommission = adminCommission;
+  }
 }

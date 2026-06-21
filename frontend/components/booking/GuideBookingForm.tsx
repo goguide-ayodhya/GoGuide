@@ -5,24 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
 import { PriceBreakdown } from "./PriceBreakdown";
-import { Calendar as CalendarIcon, Clock, MapPin, Zap } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Map, Check } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn, CURRENCY } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { getPublicSettingsApi } from "@/lib/api/finance";
+import { Badge } from "@/components/ui/badge";
 
 interface GuideBookingFormProps {
-  price: number;
+  price?: number;
   onSubmit: (data: {
     date?: string;
     time?: string;
-    // duration: number;
     meetingPoint: string;
     notes: string;
-    // totalPrice: number;
     touristName: string;
     email: string;
     phone: string;
@@ -32,39 +32,60 @@ interface GuideBookingFormProps {
     bookingType: string;
     tourType: string;
     dropoffLocation: string;
+    selectedLocations: string[];
     totalPrice: number;
   }) => void;
   isLoading?: boolean;
 }
 
 export function GuideBookingForm({
-  price,
   onSubmit,
   isLoading,
 }: GuideBookingFormProps) {
   const [date, setDate] = useState<Date | undefined>();
   const [time, setTime] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("Hotel Lobby");
-
-  const [dropoffLocation, setDropoffLocation] = useState(
-    "Ram Mandir",
-  );
+  const [dropoffLocation, setDropoffLocation] = useState("Ram Mandir");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touristName, setTouristName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [groupSize, setGroupSize] = useState("1");
-  const [showDropdown, setShowDropdown] = useState(false);
   const [open, setOpen] = useState(false);
+  
+  // New State for Tour Type and Locations
+  const [tourType, setTourType] = useState<"halfDay" | "fullDay">("halfDay");
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  
+  // Admin Settings State
+  const [settings, setSettings] = useState<any>(null);
 
-  const totalPrice = price;
+  useEffect(() => {
+    getPublicSettingsApi().then(data => setSettings(data)).catch(console.error);
+  }, []);
+
+  const availableLocations = settings?.locations || [];
+  const pricingConfig = settings?.guidePricing;
+  
+  const currentPricing = pricingConfig ? pricingConfig[tourType] : { touristPrice: 0, guideEarning: 0, maxLocations: 6 };
+  const maxLocations = currentPricing.maxLocations;
+  const totalPrice = currentPricing.touristPrice;
+
   const gstAmount = Math.round(totalPrice - totalPrice / 1.0);
   const finalPrice = Math.round(totalPrice + gstAmount);
   const priceItems = [
-    { label: "Base Price", amount: Math.round(totalPrice) },
+    { label: `${tourType === "halfDay" ? "Half Day" : "Full Day"} Tour`, amount: Math.round(totalPrice) },
     { label: "GST (0%)", amount: gstAmount },
   ];
+
+  const handleLocationToggle = (loc: string) => {
+    setSelectedLocations(prev => {
+      if (prev.includes(loc)) return prev.filter(l => l !== loc);
+      if (prev.length >= maxLocations) return prev;
+      return [...prev, loc];
+    });
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -82,6 +103,8 @@ export function GuideBookingForm({
       newErrors.phone = "Phone must be at least 10 digits";
     if (!groupSize || parseInt(groupSize) < 1)
       newErrors.groupSize = "Group size must be at least 1";
+    if (selectedLocations.length === 0)
+      newErrors.selectedLocations = "Select at least 1 location";
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,14 +112,12 @@ export function GuideBookingForm({
       newErrors.email = "Please enter a valid email";
     }
 
-    // Check if date/time is at least 1 hour in the future
     if (date && time) {
       const selectedDateTime = new Date(date);
       const [hours, minutes] = time.split(":").map(Number);
       selectedDateTime.setHours(hours, minutes, 0, 0);
 
       const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
-
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -121,59 +142,21 @@ export function GuideBookingForm({
         bookingDate: date!.toISOString(),
         startTime: time,
         bookingType: "GUIDE",
-        tourType: "Personalized Tour",
+        // backend expects snake_case values
+        tourType: tourType === "halfDay" ? "half_day" : "full_day",
         dropoffLocation,
         meetingPoint,
+        selectedLocations,
         notes,
         totalPrice,
       });
     }
   };
 
-  const meetingOptions = [
-    "Ram mandir",
-    "Hanuman garhi",
-    "Kanak bhawan",
-    "Dashrath Mahal",
-    "Rang mahal",
-    "Sita ki rasoi",
-    "Nageshwar nath",
-    "Kaleram",
-    "Treta ke thakur",
-    "Ram ki paidi",
-    "Hanuman gufa",
-    "Tulsi smarak bhawan",
-    "Ram janambhoomi workshop",
-    "Valmiki Ramayan bhawan",
-    "Jain shwetambar Temple",
-    "Jain Digambar Temple",
-    "Mani parbat",
-    "Maa Badi devkali (Kul Devi)",
-    "Guptar ghat (Shri Rama’s Jal Samadhi)",
-    "Panchmukhi Mahadev",
-    "Surya kund (laser show)",
-    "Chhapiye (Swaminarayan janmabhoomi)",
-    "Bharat kund (Nandigram)",
-    "Dogra temple Cantt",
-    "Maa kamakhya mandir (Rudauli)",
-    "Parijaat vriksh (Barabanki)",
-  ];
-
-  const filteredOptions = meetingOptions.filter((option) =>
-    option.toLowerCase().includes(meetingPoint.toLowerCase()),
-  );
-
-  const [showDropoffDropdown, setShowDropoffDropdown] = useState(false);
-
-  const filteredDropoffOptions = meetingOptions.filter((option) =>
-    option.toLowerCase().includes(dropoffLocation.toLowerCase()),
-  );
-
   useEffect(() => {
     const saved = localStorage.getItem("bookingForm");
     if (saved) {
       const data = JSON.parse(saved);
-
       setTouristName(data.touristName || "");
       setEmail(data.email || "");
       setPhone(data.phone || "");
@@ -181,12 +164,24 @@ export function GuideBookingForm({
       setDropoffLocation(data.dropoffLocation || "Ram Mandir");
       setGroupSize(data.groupSize || "1");
       setNotes(data.notes || "");
+      if (
+        data.tourType === "Half Day" ||
+        data.tourType === "halfDay" ||
+        data.tourType === "half_day"
+      )
+        setTourType("halfDay");
+      if (
+        data.tourType === "Full Day" ||
+        data.tourType === "fullDay" ||
+        data.tourType === "full_day"
+      )
+        setTourType("fullDay");
+      setSelectedLocations(data.selectedLocations || []);
     }
   }, []);
 
   useEffect(() => {
-    if (!touristName && !email && !phone) return; // 👈 important
-
+    if (!touristName && !email && !phone) return;
     const data = {
       touristName,
       email,
@@ -195,22 +190,62 @@ export function GuideBookingForm({
       dropoffLocation,
       groupSize,
       notes,
+      tourType,
+      selectedLocations
     };
-
     localStorage.setItem("bookingForm", JSON.stringify(data));
-  }, [
-    touristName,
-    email,
-    phone,
-    meetingPoint,
-    dropoffLocation,
-    groupSize,
-    notes,
-  ]);
+  }, [touristName, email, phone, meetingPoint, dropoffLocation, groupSize, notes, tourType, selectedLocations]);
+
+  // Handle tourType change reset selected locations if > new max
+  useEffect(() => {
+      if (selectedLocations.length > maxLocations) {
+          setSelectedLocations(selectedLocations.slice(0, maxLocations));
+      }
+  }, [tourType, maxLocations, selectedLocations]);
+
+  if (!settings) {
+    return <div className="p-4 text-center">Loading booking options...</div>;
+  }
 
   return (
     <div className="space-y-4">
-      {/* Date */}
+      {/* Tour Type Selector */}
+      <FormField label="Tour Type" required>
+        <select
+          value={tourType}
+          onChange={(e) => setTourType(e.target.value as any)}
+          className="w-full h-11 px-3 bg-muted border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="halfDay">Half Day Tour (Max {pricingConfig?.halfDay.maxLocations} Locations)</option>
+          <option value="fullDay">Full Day Tour (Max {pricingConfig?.fullDay.maxLocations} Locations)</option>
+        </select>
+      </FormField>
+
+      {/* Locations Selection */}
+      <FormField label={`Select Locations (Max ${maxLocations})`} error={errors.selectedLocations} required>
+        <div className="flex flex-wrap gap-2 mt-2 max-h-48 overflow-y-auto p-1">
+          {availableLocations.map((loc: string) => {
+            const isSelected = selectedLocations.includes(loc);
+            const isDisabled = !isSelected && selectedLocations.length >= maxLocations;
+            return (
+              <Badge
+                key={loc}
+                variant={isSelected ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer text-xs py-1.5 px-3",
+                  isDisabled && "opacity-50 cursor-not-allowed",
+                  !isSelected && !isDisabled && "hover:bg-muted"
+                )}
+                onClick={() => !isDisabled && handleLocationToggle(loc)}
+              >
+                {isSelected && <Check className="w-3 h-3 mr-1" />}
+                {loc}
+              </Badge>
+            );
+          })}
+        </div>
+      </FormField>
+
       <FormField label="Tour Date" error={errors.date} required>
         <div className="relative">
           <Popover open={open} onOpenChange={setOpen}>
@@ -224,11 +259,7 @@ export function GuideBookingForm({
                 )}
               >
                 <CalendarIcon className="mr-2 h-5 w-5 group-hover:text-black" />
-                {date ? (
-                  date.toLocaleDateString("en-GB")
-                ) : (
-                  <span className="group-hover:text-black">Pick a date</span>
-                )}
+                {date ? date.toLocaleDateString("en-GB") : <span className="group-hover:text-black">Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -251,135 +282,37 @@ export function GuideBookingForm({
         </div>
       </FormField>
 
-      {/* Time */}
       <FormField label="Start Time" error={errors.time} required>
-        {" "}
         <div className="relative">
-          {" "}
-          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />{" "}
-          <Input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className="pl-10 bg-muted border-0"
-          />{" "}
-        </div>{" "}
+          <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="pl-10 bg-muted border-0" />
+        </div>
       </FormField>
 
       <FormField label="Your Name" error={errors.touristName} required>
-        <Input
-          value={touristName}
-          onChange={(e) => setTouristName(e.target.value)}
-          className="w-full h-11 bg-muted border-0 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <Input value={touristName} onChange={(e) => setTouristName(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 
       <FormField label="Email" error={errors.email} required>
-        <Input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full h-11 bg-muted border-0 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <Input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 
       <FormField label="Phone" error={errors.phone} required>
-        <Input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="w-full h-11 bg-muted border-0 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 
-      {/* Meeting Point */}
       <FormField label="Meeting Point" error={errors.meetingPoint} required>
-        <div className="relative w-full">
-          {/* Input */}
-          <input
-            type="text"
-            value={meetingPoint}
-            onChange={(e) => {
-              setMeetingPoint(e.target.value);
-              setShowDropdown(true);
-            }}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-            placeholder="Type or select meeting point..."
-            className="w-full h-11 px-4 bg-muted rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-
-          {/* Dropdown Suggestions */}
-          {showDropdown && filteredOptions.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto no-scrollbar">
-              {filteredOptions.map((option, index) => (
-                <div
-                  key={index}
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Prevent onBlur from firing first
-                    setMeetingPoint(option);
-                    setShowDropdown(false);
-                  }}
-                  className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                >
-                  {option}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <Input value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="Type meeting point..." className="w-full h-11 bg-muted border-0" />
       </FormField>
 
-      {/* Drop-off Location */}
-      <FormField
-        label="Drop-off Location"
-        error={errors.dropoffLocation}
-        required
-      >
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-
-          <input
-            type="text"
-            value={dropoffLocation}
-            onChange={(e) => {
-              setDropoffLocation(e.target.value);
-              setShowDropoffDropdown(true);
-            }}
-            onFocus={() => setShowDropoffDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropoffDropdown(false), 150)}
-            placeholder="Type or select drop-off location..."
-            className="pl-10 w-full h-11 bg-muted border-0 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-
-          {showDropoffDropdown && filteredDropoffOptions.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto no-scrollbar">
-              {filteredDropoffOptions.map((option, index) => (
-                <div
-                  key={index}
-                  onMouseDown={() => {
-                    setDropoffLocation(option);
-                    setShowDropoffDropdown(false);
-                  }}
-                  className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                >
-                  {option}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <FormField label="Drop-off Location" error={errors.dropoffLocation} required>
+        <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)} placeholder="Type drop-off location..." className="w-full h-11 bg-muted border-0" />
       </FormField>
 
       <FormField label="Group Size" error={errors.groupSize} required>
-        <Input
-          type="number"
-          min={1}
-          value={groupSize}
-          onChange={(e) => setGroupSize(e.target.value)}
-          className="w-full h-11 bg-muted border-0 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <Input type="number" min={1} value={groupSize} onChange={(e) => setGroupSize(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 
-      {/* Notes */}
       <FormField label="Any Special Requests / Routes">
         <textarea
           placeholder="Any dietary restrictions, mobility needs, or special requests..."
@@ -389,23 +322,14 @@ export function GuideBookingForm({
         />
       </FormField>
 
-      {/* Price Summary */}
       <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4">
         <div className="space-y-3">
-          <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">
-            Price Breakdown
-          </h4>
+          <h4 className="font-semibold text-foreground mb-3 border-b border-secondary/20 pb-2">Price Breakdown</h4>
           <PriceBreakdown items={priceItems} total={finalPrice} />
         </div>
       </div>
-      {/* )} */}
 
-      {/* Submit Button */}
-      <Button
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className="w-full bg-secondary cursor-pointer hover:bg-secondary/90 h-11 mt-6"
-      >
+      <Button onClick={handleSubmit} disabled={isLoading} className="w-full bg-secondary cursor-pointer hover:bg-secondary/90 h-11 mt-6">
         Create Booking
       </Button>
     </div>

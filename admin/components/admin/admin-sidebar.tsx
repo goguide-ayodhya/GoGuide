@@ -17,6 +17,7 @@ import {
   Package,
   HandCoins,
   DollarSign,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -82,6 +83,11 @@ const menuItems = [
   //   href: "/admin/reviews",
   //   icon: Star,
   // },
+  {
+    title: "Messages",
+    href: "/admin/messages",
+    icon: MessageSquare,
+  },
   {
     title: "Settings",
     href: "/admin/settings",

@@ -15,9 +15,10 @@ export const createBookingSchema = z
 
     startTime: z.string().min(1, "Valid start time required"),
     tourType: z.string().min(1),
+    selectedLocations: z.array(z.string()).default([]),
     meetingPoint: z.string().min(1),
     dropoffLocation: z.string().min(1),
-    totalPrice: z.number().min(0),
+    totalPrice: z.number().min(0).optional(),
     notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {

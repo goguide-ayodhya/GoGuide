@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGuide } from "@/contexts/GuideContext";
+import { getPublicSettingsApi } from "@/lib/api/finance";
 
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
@@ -28,6 +29,23 @@ export default function Home() {
   const router = useRouter();
   const { user, loading, isLoggedIn } = useAuth();
   const { guides, loading: guidesLoading } = useGuide();
+  const [pricing, setPricing] = useState<{
+    halfDayPrice: number;
+    fullDayPrice: number;
+  } | null>(null);
+
+  useEffect(() => {
+    getPublicSettingsApi()
+      .then((data: any) => {
+        if (data?.guidePricing) {
+          setPricing({
+            halfDayPrice: data.guidePricing.halfDay.touristPrice,
+            fullDayPrice: data.guidePricing.fullDay.touristPrice,
+          });
+        }
+      })
+      .catch((err) => console.error("Error fetching pricing", err));
+  }, []);
 
   // Calculate top-rated guides (unchanged logic)
   const topRatedGuides = guides
@@ -73,7 +91,6 @@ export default function Home() {
         router.push("/guide/dashboard");
       if (user?.role === "DRIVER" && user.isProfileComplete)
         router.push("/driver/dashboard");
-      if (user?.role === "TOURIST") router.push("/");
     }
   }, [user, loading, router, isLoggedIn]);
 
@@ -228,12 +245,19 @@ export default function Home() {
         {/* Top Guides */}
         <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
-              Popular{" "}
-              <b className={`${poppins.className} text-secondary`}>
-                Guides
-              </b>{" "}
-            </h2>
+            <div className="text-center mb-8">
+              <h2 className="text-4xl md:text-6xl font-bold text-foreground text-balance">
+                Popular{" "}
+                <b className={`${poppins.className} text-secondary`}>
+                  Guides
+                </b>{" "}
+              </h2>
+              {pricing && (
+                <p className="mt-4 text-slate-600 font-medium">
+                  Flat and transparent pricing: Half Day at just <span className="text-secondary font-bold">₹{pricing.halfDayPrice}</span> & Full Day at <span className="text-secondary font-bold">₹{pricing.fullDayPrice}</span>
+                </p>
+              )}
+            </div>
 
             {guidesLoading ? (
               <div className="flex items-center justify-center py-12">

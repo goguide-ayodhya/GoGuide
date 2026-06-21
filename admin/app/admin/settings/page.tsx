@@ -19,13 +19,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, Settings, Bell, Shield, AlertCircle, X } from "lucide-react";
+import { Save, Settings, Bell, Shield, AlertCircle, X, QrCode } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { getProfile } from "@/lib/api/settings";
 import { getRidePricing, updateRidePricing } from "@/lib/api/settings";
 import { defaultSettings } from "@/lib/mock-data";
 import {
   getAdminSettingsApi,
   updateCommissionPercentApi,
+  updateGuidePricingApi,
+  updateLocationsApi,
+  updatePaymentQRApi,
+  uploadPaymentQRApi,
 } from "@/lib/api/finance";
 
 export default function SettingsPage() {
@@ -58,6 +63,17 @@ export default function SettingsPage() {
 
   const [currentCommission, setCurrentCommission] = useState<number>(0);
   const [editCommission, setEditCommission] = useState<string>("");
+
+  const [guidePricing, setGuidePricing] = useState({
+    halfDay: { touristPrice: 0, guideEarning: 0, maxLocations: 6 },
+    fullDay: { touristPrice: 0, guideEarning: 0, maxLocations: 8 }
+  });
+  const [locations, setLocations] = useState<string[]>([]);
+  const [newLocation, setNewLocation] = useState("");
+  const [isSavingGuide, setIsSavingGuide] = useState(false);
+  const [paymentQR, setPaymentQR] = useState({ url: "", isEnabled: false });
+  const [isSavingQR, setIsSavingQR] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +91,18 @@ export default function SettingsPage() {
       setError(null);
       const data = await getAdminSettingsApi();
       setCurrentCommission(data.driverCommissionPercent || 20);
+      if (data.guidePricing) {
+        setGuidePricing(data.guidePricing);
+      }
+      if (data.locations) {
+        setLocations(data.locations);
+      }
+      if (data.paymentQR) {
+        setPaymentQR({
+          url: data.paymentQR.url || "",
+          isEnabled: data.paymentQR.isEnabled || false,
+        });
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load settings");
     } finally {
@@ -131,6 +159,62 @@ export default function SettingsPage() {
     setShowConfirmModal(false);
     setEditCommission("");
     setCountdown(10);
+  };
+
+  const handleSaveGuideSettings = async () => {
+    setIsSavingGuide(true);
+    try {
+      await updateGuidePricingApi(guidePricing);
+      await updateLocationsApi(locations);
+      setError(null);
+      // Optional: Add a success toast here
+    } catch (err: any) {
+      setError(err.message || "Failed to save guide settings");
+    } finally {
+      setIsSavingGuide(false);
+    }
+  };
+
+  const handleSaveQRSettings = async () => {
+    setIsSavingQR(true);
+    try {
+      await updatePaymentQRApi(paymentQR.url, paymentQR.isEnabled);
+      setError(null);
+      window.alert("Payment QR Settings updated successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to save payment QR settings");
+    } finally {
+      setIsSavingQR(false);
+    }
+  };
+
+  const handleUploadQRFile = async (file?: File) => {
+    if (!file) return;
+    setIsSavingQR(true);
+    try {
+      const res = await uploadPaymentQRApi(file, paymentQR.isEnabled);
+      // response is the updated settings object
+      if (res && res.paymentQR) {
+        setPaymentQR({ url: res.paymentQR.url || "", isEnabled: !!res.paymentQR.isEnabled });
+      }
+      setError(null);
+      window.alert("QR image uploaded and settings updated");
+    } catch (err: any) {
+      setError(err.message || "Failed to upload QR image");
+    } finally {
+      setIsSavingQR(false);
+    }
+  };
+
+  const handleAddLocation = () => {
+    if (newLocation.trim() && !locations.includes(newLocation.trim())) {
+      setLocations((prev) => [...prev, newLocation.trim()]);
+      setNewLocation("");
+    }
+  };
+
+  const handleRemoveLocation = (loc: string) => {
+    setLocations((prev) => prev.filter((l) => l !== loc));
   };
 
   useEffect(() => {
@@ -534,6 +618,199 @@ export default function SettingsPage() {
             <Button onClick={handleEditClick} className="w-full" size="lg">
               <Settings className="w-4 h-4 mr-2" />
               Edit Commission Percentage
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Guide Pricing Settings Card */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Guide Pricing Configuration
+          </CardTitle>
+          <CardDescription>
+            Set the fixed tourist price and guide earnings for Half Day and Full Day tours.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Half Day */}
+              <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
+                <h4 className="font-semibold">Half Day Tour</h4>
+                <div>
+                  <Label>Tourist Price (₹)</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.halfDay.touristPrice}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, halfDay: { ...prev.halfDay, touristPrice: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div>
+                  <Label>Guide Earning (₹)</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.halfDay.guideEarning}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, halfDay: { ...prev.halfDay, guideEarning: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div>
+                  <Label>Max Locations</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.halfDay.maxLocations}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, halfDay: { ...prev.halfDay, maxLocations: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div className="pt-2 text-sm text-muted-foreground border-t border-border">
+                  Admin Commission: ₹{guidePricing.halfDay.touristPrice - guidePricing.halfDay.guideEarning}
+                </div>
+              </div>
+
+              {/* Full Day */}
+              <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-4">
+                <h4 className="font-semibold">Full Day Tour</h4>
+                <div>
+                  <Label>Tourist Price (₹)</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.fullDay.touristPrice}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, fullDay: { ...prev.fullDay, touristPrice: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div>
+                  <Label>Guide Earning (₹)</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.fullDay.guideEarning}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, fullDay: { ...prev.fullDay, guideEarning: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div>
+                  <Label>Max Locations</Label>
+                  <Input 
+                    type="number" 
+                    value={guidePricing.fullDay.maxLocations}
+                    onChange={(e) => setGuidePricing(prev => ({ ...prev, fullDay: { ...prev.fullDay, maxLocations: Number(e.target.value) } }))}
+                  />
+                </div>
+                <div className="pt-2 text-sm text-muted-foreground border-t border-border">
+                  Admin Commission: ₹{guidePricing.fullDay.touristPrice - guidePricing.fullDay.guideEarning}
+                </div>
+              </div>
+            </div>
+
+            {/* Locations Management */}
+            <div className="pt-6 border-t border-border">
+              <h4 className="font-semibold mb-4">Manage Available Locations</h4>
+              <div className="flex gap-2 mb-4">
+                <Input 
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  placeholder="Enter a new location"
+                  onKeyPress={(e) => e.key === "Enter" && handleAddLocation()}
+                />
+                <Button onClick={handleAddLocation}>Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {locations.map(loc => (
+                  <Badge key={loc} variant="secondary" className="flex items-center gap-1">
+                    {loc}
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => handleRemoveLocation(loc)} />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <Button onClick={handleSaveGuideSettings} disabled={isSavingGuide} className="w-full">
+              <Save className="w-4 h-4 mr-2" />
+              {isSavingGuide ? "Saving..." : "Save Guide Pricing & Locations"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment QR Settings Card */}
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <QrCode className="w-5 h-5 text-primary" />
+            Payment QR Code Settings
+          </CardTitle>
+          <CardDescription>
+            Configure the global admin payment QR code shown to guides on their dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border">
+              <div className="space-y-0.5">
+                <Label className="text-base">Enable Payment QR Code</Label>
+                <p className="text-sm text-muted-foreground">
+                  Show or hide the "Show Payment QR" button on all Guide dashboards.
+                </p>
+              </div>
+              <Switch
+                checked={paymentQR.isEnabled}
+                onCheckedChange={(checked) =>
+                  setPaymentQR((prev) => ({ ...prev, isEnabled: checked }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qr-url">QR Code Image URL</Label>
+              <Input
+                id="qr-url"
+                type="text"
+                placeholder="Enter QR image URL (e.g. https://domain.com/uploads/qr.jpg)"
+                value={paymentQR.url}
+                onChange={(e) =>
+                  setPaymentQR((prev) => ({ ...prev, url: e.target.value }))
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide a direct URL to the QR code image. The same image is shared with all guides.
+              </p>
+            
+              <div className="pt-3">
+                <Label className="text-sm">Or upload QR image</Label>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleUploadQRFile(f);
+                  }}
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Max 5MB. JPG/PNG/WebP supported.</p>
+              </div>
+            </div>
+
+            {paymentQR.url && (
+              <div className="p-4 rounded-lg bg-muted/30 border border-border flex flex-col items-center justify-center space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Live Preview
+                </p>
+                <div className="relative border border-border bg-white rounded-lg p-2 max-w-[200px]">
+                  <img
+                    src={paymentQR.url}
+                    alt="Payment QR Preview"
+                    className="max-h-[200px] max-w-[200px] object-contain rounded"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://placehold.co/200x200?text=Invalid+Image+URL";
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleSaveQRSettings} disabled={isSavingQR} className="w-full">
+              <Save className="w-4 h-4 mr-2" />
+              {isSavingQR ? "Saving..." : "Save Payment QR Settings"}
             </Button>
           </div>
         </CardContent>

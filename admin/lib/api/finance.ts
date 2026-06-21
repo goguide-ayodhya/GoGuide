@@ -52,6 +52,51 @@ export const updateCommissionPercentApi = async (driverCommissionPercent: number
   return handleRes(res);
 };
 
+export const updateGuidePricingApi = async (guidePricing: any) => {
+  const res = await fetch(`${base_url}finance/settings/guide-pricing`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ guidePricing }),
+  });
+  return handleRes(res);
+};
+
+export const updateLocationsApi = async (locations: string[]) => {
+  const res = await fetch(`${base_url}finance/settings/locations`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ locations }),
+  });
+  return handleRes(res);
+};
+
+export const updatePaymentQRApi = async (url: string, isEnabled: boolean) => {
+  const res = await fetch(`${base_url}finance/settings/payment-qr`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ url, isEnabled }),
+  });
+  return handleRes(res);
+};
+
+export const uploadPaymentQRApi = async (file: File, isEnabled: boolean) => {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const fd = new FormData();
+  fd.append("paymentQRFile", file);
+  fd.append("isEnabled", String(isEnabled));
+
+  const res = await fetch(`${base_url}finance/settings/payment-qr`, {
+    method: "PATCH",
+    headers,
+    body: fd,
+  });
+
+  return handleRes(res);
+};
+
 // ──────────────────────────────────────────────
 // Admin: Commission Overview Stats
 // ──────────────────────────────────────────────

@@ -11,8 +11,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, QrCode } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import {
   getUsersApi,
   blockUserApi,
@@ -24,6 +25,10 @@ import {
   getUserDetailApi,
   markUserAsViewedApi,
 } from "@/lib/api/admin";
+import {
+  regenerateReviewQR,
+  toggleReviewCollection,
+} from "@/lib/api/guides";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -209,6 +214,53 @@ export default function GuidesPage() {
   const [selectedUserDetails, setSelectedUserDetails] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
+  const [togglingCollection, setTogglingCollection] = useState(false);
+
+  const handleRegenerateQR = async (guideId: string) => {
+    if (!window.confirm("Are you sure you want to regenerate this guide's review QR token? The old QR code and review link will stop working.")) {
+      return;
+    }
+    setRegeneratingQR(true);
+    try {
+      const result = await regenerateReviewQR(guideId);
+      if (result?.reviewQRToken) {
+        setSelectedUserDetails((prev: any) => ({
+          ...prev,
+          providerDetails: {
+            ...prev.providerDetails,
+            reviewQRToken: result.reviewQRToken,
+          },
+        }));
+        window.alert("Review QR token regenerated successfully!");
+      }
+    } catch (err: any) {
+      window.alert(err.message || "Failed to regenerate QR token");
+    } finally {
+      setRegeneratingQR(false);
+    }
+  };
+
+  const handleToggleCollection = async (guideId: string) => {
+    setTogglingCollection(true);
+    try {
+      const result = await toggleReviewCollection(guideId);
+      if (result && result.reviewCollectionEnabled !== undefined) {
+        setSelectedUserDetails((prev: any) => ({
+          ...prev,
+          providerDetails: {
+            ...prev.providerDetails,
+            reviewCollectionEnabled: result.reviewCollectionEnabled,
+          },
+        }));
+      }
+    } catch (err: any) {
+      window.alert(err.message || "Failed to toggle review collection");
+    } finally {
+      setTogglingCollection(false);
+    }
+  };
 
   const providerDetails = selectedUserDetails?.providerDetails;
   const driverLicenseImages = Array.isArray(providerDetails?.driverLicenseImage)
@@ -1198,6 +1250,76 @@ export default function GuidesPage() {
                             </div>
                           </div>
                         )}
+
+                        {/* Review QR Management Section */}
+                        <div className="sm:col-span-2 border-t pt-4 mt-2 space-y-4">
+                          <h5 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                            <QrCode className="w-4 h-4 text-primary" />
+                            Guide Review QR Management
+                          </h5>
+
+                          <div className="p-4 rounded-xl border border-border bg-slate-50/50 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">Review Collection</Label>
+                                <p className="text-xs text-muted-foreground">
+                                  Enable or disable this guide's ability to collect reviews via QR.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={providerDetails?.reviewCollectionEnabled ?? true}
+                                disabled={togglingCollection}
+                                onCheckedChange={() => handleToggleCollection(providerDetails._id)}
+                              />
+                            </div>
+
+                            {providerDetails?.reviewQRToken ? (
+                              <div className="flex flex-col items-center justify-center space-y-3 pt-2">
+                                <div className="p-3 bg-white rounded-xl border border-border shadow-xs">
+                                  <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                                      `${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== "undefined" ? window.location.origin.replace(":3001", ":3000") : "")}/review/${providerDetails.reviewQRToken}`
+                                    )}`}
+                                    alt="Review QR Code"
+                                    className="w-[150px] h-[150px]"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center break-all max-w-[280px]">
+                                  {`${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== "undefined" ? window.location.origin.replace(":3001", ":3000") : "")}/review/${providerDetails.reviewQRToken}`}
+                                </p>
+                                <div className="flex gap-2 w-full">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-xs"
+                                    onClick={() => {
+                                      const url = `${process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== "undefined" ? window.location.origin.replace(":3001", ":3000") : "")}/review/${providerDetails.reviewQRToken}`;
+                                      navigator.clipboard.writeText(url);
+                                      window.alert("Review link copied to clipboard!");
+                                    }}
+                                  >
+                                    Copy Link
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-xs text-destructive hover:bg-destructive/10"
+                                    disabled={regeneratingQR}
+                                    onClick={() => handleRegenerateQR(providerDetails._id)}
+                                  >
+                                    {regeneratingQR ? "Regenerating..." : "Regenerate QR"}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center text-xs text-muted-foreground py-2">
+                                No review token assigned to this guide.
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
 

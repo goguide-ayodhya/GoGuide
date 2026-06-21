@@ -12,6 +12,7 @@ import { roundMoney } from "../utils/bookingPricing";
 import { applyPlatformSplitToBooking } from "./bookingCommission.service";
 import { CreateBookingInput } from "../validations/booking";
 import { TourPackage } from "../models/Tour";
+import { AdminSettings } from "../models/AdminSettings";
 
 export class BookingService {
   async createBooking(userId: string, input: CreateBookingInput) {
@@ -83,19 +84,47 @@ export class BookingService {
       throw new BadRequest("Invalid booking type or entity not found");
     }
 
-    const totalPrice = input.totalPrice;
-    if (totalPrice <= 0) {
-      throw new BadRequest("Invalid price");
+    let calculatedTotalPrice = input.totalPrice || 0;
+    let baseGuideEarning = undefined;
+
+    if (input.bookingType === "GUIDE") {
+      const settings = await AdminSettings.findOne();
+      if (!settings || !settings.guidePricing) {
+        throw new BadRequest("Guide pricing is not configured by admin");
+      }
+
+      if (input.tourType === "half_day") {
+        calculatedTotalPrice = settings.guidePricing.halfDay.touristPrice;
+        baseGuideEarning = settings.guidePricing.halfDay.guideEarning;
+        const maxLocs = settings.guidePricing.halfDay.maxLocations;
+        if (input.selectedLocations && input.selectedLocations.length > maxLocs) {
+          throw new BadRequest(`You can select up to ${maxLocs} locations for Half Day tour`);
+        }
+      } else if (input.tourType === "full_day") {
+        calculatedTotalPrice = settings.guidePricing.fullDay.touristPrice;
+        baseGuideEarning = settings.guidePricing.fullDay.guideEarning;
+        const maxLocs = settings.guidePricing.fullDay.maxLocations;
+        if (input.selectedLocations && input.selectedLocations.length > maxLocs) {
+          throw new BadRequest(`You can select up to ${maxLocs} locations for Full Day tour`);
+        }
+      } else {
+        throw new BadRequest("Invalid tour type for guide booking");
+      }
+    } else {
+      if (!input.totalPrice || input.totalPrice <= 0) {
+        throw new BadRequest("Invalid price for this booking type");
+      }
+      calculatedTotalPrice = input.totalPrice;
     }
 
-    if (!input.totalPrice || input.totalPrice <= 0) {
-      throw new BadRequest("Invalid price");
+    if (calculatedTotalPrice <= 0) {
+      throw new BadRequest("Invalid calculated price");
     }
 
     // Calculate pricing using centralized function
     // At booking creation, no payment mode is selected yet, so no discount applies
     const pricing = calculateFinalPrice({
-      totalPrice,
+      totalPrice: calculatedTotalPrice,
       discountPercent: 0, // No discount at creation time
     });
 
@@ -103,12 +132,14 @@ export class BookingService {
       ...input,
       userId,
       originalPrice: pricing.totalPrice,
+      totalPrice: pricing.totalPrice,
       discount: pricing.discount,
       gstAmount: pricing.gstAmount,
       finalPrice: pricing.finalPrice,
       paidAmount: 0,
       remainingAmount: pricing.finalPrice,
       partialDiscountApplied: false,
+      baseGuideEarning,
       guideEarning: 0,
       adminCommission: 0,
     });
@@ -495,7 +526,7 @@ export class BookingService {
 
     booking.status = "ACCEPTED";
     booking.isSeenByAdmin = false;
-    
+
     // Set fullPaymentDiscountEligible to true for GUIDE bookings
     if (bookingType === "GUIDE") {
       booking.fullPaymentDiscountEligible = true;
@@ -721,19 +752,19 @@ export class BookingService {
     // Admin can set discount on packages, which should be reflected in booking pricing
     // At booking creation, only package discount applies (no payment mode selected yet)
     const packageDiscountPercent = pkg.discount ? (pkg.discount / 100) : 0;
-    
+
     console.log("📦 PACKAGE BOOKING PRICING:", {
       packageId: pkg._id,
       packagePrice: pkg.price,
       packageDiscount: pkg.discount,
       packageDiscountPercent,
     });
-    
+
     const pricing = calculateFinalPrice({
       totalPrice: pkg.price,
       discountPercent: packageDiscountPercent,
     });
-    
+
     console.log("📦 PACKAGE BOOKING FINAL PRICING:", {
       totalPrice: pricing.totalPrice,
       discount: pricing.discount,

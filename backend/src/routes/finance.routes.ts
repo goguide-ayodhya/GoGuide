@@ -2,6 +2,7 @@ import { Router } from "express";
 import { adminSettingsController } from "../controllers/adminSettings.controller";
 import { driverCommissionController } from "../controllers/driverCommission.controller";
 import { authenticate, authorize } from "../middleware/auth";
+import { upload } from "../middleware/upload";
 
 const router = Router();
 
@@ -12,9 +13,33 @@ router.get("/settings", authenticate, authorize(["ADMIN", "DRIVER"]), (req, res,
   adminSettingsController.getSettings(req, res).catch(next);
 });
 
+router.get("/settings/public", (req, res, next) => {
+  adminSettingsController.getSettings(req, res).catch(next);
+});
+
 router.patch("/settings/commission", authenticate, authorize(["ADMIN"]), (req, res, next) => {
   adminSettingsController.updateCommissionPercent(req, res).catch(next);
 });
+
+router.patch("/settings/guide-pricing", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  adminSettingsController.updateGuidePricing(req, res).catch(next);
+});
+
+router.patch("/settings/locations", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  adminSettingsController.updateLocations(req, res).catch(next);
+});
+
+// Support JSON body or multipart upload (field: paymentQRFile)
+router.patch(
+  "/settings/payment-qr",
+  authenticate,
+  authorize(["ADMIN"]),
+  // accept an optional file field named `paymentQRFile`
+  upload.fields([{ name: "paymentQRFile", maxCount: 1 }]),
+  (req, res, next) => {
+    adminSettingsController.updatePaymentQR(req, res).catch(next);
+  },
+);
 
 // ──────────────────────────────────────────────
 // DRIVER: Submit own commission payment request

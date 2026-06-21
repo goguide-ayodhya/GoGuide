@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getPublicSettingsApi } from "@/lib/api/finance";
 import { Search, Sparkles, Layers } from "lucide-react";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
@@ -16,13 +17,30 @@ import {
 import { useGuide } from "@/contexts/GuideContext";
 import { poppins } from "@/lib/fonts";
 
-type SortOption = "rating" | "price-low" | "price-high" | "experience";
+type SortOption = "rating" | "experience";
 
 export default function GuidesPage() {
   const { guides, loading, activeGuidesCount } = useGuide();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [languageFilter, setLanguageFilter] = useState<string>("");
+  const [pricing, setPricing] = useState<{
+    halfDayPrice: number;
+    fullDayPrice: number;
+  } | null>(null);
+
+  useEffect(() => {
+    getPublicSettingsApi()
+      .then((data: any) => {
+        if (data?.guidePricing) {
+          setPricing({
+            halfDayPrice: data.guidePricing.halfDay.touristPrice,
+            fullDayPrice: data.guidePricing.fullDay.touristPrice,
+          });
+        }
+      })
+      .catch((err) => console.error("Error fetching pricing", err));
+  }, []);
 
   const filteredGuides = guides.filter((guide: any) => {
     const term = searchTerm.toLowerCase();
@@ -51,10 +69,6 @@ export default function GuidesPage() {
 
   const sortedGuides = [...filteredGuides].sort((a, b) => {
     switch (sortBy) {
-      case "price-low":
-        return (a.price || 0) - (b.price || 0);
-      case "price-high":
-        return (b.price || 0) - (a.price || 0);
       case "experience":
         return (b.experience || 0) - (a.experience || 0);
       case "rating":
@@ -179,12 +193,6 @@ export default function GuidesPage() {
 
                       <SelectContent className="rounded-3xl border border-slate-200 text-sm font-medium bg-white shadow-xl p-2">
                         <SelectItem value="rating">Highest rating</SelectItem>
-                        <SelectItem value="price-low">
-                          Price: Low to High
-                        </SelectItem>
-                        <SelectItem value="price-high">
-                          Price: High to Low
-                        </SelectItem>
                         <SelectItem value="experience">
                           Most Experience
                         </SelectItem>
@@ -235,10 +243,49 @@ export default function GuidesPage() {
               </p>
             </div>
 
+            {pricing && (
+              <div className="rounded-[1.75rem] border border-orange-100 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-orange-500 text-white rounded-2xl">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 text-lg">
+                      Fixed & Transparent Pricing
+                    </h3>
+                    <p className="text-sm text-slate-600 mt-0.5">
+                      All guides have unified pricing. Choose what works best for your itinerary.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm flex items-center gap-2">
+                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium font-sans">Half Day</span>
+                    <span className="text-xl font-bold text-orange-600 font-sans">₹{pricing.halfDayPrice}</span>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm flex items-center gap-2">
+                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium font-sans">Full Day</span>
+                    <span className="text-xl font-bold text-orange-600 font-sans">₹{pricing.fullDayPrice}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {sortedGuides.length > 0 ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {sortedGuides.map((guide) => (
-                  <GuideCard key={guide.id} guide={guide} />
+                  <GuideCard
+                    key={guide.id}
+                    guide={guide}
+                    pricing={
+                      pricing
+                        ? {
+                            halfDayPrice: pricing.halfDayPrice,
+                            fullDayPrice: pricing.fullDayPrice,
+                          }
+                        : undefined
+                    }
+                  />
                 ))}
               </div>
             ) : (

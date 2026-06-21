@@ -20,6 +20,9 @@ export type GuideUser = {
 };
 
 export type Guide = {
+  [x: string]: string | undefined;
+  reviewQRImage: null;
+  reviewQRImage: string | undefined;
   id: string;
   userId?: GuideUser | null;
   name: string;
@@ -41,6 +44,8 @@ export type Guide = {
   isAvailable: boolean;
   yearsOfExperience?: number;
   totalReviews?: number;
+  reviewQRToken?: string;
+  reviewCollectionEnabled?: boolean;
   recentReviews?: {
     rating: number;
     comments: string;
@@ -105,6 +110,9 @@ export const GuideProvider = ({ children }: any) => {
       isAvailable: guide.isAvailable ?? false,
       yearsOfExperience: guide.yearsOfExperience || guide.yearsOfExperience || 0,
       totalReviews: guide.totalReviews || 0,
+      reviewQRToken: guide.reviewQRToken || null,
+      reviewCollectionEnabled: guide.reviewCollectionEnabled ?? true,
+      reviewQRImage: guide.reviewQRImage || null,
       verificationStatus: guide.verificationStatus || "PENDING",
     };
   };

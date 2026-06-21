@@ -22,6 +22,7 @@ export interface IBooking extends Document {
   startTime: string;
 
   tourType: string;
+  selectedLocations: string[];
   meetingPoint: string;
   dropoffLocation: string;
   totalPrice: number;
@@ -38,9 +39,12 @@ export interface IBooking extends Document {
   paidAmount: number;
   remainingAmount?: number;
 
-  /** Guide share (70% of finalPrice) once payment is fully collected; GUIDE bookings only. */
+  /** Base Guide Earning from AdminSettings at the time of booking */
+  baseGuideEarning?: number;
+
+  /** Guide share once payment is fully collected; GUIDE bookings only. */
   guideEarning: number;
-  /** Platform share (30% of finalPrice) once payment is fully collected. */
+  /** Platform share once payment is fully collected. */
   adminCommission: number;
 
   /** Set when the tourist selects how to pay (after acceptance). */
@@ -129,6 +133,10 @@ const BookingSchema = new Schema<IBooking>(
       type: String,
       required: true,
     },
+    selectedLocations: {
+      type: [String],
+      default: [],
+    },
     meetingPoint: {
       type: String,
       required: true,
@@ -160,6 +168,9 @@ const BookingSchema = new Schema<IBooking>(
       default: 0,
     },
     remainingAmount: {
+      type: Number,
+    },
+    baseGuideEarning: {
       type: Number,
     },
     guideEarning: {

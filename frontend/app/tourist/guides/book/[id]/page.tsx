@@ -2,13 +2,16 @@
 
 import Image from "next/image";
 import { useRouter, useParams, usePathname, notFound } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooking } from "@/contexts/BookingsContext";
 import { useGuide, Guide } from "@/contexts/GuideContext";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { GuideBookingForm } from "@/components/booking/GuideBookingForm";
+import { ReviewQRModal } from "@/components/ReviewQRModal";
+import { PaymentQRModal } from "@/components/PaymentQRModal";
+import { getPublicSettingsApi } from "@/lib/api/finance";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,6 +30,17 @@ export default function GuideBookingPage() {
   const { setCurrentBooking } = useBooking();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showReviewQR, setShowReviewQR] = useState(false);
+  const [showPaymentQR, setShowPaymentQR] = useState(false);
+  const [paymentQR, setPaymentQR] = useState<{ url: string; isEnabled: boolean } | null>(null);
+
+  useEffect(() => {
+    getPublicSettingsApi()
+      .then((data: any) => {
+        if (data?.paymentQR) setPaymentQR(data.paymentQR);
+      })
+      .catch(() => {});
+  }, []);
 
   const guideId = params.id as string;
   const guide = guides.find((g: Guide) => g.id === guideId);
@@ -122,6 +136,7 @@ export default function GuideBookingPage() {
                       fill
                       className="object-cover"
                       sizes="160px"
+                      unoptimized={typeof guide.avatar === 'string' && guide.avatar.startsWith('http')}
                     />
                   </div>
 
@@ -151,15 +166,15 @@ export default function GuideBookingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center flex flex-col justify-center">
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Price
+                      Pricing
                     </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-950">
-                      ₹{guide.price}
+                    <p className="mt-3 text-sm font-semibold text-slate-950">
+                      Admin Managed Pricing
                     </p>
-                    <p className="text-xs text-slate-500">
-                      for {guide.duration || "hour"}
+                    <p className="text-xs text-slate-500 mt-1">
+                      Half Day / Full Day
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
@@ -209,25 +224,27 @@ export default function GuideBookingPage() {
                       ))}
                     </div>
                   </div>
-                  {guide.locations && guide.locations.length > 0 && (
-                    <div className="mt-3 p-4 rounded-3xl shadow-sm border-t bg-white border-slate-200">
-                      <p className="font-semibold text-slate-900">
-                        Locations Covered
-                      </p>
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {guide.locations.map((loc: string) => (
-                          <Badge
-                            key={loc}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            <Map className="mt-1 h-3 w-3 text-orange-500 flex-wrap" />
+                </div>
 
-                            {loc}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+                <div className="pt-3 flex items-center gap-2">
+                  {guide.reviewQRToken && guide.reviewCollectionEnabled && (
+                    <button
+                      onClick={() => setShowReviewQR(true)}
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3h8v8H3V3zM13 3h8v8h-8V3zM3 13h8v8H3v-8zM13 13h8v8h-8v-8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Leave a review (QR)
+                    </button>
+                  )}
+
+                  {paymentQR?.isEnabled && paymentQR?.url && (
+                    <button
+                      onClick={() => setShowPaymentQR(true)}
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Show Payment QR
+                    </button>
                   )}
                 </div>
               </div>
@@ -348,7 +365,6 @@ export default function GuideBookingPage() {
               ) : (
                 <div className="relative">
                   <GuideBookingForm
-                    price={guide.price}
                     onSubmit={handleProceedToPayment}
                     isLoading={isSubmitting}
                   />
@@ -399,6 +415,16 @@ export default function GuideBookingPage() {
         </div>
       </div>
 
+      {showReviewQR && (guide?.reviewQRImage || guide?.reviewQRToken) && (
+        <ReviewQRModal
+          token={guide?.reviewQRToken}
+          qrUrl={guide?.reviewQRImage || null}
+          onClose={() => setShowReviewQR(false)}
+        />
+      )}
+      {showPaymentQR && paymentQR?.url && (
+        <PaymentQRModal qrUrl={paymentQR.url} onClose={() => setShowPaymentQR(false)} />
+      )}
       <Footer />
     </main>
   );

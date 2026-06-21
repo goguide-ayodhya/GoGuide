@@ -11,31 +11,30 @@ import { ShoppingCart, Ticket } from 'lucide-react'
 interface TokenBookingFormProps {
   onSubmit: () => void
   isLoading?: boolean
+  itemPrice?: number
 }
 
-export function TokenBookingForm({ onSubmit, isLoading }: TokenBookingFormProps) {
+export function TokenBookingForm({ onSubmit, isLoading, itemPrice = 0 }: TokenBookingFormProps) {
   const { currentBooking, setCurrentBooking } = useBooking()
-  const [quantity, setQuantity] = useState(currentBooking?.quantity || '1')
-  const [deliveryMethod, setDeliveryMethod] = useState(currentBooking?.deliveryMethod || 'eticket')
+  const [quantity, setQuantity] = useState('1')
+  const [deliveryMethod, setDeliveryMethod] = useState('eticket')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
-
     if (!quantity) newErrors.quantity = 'Quantity is required'
-
     const numQuantity = parseInt(quantity)
     if (isNaN(numQuantity) || numQuantity < 1 || numQuantity > 10) {
       newErrors.quantity = 'Please enter 1-10 passes'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = () => {
     if (validateForm()) {
-      setFormData({
+      setCurrentBooking({
+        ...(currentBooking as any),
         quantity: parseInt(quantity),
         deliveryMethod,
       })
@@ -91,7 +90,7 @@ export function TokenBookingForm({ onSubmit, isLoading }: TokenBookingFormProps)
           <div>
             <p className="text-sm font-semibold text-foreground">Price Details</p>
             <p className="text-sm text-muted-foreground mt-1">
-              {quantity} × ₹{booking.itemPrice} = <span className="font-semibold text-foreground">₹{parseInt(quantity || '1') * (booking.itemPrice || 0)}</span>
+              {quantity} × ₹{itemPrice} = <span className="font-semibold text-foreground">₹{parseInt(quantity || '1') * itemPrice}</span>
             </p>
           </div>
         </div>
