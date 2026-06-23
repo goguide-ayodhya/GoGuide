@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 import Features from "@/components/home/Features";
 import HowItWorks from "@/components/home/HowItWorks";
-import Testimonials from "@/components/home/Testimonials";
+import HappyTravelers from "@/components/home/HappyTravelers";
 import CTABanner from "@/components/home/CTABanner";
 import GalleryPreview from "@/components/GalleryPreview";
 import Link from "next/link";
@@ -74,13 +74,11 @@ export default function Home() {
   ];
 
   const partners = [
-    { name: "GoGuide | Ayodhya", image: assets.p_01 },
-    { name: "GoCabs", image: assets.p_02 },
+    { name: "Ramodhya | Ayodhya", image: assets.p_01 },
     { name: "AAYOVEA", image: assets.aayovea },
     { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
     
-    { name: "Temple Tickets", image: assets.p_01 },
-    { name: "City Tours Inc.", image: assets.p_02 },
+    { name: "Ramodhya | Ayodhya", image: assets.p_01 },
     { name: "AAYOVEA", image: assets.aayovea },
     { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
   ];
@@ -347,8 +345,8 @@ export default function Home() {
         {/* CTA Banner */}
         <CTABanner />
 
-        {/* Testimonials */}
-        {/* <Testimonials /> */}
+        {/* Happy Travelers */}
+        <HappyTravelers />
 
         {/* Features */}
         <Features />

@@ -20,9 +20,6 @@ export type GuideUser = {
 };
 
 export type Guide = {
-  [x: string]: string | undefined;
-  reviewQRImage: null;
-  reviewQRImage: string | undefined;
   id: string;
   userId?: GuideUser | null;
   name: string;
@@ -46,6 +43,7 @@ export type Guide = {
   totalReviews?: number;
   reviewQRToken?: string;
   reviewCollectionEnabled?: boolean;
+  reviewQRImage?: string | null;
   recentReviews?: {
     rating: number;
     comments: string;
@@ -224,18 +222,6 @@ export const GuideProvider = ({ children }: any) => {
     return updated;
   };
 
-  // const setOnlineStatus = async (id: string, status: boolean) => {
-  //   const updated = await setOnlineStatusApi(status);
-  //   setGuides((prev) =>
-  //     prev.map((g) => (g.id === id ? { ...g, isOnline: status } : g)),
-  //   );
-
-  //   setMyGuide((prev) =>
-  //     prev && prev.id === id ? { ...prev, isOnline: status } : prev,
-  //   );
-  //   return updated;
-  // };
-
   const activeGuidesCount = guides.filter(guide => guide.isAvailable).length;
 
   return (
@@ -246,10 +232,8 @@ export const GuideProvider = ({ children }: any) => {
         setGuides,
         myGuide,
         activeGuidesCount,
-        // getGuide,
         updateGuideData,
         setAvailability,
-        // setOnlineStatus,
       }}
     >
       {children}

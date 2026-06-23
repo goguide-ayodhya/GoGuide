@@ -11,6 +11,7 @@ import {
   Percent,
   Star,
   Zap,
+  Car,
 } from "lucide-react";
 import { Package } from "@/contexts/TourPackageContext";
 import { Button } from "@/components/ui/button";
@@ -203,7 +204,7 @@ export function PackageCard({ pkg }: PackageCardProps) {
         <div className="flex items-center gap-4 text-sm text-slate-700 mb-5 pb-3 border-b border-slate-200">
           {pkg.includesCab && (
             <div className="flex items-center gap-1.5 font-medium">
-              <Truck className="w-4 h-4 text-orange-600" /> Cab
+              <Car className="w-4 h-4 text-orange-600" /> Cab
             </div>
           )}
           {pkg.includesGuide && (

@@ -77,7 +77,7 @@ export class AdminSettingsService {
     return settings;
   }
 
-  async updatePaymentQR(qr: { url: string; isEnabled: boolean }, adminId: string): Promise<IAdminSettings> {
+  async updatePaymentQR(qr: { url: string; isEnabled: boolean; upiId?: string; merchantName?: string }, adminId: string): Promise<IAdminSettings> {
     let settings = await AdminSettings.findOne({});
     if (!settings) {
       settings = await AdminSettings.create({
@@ -87,7 +87,12 @@ export class AdminSettingsService {
         lastUpdatedAt: new Date(),
       });
     } else {
-      settings.paymentQR = qr;
+      settings.paymentQR = {
+        url: qr.url,
+        isEnabled: qr.isEnabled,
+        upiId: qr.upiId || settings.paymentQR?.upiId || "",
+        merchantName: qr.merchantName || settings.paymentQR?.merchantName || "",
+      };
       settings.lastUpdatedBy = adminId;
       settings.lastUpdatedAt = new Date();
       await settings.save();

@@ -17,7 +17,6 @@ type Props = {
 const emptyForm = () => ({
   title: "",
   description: "",
-  state: "",
   price: "",
   duration: "",
   durationType: "hours",
@@ -39,7 +38,6 @@ function normalizeExisting(e: any) {
     ...emptyForm(),
     title: e.title ?? "",
     description: e.description ?? "",
-    state: e.state ?? "",
 
     price: e.price ?? "",
     duration: e.duration ?? "",
@@ -163,7 +161,6 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
     const payload: any = {
       title: form.title,
       description: form.description,
-      state: form.state,
       price: Number(form.price || 0),
 
       duration: Number(form.duration || 0),
@@ -181,9 +178,9 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       locations: form.locations || [],
 
       type: form.type,
-      discount: showDiscount
-        ? Number(form.discount || 0)
-        : null,
+      ...(showDiscount && {
+        discount: Number(form.discount || 0),
+      }),
     };
 
     const newFiles = (imageFiles || []).filter(
@@ -194,7 +191,10 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       if (newFiles.length > 0 || mainImageFile) {
         const formData = new FormData();
         Object.keys(payload).forEach((k) => {
-          if (payload[k] !== undefined && !(mainImageFile && k === "mainImage")) {
+          if (
+            payload[k] !== undefined &&
+            !(mainImageFile && k === "mainImage")
+          ) {
             formData.append(
               k,
               typeof payload[k] === "object"
@@ -348,15 +348,6 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm mb-1">State</label>
-          <input
-            name="state"
-            value={form.state}
-            onChange={handleChange}
-            className="input w-full border rounded-lg border-2 pl-1"
-          />
-        </div>
         <div>
           <label className="block text-sm mb-1">Max Group Size</label>
           <input

@@ -18,6 +18,7 @@ import {
   HandCoins,
   DollarSign,
   MessageSquare,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -78,11 +79,11 @@ const menuItems = [
     href: "/admin/revenue",
     icon: TrendingUp,
   },
-  // {
-  //   title: "Reviews",
-  //   href: "/admin/reviews",
-  //   icon: Star,
-  // },
+  {
+    title: "Reviews",
+    href: "/admin/reviews",
+    icon: Star,
+  },
   {
     title: "Messages",
     href: "/admin/messages",

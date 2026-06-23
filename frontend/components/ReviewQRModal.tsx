@@ -10,7 +10,7 @@ interface ReviewQRModalProps {
 
 export function ReviewQRModal({ token, qrUrl, onClose }: ReviewQRModalProps) {
   const clientOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const reviewUrl = qrUrl || (token ? `${clientOrigin}/review/${token}` : clientOrigin);
+  const reviewUrl = qrUrl || (token ? `${clientOrigin}/tourist/guides/review/${token}` : clientOrigin);
   const qrSrc = qrUrl
     ? qrUrl
     : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(reviewUrl)}`;

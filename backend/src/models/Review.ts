@@ -7,6 +7,13 @@ export interface IReview extends Document {
   userId: Types.ObjectId;
   rating: number;
   comments: string;
+  isFeatured: boolean;
+  featuredUntil?: Date;
+  isReported: boolean;
+  reportReason?: string;
+  helpfulCount: number;
+  helpfulUsers: string[];
+  images?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,8 +48,39 @@ const ReviewSchema = new Schema<IReview>(
     comments: {
       type: String,
     },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    featuredUntil: {
+      type: Date,
+    },
+    isReported: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    reportReason: {
+      type: String,
+    },
+    helpfulCount: {
+      type: Number,
+      default: 0,
+    },
+    helpfulUsers: {
+      type: [String],
+      default: [],
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
+
+ReviewSchema.index({ createdAt: -1 });
+ReviewSchema.index({ rating: 1 });
 
 export const Review = model<IReview>('Review', ReviewSchema);

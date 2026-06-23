@@ -96,6 +96,15 @@ export class BookingController {
     }
   }
 
+  async getTotalBookingsCount(req: AuthRequest, res: Response) {
+    try {
+      const count = await bookingService.getTotalBookingsCount();
+      res.status(200).json({ success: true, message: "Booking count retrieved", data: { count } });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async getDriverBookings(req: AuthRequest, res: Response) {
     try {
       const userId = req.userId!;

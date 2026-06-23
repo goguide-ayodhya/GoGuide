@@ -359,6 +359,12 @@ export class BookingService {
     return booking;
   }
 
+  async getTotalBookingsCount() {
+    // Count all bookings that are not cancelled to reflect active bookings
+    const count = await Booking.countDocuments({ status: { $ne: "CANCELLED" } });
+    return count;
+  }
+
   async cancelBooking(
     bookingId: string,
     reason?: string,

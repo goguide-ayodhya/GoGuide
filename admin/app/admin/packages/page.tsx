@@ -23,11 +23,11 @@ import {
   Plus,
   Trash2,
   Edit,
-  Truck,
   User,
   Percent,
   CheckCircle,
   XCircle,
+  Car,
 } from "lucide-react";
 import { SelectTrigger } from "@radix-ui/react-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -122,21 +122,21 @@ export default function TourPackagesPage() {
 
   return (
     <div className="p-6">
-      <Tabs defaultValue="packages" className="w-full">
+      <Tabs defaultValue="bookings" className="w-full">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <h1 className="text-2xl font-semibold">Tour Packages Management</h1>
-          <TabsList className="bg-slate-100 rounded-lg p-1">
-            <TabsTrigger
-              value="packages"
-              className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-            >
-              Packages
-            </TabsTrigger>
+          <h1 className="text-2xl font-semibold ">Tour Packages Management</h1>
+          <TabsList className="bg-primary rounded-lg p-1">
             <TabsTrigger
               value="bookings"
-              className="rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              className="rounded-md text-white font-medium data-[state=active]:text-black data-[state=active]:bg-white data-[state=active]:shadow-sm"
             >
               Bookings
+            </TabsTrigger>
+            <TabsTrigger
+              value="packages"
+              className="rounded-md text-white font-medium data-[state=active]:text-black data-[state=active]:bg-white data-[state=active]:shadow-sm"
+            >
+              Packages
             </TabsTrigger>
           </TabsList>
         </div>
@@ -239,7 +239,7 @@ export default function TourPackagesPage() {
                     <div className="mt-3 flex items-center gap-3 text-sm text-slate-600">
                       {p.includesCab && (
                         <div className="flex items-center gap-1">
-                          <Truck className="w-4 h-4" /> <span>Cab</span>
+                          <Car className="w-4 h-4" /> <span>Cab</span>
                         </div>
                       )}
                       {p.includesGuide && (

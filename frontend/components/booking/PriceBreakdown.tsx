@@ -23,7 +23,11 @@ export function PriceBreakdown({
           <span
             className={`font-medium ${typeof item.amount === "number" && item.amount < 0 ? "text-red-600" : "text-slate-900"}`}
           >
-            {typeof item.amount === "string" ? item.amount : (item.amount < 0 ? "-" : "") + "₹" + Math.abs(item.amount).toLocaleString("en-IN")}
+            {typeof item.amount === "string"
+              ? item.amount
+              : (item.amount < 0 ? "-" : "") +
+                "₹" +
+                Math.abs(item.amount).toLocaleString("en-IN")}
           </span>
         </div>
       ))}
@@ -34,7 +38,10 @@ export function PriceBreakdown({
         </span>
 
         <span className="text-slate-950 text-lg">
-          ₹{(isPartial ? (remainingAmount ?? 0) : (total ?? 0)).toLocaleString("en-IN")}
+          ₹
+          {(isPartial ? (remainingAmount ?? 0) : (total ?? 0)).toLocaleString(
+            "en-IN",
+          )}
         </span>
       </div>
     </div>

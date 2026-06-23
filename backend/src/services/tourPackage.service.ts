@@ -10,13 +10,14 @@ export class TourPackageService {
     if (!payload.title || typeof payload.title !== "string") {
       throw new BadRequest("Title is required");
     }
-    if (
-      (!Array.isArray(payload.locations) ||
-        payload.locations.length === 0 ||
-        payload.locations.some((l: string) => !l || l.trim() === "")) &&
-      (!Array.isArray(payload.itinerary) || payload.itinerary.length === 0)
-    ) {
-      throw new BadRequest("Valid locations are required");
+    // locations are optional — if provided it must be an array of non-empty strings
+    if (payload.locations !== undefined) {
+      if (
+        !Array.isArray(payload.locations) ||
+        payload.locations.some((l: string) => !l || l.trim() === "")
+      ) {
+        throw new BadRequest("Invalid locations");
+      }
     }
     if (!payload.duration || payload.duration <= 0) {
       throw new BadRequest("Invalid duration");
@@ -130,13 +131,10 @@ export class TourPackageService {
         .filter(Boolean);
     }
 
-    if (
-      data.locations &&
-      (!Array.isArray(data.locations) ||
-        data.locations.length === 0 ||
-        data.locations.some((l: string) => !l || l.trim() === ""))
-    ) {
-      throw new BadRequest("Valid locations are required");
+    if (data.locations !== undefined) {
+      if (!Array.isArray(data.locations) || data.locations.some((l: string) => !l || l.trim() === "")) {
+        throw new BadRequest("Invalid locations");
+      }
     }
 
     // normalize numeric fields if provided

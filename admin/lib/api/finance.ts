@@ -70,16 +70,26 @@ export const updateLocationsApi = async (locations: string[]) => {
   return handleRes(res);
 };
 
-export const updatePaymentQRApi = async (url: string, isEnabled: boolean) => {
+export const updatePaymentQRApi = async (
+  url: string,
+  isEnabled: boolean,
+  upiId?: string,
+  merchantName?: string
+) => {
   const res = await fetch(`${base_url}finance/settings/payment-qr`, {
     method: "PATCH",
     headers: jsonHeaders(),
-    body: JSON.stringify({ url, isEnabled }),
+    body: JSON.stringify({ url, isEnabled, upiId, merchantName }),
   });
   return handleRes(res);
 };
 
-export const uploadPaymentQRApi = async (file: File, isEnabled: boolean) => {
+export const uploadPaymentQRApi = async (
+  file: File,
+  isEnabled: boolean,
+  upiId?: string,
+  merchantName?: string
+) => {
   const token = getToken();
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -87,6 +97,8 @@ export const uploadPaymentQRApi = async (file: File, isEnabled: boolean) => {
   const fd = new FormData();
   fd.append("paymentQRFile", file);
   fd.append("isEnabled", String(isEnabled));
+  if (upiId) fd.append("upiId", upiId);
+  if (merchantName) fd.append("merchantName", merchantName);
 
   const res = await fetch(`${base_url}finance/settings/payment-qr`, {
     method: "PATCH",

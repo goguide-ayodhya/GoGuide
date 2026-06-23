@@ -16,6 +16,8 @@ export interface IAdminSettings extends Document {
   paymentQR?: {
     url: string;
     isEnabled: boolean;
+    upiId?: string;
+    merchantName?: string;
   };
   lastUpdatedBy?: string;
   lastUpdatedAt?: Date;
@@ -47,6 +49,8 @@ const AdminSettingsSchema = new Schema<IAdminSettings>(
     paymentQR: {
       url: { type: String, default: "" },
       isEnabled: { type: Boolean, default: false },
+      upiId: { type: String, default: "" },
+      merchantName: { type: String, default: "" },
     },
     lastUpdatedBy: {
       type: String,

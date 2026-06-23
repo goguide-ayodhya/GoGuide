@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
@@ -49,9 +49,28 @@ export default function FAQSection() {
     setActiveIndex(activeIndex === index ? null : index);
   };
 
+  const [bookingsCount, setBookingsCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    import("@/lib/api/bookings").then((mod) => {
+      mod
+        .getTotalBookingsCount()
+        .then((c: number) => {
+          if (mounted) setBookingsCount(c);
+        })
+        .catch(() => {
+          /* ignore */
+        });
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const stats = [
-    { label: "Clients", value: "50+" },
-    { label: "On Time", value: "100%" },
+    { label: "Clients", value: bookingsCount ? `${bookingsCount}+` : "50+" },
+    // { label: "On Time", value: "100%" },
     { label: "Success", value: "98%+" },
     { label: "Support", value: "24/7" },
   ];

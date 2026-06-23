@@ -131,3 +131,17 @@ export const seenBooking = async (bookingId: string) => {
 
   return handleApiResponse(res);
 };
+
+// Public: get total bookings count
+export const getTotalBookingsCount = async () => {
+  const res = await fetch(`${base_url}bookings/count`);
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.message || "Failed to fetch bookings count");
+  }
+  const json = await res.json();
+  // Support either { data: { count } } or { count }
+  if (json.data && typeof json.data.count === "number") return json.data.count;
+  if (typeof json.count === "number") return json.count;
+  return Number(json) || 0;
+};

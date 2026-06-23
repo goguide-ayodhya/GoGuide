@@ -23,6 +23,11 @@ router.get("/my-bookings", authenticate, (req, res, next) => {
   bookingController.getMyBookings(req, res).catch(next);
 });
 
+// Public - total bookings count
+router.get("/count", (req, res, next) => {
+  bookingController.getTotalBookingsCount(req as any, res).catch(next);
+});
+
 router.get("/guide", authenticate, (req, res, next) => {
   bookingController.getGuideBookings(req, res).catch(next);
 });

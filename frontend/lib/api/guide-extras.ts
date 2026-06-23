@@ -24,6 +24,15 @@ export const getMyReviewQRApi = async () => {
   return handleRes(res);
 };
 
+// ─── Guide: Regenerate my review QR token ────────────────────────────────────
+export const regenerateMyReviewQRApi = async () => {
+  const res = await fetch(`${base_url}review-qr/my-qr/regenerate`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
 // ─── Public: Get guide info by token (for tourist review page) ────────────────
 export const getGuideByTokenApi = async (token: string) => {
   const res = await fetch(`${base_url}review-qr/token/${token}`);

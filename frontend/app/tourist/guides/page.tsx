@@ -61,10 +61,7 @@ export default function GuidesPage() {
 
     // Backend already ensures VERIFIED status and ACTIVE user status
     // Only filter by search term and language
-    return (
-      (name.includes(term) || specialityMatch) &&
-      matchesLanguage
-    );
+    return (name.includes(term) || specialityMatch) && matchesLanguage;
   });
 
   const sortedGuides = [...filteredGuides].sort((a, b) => {
@@ -156,10 +153,7 @@ export default function GuidesPage() {
             <div className="rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/20">
               <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-orange-600">
-                    Search & refine
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                  <h2 className="mt-2 text-2xl font-semibold text-secondary">
                     Find your ideal guide
                   </h2>
                 </div>
@@ -231,10 +225,10 @@ export default function GuidesPage() {
           <section className="space-y-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.22em] text-orange-600">
+                <p className="text-sm uppercase tracking-[0.22em] text-primary">
                   Guide results
                 </p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                <h2 className="mt-1 text-2xl font-semibold text-secondary">
                   Available guides ({sortedGuides.length})
                 </h2>
               </div>
@@ -244,28 +238,37 @@ export default function GuidesPage() {
             </div>
 
             {pricing && (
-              <div className="rounded-[1.75rem] border border-orange-100 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-transparent p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="rounded-[1.75rem] border border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-orange-500 text-white rounded-2xl">
+                  <div className="p-3 bg-primary text-white rounded-2xl">
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 text-lg">
+                    <h3 className="font-semibold text-primary text-lg">
                       Fixed & Transparent Pricing
                     </h3>
                     <p className="text-sm text-slate-600 mt-0.5">
-                      All guides have unified pricing. Choose what works best for your itinerary.
+                      All guides have unified pricing. Choose what works best
+                      for your itinerary.
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-4 items-center">
                   <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium font-sans">Half Day</span>
-                    <span className="text-xl font-bold text-orange-600 font-sans">₹{pricing.halfDayPrice}</span>
+                    <span className="text-xs uppercase tracking-wider text-primary font-medium font-sans">
+                      Half Day
+                    </span>
+                    <span className="text-xl font-bold text-primary font-sans">
+                      ₹{pricing.halfDayPrice}
+                    </span>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-sm flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-wider text-slate-500 font-medium font-sans">Full Day</span>
-                    <span className="text-xl font-bold text-orange-600 font-sans">₹{pricing.fullDayPrice}</span>
+                    <span className="text-xs uppercase tracking-wider text-primary font-medium font-sans">
+                      Full Day
+                    </span>
+                    <span className="text-xl font-bold text-primary font-sans">
+                      ₹{pricing.fullDayPrice}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -336,7 +339,7 @@ export default function GuidesPage() {
           </section>
         </div>
       </div>
-
+      {/* QR modals are rendered inside each GuideCard to avoid cross-component state */}
       <Footer />
     </main>
   );

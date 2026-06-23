@@ -19,6 +19,7 @@ import {
   IndianRupee,
   Truck,
   User,
+  Car,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { poppins } from "@/lib/fonts";
@@ -422,7 +423,7 @@ export default function PackageBookingPage() {
                       >
                         {pkg.includesCab && (
                           <div className="flex items-center gap-1.5 font-medium">
-                            <Truck className="w-4 h-4 text-orange-600" /> Cab
+                            <Car className="w-4 h-4 text-orange-600" /> Cab
                           </div>
                         )}
                         {pkg.includesGuide && (

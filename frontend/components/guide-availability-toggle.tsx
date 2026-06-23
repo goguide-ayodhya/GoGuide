@@ -21,10 +21,10 @@ export function GuideAvailabilityToggle() {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border shadow-md transition-all duration-300
+      className={`relative overflow-hidden border  transition-all duration-300
       ${
         myGuide.isAvailable
-          ? "border-green-200 bg-gradient-to-r from-green-50 to-emerald-100"
+          ? "border-green-200 bg--emerald-100"
           : "border-slate-200 bg-gradient-to-r from-slate-100 to-slate-200"
       }`}
     >

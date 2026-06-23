@@ -3,6 +3,7 @@ import {
   getGuideByReviewToken,
   submitReviewByToken,
   getMyReviewQR,
+  regenerateMyReviewToken,
   regenerateReviewToken,
   generateAllGuideQRCodes,
   toggleReviewCollection,
@@ -18,6 +19,10 @@ router.post("/token/:token/submit", submitReviewByToken);
 // ─── Guide: own QR ───────────────────────────────────────────────────────────
 router.get("/my-qr", authenticate, authorize(["GUIDE"]), (req, res, next) => {
   getMyReviewQR(req, res).catch(next);
+});
+
+router.post("/my-qr/regenerate", authenticate, authorize(["GUIDE"]), (req, res, next) => {
+  regenerateMyReviewToken(req, res).catch(next);
 });
 
 // ─── Admin: manage guide QRs ─────────────────────────────────────────────────

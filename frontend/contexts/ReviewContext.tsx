@@ -47,6 +47,7 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const data = await getGuideReviewsApi(guideId);
+      console.log("Printing getGuideReviewsApi: ", data);
       const formatted = data.map((review: any) => ({
         id: review._id,
         bookingId: review.bookingId,
@@ -155,9 +156,7 @@ export const ReviewProvider = ({ children }: { children: React.ReactNode }) => {
         createdAt: updated.createdAt,
       };
       setReviews((review) =>
-        review.map((r) =>
-          r.id === reviewId ? updatedReview : r,
-        ),
+        review.map((r) => (r.id === reviewId ? updatedReview : r)),
       );
       return updatedReview;
     } catch (error) {

@@ -101,9 +101,11 @@ export class AdminSettingsController {
       }
 
       const isEnabledFlag = req.body.isEnabled ?? false;
+      const upiId = req.body.upiId || "";
+      const merchantName = req.body.merchantName || "";
 
       const settings = await adminSettingsService.updatePaymentQR(
-        { url: urlToSave, isEnabled: isEnabledFlag },
+        { url: urlToSave, isEnabled: isEnabledFlag, upiId, merchantName },
         req.userId!
       );
       res.status(200).json({ success: true, data: settings });

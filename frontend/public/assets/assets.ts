@@ -10,7 +10,7 @@ import img_04 from "./tourist/img_04.jpg";
 import img_05 from "./tourist/img_05.jpg";
 import img_06 from "./tourist/img_06.webp";
 
-import p_01 from "./partners/p_01.png";
+import p_01 from "./partners/p_01.jpeg";
 import p_02 from "./partners/p_02.png";
 import mj_wains from "./partners/mj_wains.jpeg";
 import aayovea from "./partners/aayovea.jpeg";

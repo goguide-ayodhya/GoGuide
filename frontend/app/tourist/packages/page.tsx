@@ -127,10 +127,8 @@ export default function PackagesPage() {
             <div className=" rounded-[1.75rem] border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/20">
               <div className=" mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-orange-600">
-                    Search & discover
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                
+                  <h2 className="mt-2 text-2xl font-semibold text-secondary">
                     Find your perfect tour
                   </h2>
                 </div>
@@ -190,7 +188,7 @@ export default function PackagesPage() {
                     className={`rounded-2xl border sm:px-4 py-2 text-xs font-semibold transition-all
                           ${
                             typeFilter === type
-                              ? "bg-slate-900 text-white border-slate-900"
+                              ? "bg-secondary text-white border-slate-900"
                               : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                           }`}
                   >
@@ -210,10 +208,7 @@ export default function PackagesPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-lg shadow-slate-200/40">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm uppercase tracking-[0.2em] text-orange-600">
-                        Results
-                      </p>
-                      <h3 className="mt-2 text-2xl font-semibold text-slate-950">
+                      <h3 className="mt-2 text-2xl font-semibold text-primary">
                         Available Packages ({sortedPackages.length})
                       </h3>
                     </div>

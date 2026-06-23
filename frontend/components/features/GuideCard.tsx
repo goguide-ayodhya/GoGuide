@@ -7,7 +7,9 @@ import { Star } from "lucide-react";
 import { Guide } from "@/contexts/GuideContext";
 import { assets } from "@/public/assets/assets";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getPublicSettingsApi } from "@/lib/api/finance";
+import { PaymentQRModal } from "@/components/PaymentQRModal";
 
 interface GuideCardProps {
   guide: Guide;
@@ -35,6 +37,12 @@ function getStatusBadge(isAvailable: boolean) {
 }
 
 export function GuideCard({ guide, pricing }: GuideCardProps) {
+  const [showPaymentQR, setShowPaymentQR] = useState(false);
+  const [paymentQR, setPaymentQR] = useState<{
+    url: string;
+    isEnabled: boolean;
+  } | null>(null);
+
   const router = useRouter();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const statusBadge = getStatusBadge(guide.isAvailable);
@@ -47,6 +55,14 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
       ? guide.specialities[0]
       : "Friendly local guide with stories and insider tips.");
   const recentReviews = guide.recentReviews?.slice(0, 3) || [];
+
+  useEffect(() => {
+    getPublicSettingsApi()
+      .then((data: any) => {
+        if (data?.paymentQR) setPaymentQR(data.paymentQR);
+      })
+      .catch(() => {});
+  }, []);
 
   const cardContent = (
     <>
@@ -68,7 +84,10 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                   fill
                   className="object-cover"
                   sizes="96px"
-                  unoptimized={typeof profileImage === 'string' && profileImage.startsWith('http')}
+                  unoptimized={
+                    typeof profileImage === "string" &&
+                    profileImage.startsWith("http")
+                  }
                 />
               </div>
             </div>
@@ -129,18 +148,13 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
               <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground text-center">
                 {pricing?.halfDayPrice && pricing?.fullDayPrice ? (
                   <>
-                    ₹{pricing.halfDayPrice} / ₹{pricing.fullDayPrice}
-                    <br />
-                    Half / Full Day
+                    H: ₹{pricing.halfDayPrice} / F: ₹{pricing.fullDayPrice}
                   </>
                 ) : (
-                  <>
-                    Fixed Pricing
-                    <br />
-                    Half / Full Day
-                  </>
+                  <>Fixed Pricing</>
                 )}
               </div>
+
               <div className="rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-xs font-medium text-foreground">
                 {guide.languages
                   ?.slice(0, 3)
@@ -150,8 +164,6 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                 {guide.languages?.length ?? 0} languages
               </div>
             </div>
-
-
 
             <div className="mt-4 flex flex-wrap gap-2">
               <p className="text-xs pt-1">Certificates:</p>
@@ -164,7 +176,11 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                         onClick={() => setSelectedImage(cert.image)}
                         className="px-3 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition"
                       >
-                        {cert.name && !cert.name.match(/\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i) && !cert.name.startsWith("http")
+                        {cert.name &&
+                        !cert.name.match(
+                          /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                        ) &&
+                        !cert.name.startsWith("http")
                           ? cert.name
                           : "Doc"}
                       </button>
@@ -175,16 +191,45 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                 <p className="text-xs text-muted-foreground">No certificates</p>
               )}
             </div>
+
+            <div className="flex justify-between items-center pt-5">
+              <div>
+                {guide.reviewQRToken && guide.reviewCollectionEnabled && (
+                  <button
+                    onClick={() => {
+                      const path = guide.reviewQRToken
+                        ? `/tourist/guides/review/${guide.reviewQRToken}`
+                        : `/tourist/guides/${guide.id}`;
+                      router.push(path);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-primary/20 hover:bg-slate-50"
+                  >
+                    Leave a review
+                  </button>
+                )}
+              </div>
+              <div>
+                {paymentQR?.isEnabled && paymentQR?.url && (
+                  <button
+                    onClick={() => setShowPaymentQR(true)}
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-primary/20 hover:bg-slate-50"
+                  >
+                    Show Payment QR
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="mt-6">
             <Button
               onClick={() => router.push(`/tourist/guides/book/${guide.id}`)}
               disabled={!canBook}
-              className={`w-full rounded-2xl shadow-sm shadow-primary/10 ${canBook
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-gray-400 text-gray-200 cursor-not-allowed hover:bg-gray-400"
-                }`}
+              className={`w-full rounded-2xl shadow-sm shadow-primary/10 ${
+                canBook
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-gray-400 text-gray-200 cursor-not-allowed hover:bg-gray-400"
+              }`}
             >
               {canBook ? "Book Now" : "Currently Unavailable"}
             </Button>
@@ -193,6 +238,14 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
       </Card>
 
       {/* Modal rendered outside Card to prevent transform issues */}
+      {/* review redirect handled by button; QR modal removed */}
+
+      {showPaymentQR && paymentQR?.url && (
+        <PaymentQRModal
+          qrUrl={paymentQR.url}
+          onClose={() => setShowPaymentQR(false)}
+        />
+      )}
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]"

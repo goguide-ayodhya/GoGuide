@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { Guide } from "../models/Guide";
 import { Review } from "../models/Review";
+import { ReviewSpamPreventionService } from "../services/reviewSpamPrevention.service";
 import crypto from "crypto";
 import QRCode from "qrcode";
 import { uploadBufferToStorage } from "../services/fileUpload.service";
@@ -28,7 +29,7 @@ export async function getGuideByReviewToken(req: Request, res: Response) {
 export async function submitReviewByToken(req: Request, res: Response) {
   try {
     const { token } = req.params;
-    const { rating, comments, reviewerName } = req.body;
+    const { rating, comments, reviewerName, deviceFingerprint } = req.body;
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
@@ -37,6 +38,23 @@ export async function submitReviewByToken(req: Request, res: Response) {
     const guide = await Guide.findOne({ reviewQRToken: token, reviewCollectionEnabled: true });
     if (!guide) {
       return res.status(404).json({ success: false, message: "Guide not found or review collection is disabled" });
+    }
+
+    // ─── Spam Prevention ───────────────────────────────────────────────────────
+    const clientIP = ReviewSpamPreventionService.getClientIP(req);
+    const { allowed, remainingTime } = await ReviewSpamPreventionService.canSubmitReview(
+      guide._id,
+      clientIP,
+      deviceFingerprint
+    );
+
+    if (!allowed) {
+      const hours = Math.ceil((remainingTime || 0) / 3600);
+      return res.status(429).json({
+        success: false,
+        message: `You can only submit one review per guide every 24 hours. Please try again in ${hours} hour${hours !== 1 ? "s" : ""}.`,
+        retryAfter: remainingTime,
+      });
     }
 
     // Create a review without bookingId (QR review — use a synthetic ObjectId)
@@ -61,6 +79,9 @@ export async function submitReviewByToken(req: Request, res: Response) {
     guide.totalReviews = allReviews.length;
     await guide.save();
 
+    // Record submission for spam prevention
+    await ReviewSpamPreventionService.recordReviewSubmission(guide._id, clientIP, deviceFingerprint);
+
     return res.status(201).json({ success: true, message: "Review submitted successfully", data: review });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -80,6 +101,42 @@ export async function getMyReviewQR(req: AuthRequest, res: Response) {
   }
 }
 
+// ─── Guide: Regenerate own review QR token ────────────────────────────────────
+export async function regenerateMyReviewToken(req: AuthRequest, res: Response) {
+  try {
+    const guide = await Guide.findOne({ userId: req.userId });
+    if (!guide) {
+      return res.status(404).json({ success: false, message: "Guide not found" });
+    }
+
+    // regenerate token
+    const newToken = crypto.randomUUID();
+    guide.reviewQRToken = newToken;
+
+    // generate QR image pointing to public review page
+    const clientBase = process.env.CLIENT_BASE_URL || process.env.FRONTEND_BASE_URL || `http://localhost:3000`;
+    const reviewUrl = `${clientBase.replace(/\/$/, "")}/tourist/guides/review/${newToken}`;
+
+    try {
+      const pngBuffer = await QRCode.toBuffer(reviewUrl, { type: "png", width: 400 });
+      const uploadedUrl = await uploadBufferToStorage(pngBuffer, `guide-${guide._id}-review-qr.png`);
+      guide.reviewQRImage = uploadedUrl;
+    } catch (e) {
+      // If QR generation/upload fails, continue but log the error
+      console.error("QR generation failed:", e);
+    }
+
+    await guide.save();
+
+    return res.status(200).json({
+      success: true,
+      data: { reviewQRToken: guide.reviewQRToken, reviewQRImage: guide.reviewQRImage },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
 // ─── Admin: Regenerate a guide's review token ────────────────────────────────
 export async function regenerateReviewToken(req: AuthRequest, res: Response) {
   try {
@@ -93,7 +150,7 @@ export async function regenerateReviewToken(req: AuthRequest, res: Response) {
 
     // generate QR image pointing to public review page
     const clientBase = process.env.CLIENT_BASE_URL || process.env.FRONTEND_BASE_URL || `http://localhost:3000`;
-    const reviewUrl = `${clientBase.replace(/\/$/, "")}/review/${newToken}`;
+    const reviewUrl = `${clientBase.replace(/\/$/, "")}/tourist/guides/review/${newToken}`;
 
     try {
       const pngBuffer = await QRCode.toBuffer(reviewUrl, { type: "png", width: 400 });
@@ -147,7 +204,7 @@ export async function generateAllGuideQRCodes(req: AuthRequest, res: Response) {
         // ensure token exists
         if (!guide.reviewQRToken) guide.reviewQRToken = crypto.randomUUID();
 
-        const reviewUrl = `${clientBase.replace(/\/$/, "")}/review/${guide.reviewQRToken}`;
+        const reviewUrl = `${clientBase.replace(/\/$/, "")}/tourist/guides/review/${guide.reviewQRToken}`;
         const pngBuffer = await QRCode.toBuffer(reviewUrl, { type: "png", width: 400 });
         const uploadedUrl = await uploadBufferToStorage(pngBuffer, `guide-${guide._id}-review-qr.png`);
         guide.reviewQRImage = uploadedUrl;

@@ -9,8 +9,6 @@ import { useGuide, Guide } from "@/contexts/GuideContext";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { GuideBookingForm } from "@/components/booking/GuideBookingForm";
-import { ReviewQRModal } from "@/components/ReviewQRModal";
-import { PaymentQRModal } from "@/components/PaymentQRModal";
 import { getPublicSettingsApi } from "@/lib/api/finance";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +18,7 @@ import { assets } from "@/public/assets/assets";
 import { createBooking } from "@/lib/api/bookings";
 import { poppins } from "@/lib/fonts";
 import { Button } from "@/components/ui/button";
+import { getGuideReviewsApi } from "@/lib/api/reviews";
 
 export default function GuideBookingPage() {
   const params = useParams();
@@ -30,20 +29,61 @@ export default function GuideBookingPage() {
   const { setCurrentBooking } = useBooking();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showReviewQR, setShowReviewQR] = useState(false);
-  const [showPaymentQR, setShowPaymentQR] = useState(false);
-  const [paymentQR, setPaymentQR] = useState<{ url: string; isEnabled: boolean } | null>(null);
+  const [pricing, setPricing] = useState<{
+    halfDayPrice?: number;
+    fullDayPrice?: number;
+  }>({});
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   useEffect(() => {
     getPublicSettingsApi()
       .then((data: any) => {
-        if (data?.paymentQR) setPaymentQR(data.paymentQR);
+        if (data?.guidePricing) {
+          setPricing({
+            halfDayPrice: data.guidePricing.halfDay.touristPrice,
+            fullDayPrice: data.guidePricing.fullDay.touristPrice,
+          });
+        }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Error fetching pricing", err));
   }, []);
 
   const guideId = params.id as string;
   const guide = guides.find((g: Guide) => g.id === guideId);
+
+  useEffect(() => {
+    if (guideId) {
+      getGuideReviewsApi(guideId)
+        .then((data: any) => {
+          if (data && Array.isArray(data)) {
+            const formatted = data.map((r: any) => ({
+              reviewer: r.userId?.name || "Anonymous Traveler",
+              date: r.createdAt
+                ? new Date(r.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "Recent review",
+              comments: r.comments || "",
+              rating: r.rating || 0,
+            }));
+            setReviews(formatted);
+          } else {
+            setReviews([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching reviews:", err);
+          setReviews([]);
+        });
+    }
+  }, [guideId]);
+
+  console.log(guide);
+  console.log("recentReviews:", reviews);
+
   const isGuideAvailable = guide?.isAvailable;
 
   if (!guideId) {
@@ -136,7 +176,10 @@ export default function GuideBookingPage() {
                       fill
                       className="object-cover"
                       sizes="160px"
-                      unoptimized={typeof guide.avatar === 'string' && guide.avatar.startsWith('http')}
+                      unoptimized={
+                        typeof guide.avatar === "string" &&
+                        guide.avatar.startsWith("http")
+                      }
                     />
                   </div>
 
@@ -146,7 +189,7 @@ export default function GuideBookingPage() {
                         <p className="text-sm uppercase tracking-[0.3em] text-orange-600">
                           Guide profile
                         </p>
-                        <h1  className="mt-2 text-3xl font-semibold text-slate-950 break-words">
+                        <h1 className="mt-2 text-3xl font-semibold text-slate-950 break-words">
                           {guide.userId?.name || guide.name || "Guide"}
                         </h1>
                       </div>
@@ -170,11 +213,15 @@ export default function GuideBookingPage() {
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
                       Pricing
                     </p>
-                    <p className="mt-3 text-sm font-semibold text-slate-950">
-                      Admin Managed Pricing
-                    </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Half Day / Full Day
+                      {pricing?.halfDayPrice && pricing?.fullDayPrice ? (
+                        <>
+                          H: ₹{pricing.halfDayPrice} / F: ₹
+                          {pricing.fullDayPrice}
+                        </>
+                      ) : (
+                        <>Fixed Pricing</>
+                      )}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-center">
@@ -224,28 +271,6 @@ export default function GuideBookingPage() {
                       ))}
                     </div>
                   </div>
-                </div>
-
-                <div className="pt-3 flex items-center gap-2">
-                  {guide.reviewQRToken && guide.reviewCollectionEnabled && (
-                    <button
-                      onClick={() => setShowReviewQR(true)}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3h8v8H3V3zM13 3h8v8h-8V3zM3 13h8v8H3v-8zM13 13h8v8h-8v-8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Leave a review (QR)
-                    </button>
-                  )}
-
-                  {paymentQR?.isEnabled && paymentQR?.url && (
-                    <button
-                      onClick={() => setShowPaymentQR(true)}
-                      className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20M2 12h20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Show Payment QR
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -391,10 +416,10 @@ export default function GuideBookingPage() {
                 {guide.rating?.toFixed(1) ?? "0.0"}
               </div>
             </div>
-            <div className="text-slate-600">{guide.totalReviews} reviews</div>
+            <div className="text-slate-600">{guide.totalReviews || reviews.length} reviews</div>
             <div className="mt-6 space-y-6">
-              {guide.recentReviews && guide.recentReviews.length > 0 ? (
-                guide.recentReviews.map((review, index) => (
+              {reviews && reviews.length > 0 ? (
+                (showAllReviews ? reviews : reviews.slice(0, 5)).map((review, index) => (
                   <div key={index} className="border-b border-slate-200 pb-6">
                     <div className="flex items-center gap-4">
                       <div>
@@ -411,20 +436,20 @@ export default function GuideBookingPage() {
                 <p className="text-slate-500">No reviews yet.</p>
               )}
             </div>
+            {reviews.length > 5 && (
+              <div className="mt-6 text-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAllReviews(!showAllReviews)}
+                  className="rounded-full px-6 border-slate-200 text-slate-700 hover:bg-slate-50"
+                >
+                  {showAllReviews ? "View Less" : `View All Reviews (${reviews.length})`}
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       </div>
-
-      {showReviewQR && (guide?.reviewQRImage || guide?.reviewQRToken) && (
-        <ReviewQRModal
-          token={guide?.reviewQRToken}
-          qrUrl={guide?.reviewQRImage || null}
-          onClose={() => setShowReviewQR(false)}
-        />
-      )}
-      {showPaymentQR && paymentQR?.url && (
-        <PaymentQRModal qrUrl={paymentQR.url} onClose={() => setShowPaymentQR(false)} />
-      )}
       <Footer />
     </main>
   );

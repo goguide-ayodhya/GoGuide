@@ -62,9 +62,25 @@ export const getBookingReviewApi = async (bookingId: string) => {
   return handleRes(res);
 };
 
-// Get all reviews (admin)
-export const getAllReviewsApi = async () => {
-  const res = await fetch(`${base_url}reviews`, {
+// Get all reviews with filters (admin & list)
+export const getAllReviewsApi = async (params: Record<string, any> = {}) => {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== "") {
+      query.append(key, String(val));
+    }
+  });
+
+  const res = await fetch(`${base_url}reviews?${query.toString()}`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+// Get admin reviews analytics
+export const getAdminReviewAnalyticsApi = async () => {
+  const res = await fetch(`${base_url}reviews/admin/analytics`, {
     headers: authHeaders(),
   });
 
@@ -82,9 +98,19 @@ export const updateReviewApi = async (reviewId: string, data: any) => {
   return handleRes(res);
 };
 
+// Toggle featured status
+export const toggleFeaturedApi = async (reviewId: string, type: string, isFeatured: boolean, featuredUntil?: string) => {
+  const res = await fetch(`${base_url}reviews/${reviewId}/featured?type=${type}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ isFeatured, featuredUntil }),
+  });
+  return handleRes(res);
+};
+
 // Delete
-export const deleteReviewApi = async (reviewId: string) => {
-  const res = await fetch(`${base_url}reviews/${reviewId}`, {
+export const deleteReviewApi = async (reviewId: string, type = "guide") => {
+  const res = await fetch(`${base_url}reviews/${reviewId}?type=${type}`, {
     method: "DELETE",
     headers: authHeaders(),
   });

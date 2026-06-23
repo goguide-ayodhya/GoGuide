@@ -13,14 +13,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { GuideAvailabilityToggle } from "@/components/guide-availability-toggle";
-import { Upload, Save, Lock, X, QrCode, Download, Share2, Copy, Check } from "lucide-react";
+import {
+  Upload,
+  Save,
+  Lock,
+  X,
+  QrCode,
+  Download,
+  Share2,
+  Copy,
+  Check,
+  RotateCcw,
+  Eye,
+} from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { assets } from "@/public/assets/assets";
 import { changePassword } from "@/lib/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import { ImageCropModal } from "@/components/common/ImageCropModal";
-import { getMyReviewQRApi } from "@/lib/api/guide-extras";
+import {
+  getMyReviewQRApi,
+  regenerateMyReviewQRApi,
+} from "@/lib/api/guide-extras";
 import { QRCodeCanvas } from "qrcode.react";
 
 export default function ProfilePage() {
@@ -61,6 +76,7 @@ export default function ProfilePage() {
   const [reviewQRToken, setReviewQRToken] = useState<string | null>(null);
   const [reviewCollectionEnabled, setReviewCollectionEnabled] = useState(true);
   const [qrCopied, setQrCopied] = useState(false);
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
 
   // Sync form as soon as guide profile is available
   useEffect(() => {
@@ -111,10 +127,7 @@ export default function ProfilePage() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]:
-        name === "yearsOfExperience"
-          ? parseInt(value)
-          : value,
+      [name]: name === "yearsOfExperience" ? parseInt(value) : value,
     }));
   };
 
@@ -158,8 +171,6 @@ export default function ProfilePage() {
       specialities: prev.specialities.filter((s) => s !== spec),
     }));
   };
-
-
 
   const addCertificate = async () => {
     if (newCertificateName && selectedCertificateImage) {
@@ -230,7 +241,10 @@ export default function ProfilePage() {
     setAvatarCropOpen(true);
   };
 
-  const handleAvatarCropComplete = (croppedFile: File, croppedPreview: string) => {
+  const handleAvatarCropComplete = (
+    croppedFile: File,
+    croppedPreview: string,
+  ) => {
     if (rawAvatarSrc) URL.revokeObjectURL(rawAvatarSrc);
     setRawAvatarSrc(null);
     setSelectedImage(croppedFile);
@@ -367,6 +381,32 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRegenerateQR = async () => {
+    setRegeneratingQR(true);
+    try {
+      const data = await regenerateMyReviewQRApi();
+      setReviewQRToken(data.data?.reviewQRToken);
+      toast({
+        title: "Success",
+        description: "Review QR code regenerated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate QR code",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingQR(false);
+    }
+  };
+
+  const handlePreviewReviewPage = () => {
+    if (reviewQRToken) {
+      window.open(`/tourist/guides/review/${reviewQRToken}`, "_blank");
+    }
+  };
+
   if (!user) return null;
   return (
     <div>
@@ -403,7 +443,9 @@ export default function ProfilePage() {
         <Card className="bg-card border border-border">
           <CardHeader>
             <CardTitle>Profile Picture</CardTitle>
-            <CardDescription>Upload or change your profile photo</CardDescription>
+            <CardDescription>
+              Upload or change your profile photo
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
@@ -581,8 +623,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-
-
               <div>
                 <label className="text-sm font-medium text-foreground block mb-2">
                   Years of Experience
@@ -634,7 +674,9 @@ export default function ProfilePage() {
                         type="file"
                         accept="image/*"
                         onChange={(e) =>
-                          setSelectedCertificateImage(e.target.files?.[0] || null)
+                          setSelectedCertificateImage(
+                            e.target.files?.[0] || null,
+                          )
                         }
                         className="bg-muted border-border"
                       />
@@ -843,7 +885,8 @@ export default function ProfilePage() {
           <CardContent>
             {!reviewCollectionEnabled ? (
               <div className="text-center py-6 text-muted-foreground text-sm">
-                Review collection is currently disabled. Contact admin to enable it.
+                Review collection is currently disabled. Contact admin to enable
+                it.
               </div>
             ) : reviewQRToken ? (
               <div className="flex flex-col items-center gap-5">
@@ -853,7 +896,7 @@ export default function ProfilePage() {
                   className="p-4 bg-white rounded-2xl border border-border shadow-sm"
                 >
                   <QRCodeCanvas
-                    value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || ''}/review/${reviewQRToken}`}
+                    value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || ""}/tourist/guides/review/${reviewQRToken}`}
                     size={200}
                     level="M"
                     includeMargin
@@ -862,7 +905,8 @@ export default function ProfilePage() {
 
                 {/* Review link */}
                 <p className="text-xs text-muted-foreground text-center break-all max-w-xs">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/review/{reviewQRToken}
+                  {typeof window !== "undefined" ? window.location.origin : ""}
+                  /tourist/guides/review/{reviewQRToken}
                 </p>
 
                 {/* Action Buttons */}
@@ -873,14 +917,20 @@ export default function ProfilePage() {
                     size="sm"
                     className="gap-2"
                     onClick={() => {
-                      const url = `${window.location.origin}/review/${reviewQRToken}`;
+                      const url = `${window.location.origin}/tourist/guides/review/${reviewQRToken}`;
                       navigator.clipboard.writeText(url);
                       setQrCopied(true);
                       setTimeout(() => setQrCopied(false), 2000);
                     }}
                   >
-                    {qrCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    {qrCopied ? 'Copied!' : 'Copy Link'}
+                    {qrCopied ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                    <span className="hidden md:inline">
+                      {qrCopied ? "Copied!" : "Copy Link"}{" "}
+                    </span>
                   </Button>
 
                   {/* Share via WhatsApp */}
@@ -889,13 +939,15 @@ export default function ProfilePage() {
                     size="sm"
                     className="gap-2"
                     onClick={() => {
-                      const url = `${window.location.origin}/review/${reviewQRToken}`;
-                      const msg = encodeURIComponent(`Please share your experience with me on GoGuide: ${url}`);
-                      window.open(`https://wa.me/?text=${msg}`, '_blank');
+                      const url = `${window.location.origin}/tourist/guides/review/${reviewQRToken}`;
+                      const msg = encodeURIComponent(
+                        `Please share your experience with me on GoGuide: ${url}`,
+                      );
+                      window.open(`https://wa.me/?text=${msg}`, "_blank");
                     }}
                   >
                     <Share2 className="h-4 w-4 text-green-600" />
-                    Share on WhatsApp
+                    <span className="hidden md:inline">Share on WhatsApp</span>
                   </Button>
 
                   {/* Download QR */}
@@ -904,16 +956,45 @@ export default function ProfilePage() {
                     size="sm"
                     className="gap-2"
                     onClick={() => {
-                      const canvas = document.querySelector('#guide-review-qr canvas') as HTMLCanvasElement;
+                      const canvas = document.querySelector(
+                        "#guide-review-qr canvas",
+                      ) as HTMLCanvasElement;
                       if (!canvas) return;
-                      const link = document.createElement('a');
-                      link.download = 'review-qr.png';
-                      link.href = canvas.toDataURL('image/png');
+                      const link = document.createElement("a");
+                      link.download = "review-qr.png";
+                      link.href = canvas.toDataURL("image/png");
                       link.click();
                     }}
                   >
                     <Download className="h-4 w-4" />
-                    Download QR
+                    <span className="hidden md:inline">Download QR</span>
+                  </Button>
+
+                  {/* Preview Review Page */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={handlePreviewReviewPage}
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden md:inline">Preview Page</span>
+                  </Button>
+
+                  {/* Regenerate QR */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={handleRegenerateQR}
+                    disabled={regeneratingQR}
+                  >
+                    <RotateCcw
+                      className={`h-4 w-4 ${regeneratingQR ? "animate-spin" : ""}`}
+                    />
+                    <span className="hidden md:inline">
+                      {regeneratingQR ? "Regenerating..." : "Regenerate QR"}
+                    </span>
                   </Button>
                 </div>
               </div>
