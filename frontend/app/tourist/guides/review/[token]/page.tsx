@@ -148,11 +148,10 @@ export default function ReviewByTokenPage() {
                 className="transition-transform hover:scale-110 active:scale-95"
               >
                 <Star
-                  className={`h-10 w-10 transition-colors ${
-                    star <= (hoverRating || rating)
+                  className={`h-10 w-10 transition-colors ${star <= (hoverRating || rating)
                       ? "text-secondary fill-secondary"
                       : "text-slate-200 fill-slate-200"
-                  }`}
+                    }`}
                 />
               </button>
             ))}
@@ -173,7 +172,7 @@ export default function ReviewByTokenPage() {
               type="text"
               value={reviewerName}
               onChange={(e) => setReviewerName(e.target.value)}
-              placeholder="e.g. Rahul Sharma"
+              placeholder="e.g. Go Guide"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
           </div>

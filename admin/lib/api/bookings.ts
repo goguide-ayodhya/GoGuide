@@ -137,6 +137,8 @@ export const getAllBookings = async (filters?: {
   dateRange?: string;
   search?: string;
   bookingType?: string;
+  page?: number;
+  limit?: number;
 }) => {
   const params = new URLSearchParams();
   if (filters?.status && filters.status !== "all")
@@ -148,6 +150,8 @@ export const getAllBookings = async (filters?: {
   if (filters?.bookingType && filters.bookingType !== "all")
     params.append("bookingType", filters.bookingType);
   if (filters?.search) params.append("search", filters.search);
+  if (filters?.page) params.append("page", filters.page.toString());
+  if (filters?.limit) params.append("limit", filters.limit.toString());
 
   const url = `${base_url}bookings/admin/all${params.toString() ? "?" + params.toString() : ""}`;
   const res = await fetch(url, {

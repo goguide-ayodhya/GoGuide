@@ -14,6 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Search, QrCode } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+
 import {
   getUsersApi,
   blockUserApi,
@@ -21,7 +24,6 @@ import {
   suspendUserApi,
   deleteUserApi,
   verifyUserApi,
-  unverifyUserApi,
   getUserDetailApi,
   markUserAsViewedApi,
 } from "@/lib/api/admin";
@@ -210,6 +212,8 @@ export default function GuidesPage() {
   const [verificationFilter, setVerificationFilter] = useState<string>("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [selectedUserDetails, setSelectedUserDetails] = useState<any>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -272,17 +276,20 @@ export default function GuidesPage() {
   const fetchUsers = async (
     role: "all" | AdminRole,
     status: string,
-    search?: string,
+    search: string | undefined,
+    verification: string,
+    page: number
   ) => {
     setLoading(true);
     setError(null);
     setActionError(null);
 
     try {
-      const response = await getUsersApi(role, status, search);
-      const apiUsers = Array.isArray(response)
-        ? response
-        : response?.data || [];
+      const response = await getUsersApi(role, status, search, verification, page, 20);
+      const responseData = response?.data || {};
+      const apiUsers = responseData.users || (Array.isArray(response) ? response : response?.data || []);
+      const totalCount = responseData.totalCount ?? apiUsers.length;
+      const totalP = responseData.totalPages ?? Math.ceil(totalCount / 20);
 
       const normalizedUsers = apiUsers.map((user: any) => ({
         id: user._id || user.id || "-",
@@ -300,18 +307,15 @@ export default function GuidesPage() {
         createdAt: user.createdAt || new Date().toISOString(),
       }));
 
-      normalizedUsers.sort(
-        (
-          a: { createdAt: string | number | Date },
-          b: { createdAt: string | number | Date },
-        ) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-
       setUsers(normalizedUsers);
+      setTotalUsersCount(totalCount);
+      setTotalPages(totalP);
     } catch (err: any) {
       console.error("Failed to fetch users:", err);
       setError(err.message || "Unable to fetch users");
       setUsers([]);
+      setTotalUsersCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -324,26 +328,18 @@ export default function GuidesPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-    fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined);
-  }, [roleFilter, statusFilter, debouncedSearch]);
+  }, [roleFilter, statusFilter, debouncedSearch, verificationFilter]);
 
+  // Trigger fetchUsers when page or filter variables change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [verificationFilter]);
+    fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined, verificationFilter, currentPage);
+  }, [roleFilter, statusFilter, debouncedSearch, verificationFilter, currentPage]);
 
-  const filteredUsers = users; // search is now server-side
-
-  const filteredByStatus = filteredUsers.filter((user) => {
-    if (verificationFilter === "VERIFIED")
-      return user.verificationStatus === "VERIFIED";
-    if (verificationFilter === "UNVERIFIED")
-      return user.verificationStatus !== "VERIFIED";
-    return true;
-  });
-
-  const paginatedUsers = filteredByStatus.slice((currentPage - 1) * 20, currentPage * 20);
+  const paginatedUsers = users;
+  const filteredByStatus = users; // Server handles filtering and pagination
 
   const handleUserAction = async (
     action: "activate" | "block" | "suspend" | "delete" | "verify" | "unverify",
@@ -381,7 +377,7 @@ export default function GuidesPage() {
         throw new Error(result.message || "Action failed");
       }
 
-      await fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined);
+      await fetchUsers(roleFilter, statusFilter, debouncedSearch || undefined, verificationFilter, currentPage);
     } catch (err: any) {
       console.error(`Failed to ${action} user:`, err);
       setActionError(err.message || `Unable to ${action} user`);
@@ -396,14 +392,14 @@ export default function GuidesPage() {
     try {
       // Mark user as viewed by admin
       await markUserAsViewedApi(userId);
-      
+
       // Update local state to remove "New" badge immediately
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId ? { ...user, isViewedByAdmin: true } : user
         )
       );
-      
+
       const details = await getUserDetailApi(userId);
       setSelectedUserDetails(details?.data || details);
     } catch (err) {
@@ -512,16 +508,43 @@ export default function GuidesPage() {
       )}
 
       {loading ? (
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading users...</p>
+        <div className="space-y-4">
+          <Card className="border-border">
+            <CardHeader className="pb-2 sm:pb-4">
+              <Skeleton className="h-6 w-32 bg-muted/60 animate-pulse" />
+              <Skeleton className="h-4 w-48 bg-muted/60 animate-pulse mt-1.5" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="hidden lg:block space-y-3">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="flex gap-4 items-center py-3 border-b border-border last:border-none">
+                    <Skeleton className="h-4 w-12 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-4 flex-1 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-4 w-32 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-4 w-20 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-4 w-24 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-4 w-24 bg-muted/60 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+              <div className="block lg:hidden space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="p-4 border border-border rounded-lg space-y-2">
+                    <Skeleton className="h-4 w-1/3 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-3 w-1/2 bg-muted/60 animate-pulse" />
+                    <Skeleton className="h-3 w-1/4 bg-muted/60 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <Card className="border-border">
           <CardHeader className="pb-2 sm:pb-4">
             <CardTitle className="text-sm sm:text-base">All Users</CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              {filteredByStatus.length} users found
+              {totalUsersCount} users found
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -751,8 +774,8 @@ export default function GuidesPage() {
                       <td className="py-3 text-sm text-foreground">
                         {user.role === "GUIDE" || user.role === "DRIVER"
                           ? getVerificationBadge(
-                              user.verificationStatus || "NOT_APPLIED",
-                            )
+                            user.verificationStatus || "NOT_APPLIED",
+                          )
                           : "-"}
                       </td>
                       <td className="py-3 text-sm text-foreground">
@@ -973,7 +996,7 @@ export default function GuidesPage() {
             </div>
 
             {/* Pagination Controls */}
-            {Math.ceil(filteredByStatus.length / 20) > 1 && (
+            {totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-border/40 px-4 py-3 sm:px-6 mt-4">
                 <div className="flex flex-1 justify-between sm:hidden">
                   <Button
@@ -987,8 +1010,8 @@ export default function GuidesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredByStatus.length / 20), p + 1))}
-                    disabled={currentPage === Math.ceil(filteredByStatus.length / 20)}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
                   >
                     Next
                   </Button>
@@ -998,9 +1021,9 @@ export default function GuidesPage() {
                     <p className="text-sm text-muted-foreground">
                       Showing <span className="font-medium">{(currentPage - 1) * 20 + 1}</span> to{" "}
                       <span className="font-medium">
-                        {Math.min(currentPage * 20, filteredByStatus.length)}
+                        {Math.min(currentPage * 20, totalUsersCount)}
                       </span>{" "}
-                      of <span className="font-medium">{filteredByStatus.length}</span> results
+                      of <span className="font-medium">{totalUsersCount}</span> results
                     </p>
                   </div>
                   <div>
@@ -1015,13 +1038,13 @@ export default function GuidesPage() {
                         Previous
                       </Button>
                       <div className="flex items-center px-4 text-sm font-medium text-foreground">
-                        Page {currentPage} of {Math.ceil(filteredByStatus.length / 20)}
+                        Page {currentPage} of {totalPages}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredByStatus.length / 20), p + 1))}
-                        disabled={currentPage === Math.ceil(filteredByStatus.length / 20)}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
                         className="rounded-r-md"
                       >
                         Next
@@ -1060,7 +1083,7 @@ export default function GuidesPage() {
               <div className="space-y-4 text-sm">
                 <div className="flex items-center gap-4">
                   {selectedUserDetails.avatar ||
-                  providerDetails?.driverPhoto ? (
+                    providerDetails?.driverPhoto ? (
                     <img
                       src={
                         selectedUserDetails.avatar ||
@@ -1120,7 +1143,7 @@ export default function GuidesPage() {
                       <p className="font-medium mt-1">
                         {getVerificationBadge(
                           selectedUserDetails.guideVerificationStatus ||
-                            "NOT_APPLIED",
+                          "NOT_APPLIED",
                         )}
                       </p>
                     </div>

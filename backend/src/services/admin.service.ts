@@ -5,7 +5,14 @@ import { sendEmail } from "../config/email.config";
 import { generateStatusEmail } from "../utils/emailTemplates";
 
 export class UserService {
-  async getAllUsers(filters?: { role?: string; status?: string; search?: string }) {
+  async getAllUsers(filters?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    verification?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const query: any = {};
 
     if (filters?.status === "DELETED") {
@@ -30,7 +37,36 @@ export class UserService {
       ];
     }
 
-    const users = await User.find(query).sort({ createdAt: -1 });
+    if (filters?.verification && filters.verification !== "all") {
+      // Find all VERIFIED guides/drivers
+      const { Guide } = await import("../models/Guide");
+      const verifiedGuides = await Guide.find({ verificationStatus: "VERIFIED" }).select("userId").lean();
+      const verifiedGuideUserIds = verifiedGuides.map(g => g.userId.toString());
+
+      const { Driver } = await import("../models/Driver");
+      const verifiedDrivers = await Driver.find({ verificationStatus: "VERIFIED" }).select("userId").lean();
+      const verifiedDriverUserIds = verifiedDrivers.map(d => d.userId.toString());
+
+      const verifiedUserIds = [...verifiedGuideUserIds, ...verifiedDriverUserIds];
+
+      if (filters.verification === "VERIFIED") {
+        query._id = { $in: verifiedUserIds };
+      } else if (filters.verification === "UNVERIFIED") {
+        query._id = { $nin: verifiedUserIds };
+      }
+    }
+
+    const page = filters?.page ? Number(filters.page) : 1;
+    const limit = filters?.limit ? Number(filters.limit) : 20;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    const users = await User.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     // Enrich with guide/driver specific fields
     const enrichedUsers = await Promise.all(users.map(async (user) => {
@@ -49,7 +85,13 @@ export class UserService {
       return u;
     }));
 
-    return enrichedUsers;
+    return {
+      users: enrichedUsers,
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit
+    };
   }
 
   async getUserDetail(userId: string) {

@@ -267,6 +267,8 @@ export class BookingService {
     dateRange?: string;
     search?: string;
     bookingType?: string;
+    page?: number;
+    limit?: number;
   }) {
     const query: any = {};
 
@@ -325,6 +327,13 @@ export class BookingService {
       ].filter(Boolean);
     }
 
+    const page = filters?.page ? Number(filters.page) : 1;
+    const limit = filters?.limit ? Number(filters.limit) : 20;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await Booking.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / limit);
+
     const bookings = await Booking.find(query)
       .populate({
         path: "guideId",
@@ -335,9 +344,19 @@ export class BookingService {
         populate: { path: "userId" },
       })
       .populate("userId")
-      .sort({ bookingDate: -1 });
+      .sort({ bookingDate: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    return this.addReviewStatus(bookings);
+    const enriched = await this.addReviewStatus(bookings);
+
+    return {
+      bookings: enriched,
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit
+    };
   }
 
   async getBookingById(bookingId: string) {

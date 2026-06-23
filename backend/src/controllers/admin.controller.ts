@@ -7,9 +7,23 @@ export class AdminController {
     const role = typeof req.query.role === "string" ? req.query.role.toUpperCase() : undefined;
     const status = typeof req.query.status === "string" ? req.query.status.toUpperCase() : undefined;
     const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+    const verification = typeof req.query.verification === "string" ? req.query.verification : undefined;
+    const page = typeof req.query.page === "string" ? parseInt(req.query.page) : 1;
+    const limit = typeof req.query.limit === "string" ? parseInt(req.query.limit) : 20;
 
-    const users = await userService.getAllUsers({ role, status, search });
-    res.json(users);
+    const result = await userService.getAllUsers({
+      role,
+      status,
+      search,
+      verification,
+      page,
+      limit,
+    });
+    res.json({
+      success: true,
+      message: "Users retrieved successfully",
+      data: result,
+    });
   }
 
   async getUserDetail(req: AuthRequest, res: Response) {

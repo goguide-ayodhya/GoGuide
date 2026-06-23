@@ -35,6 +35,8 @@ type Summary = {
     bookingId?: {
       touristName?: string;
       tourType?: string;
+      finalPrice?: number;
+      totalPrice?: number;
     } | null;
   }>;
 };

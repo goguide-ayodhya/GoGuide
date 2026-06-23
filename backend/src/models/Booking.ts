@@ -233,9 +233,12 @@ BookingSchema.pre("validate", function (next) {
   next();
 });
 
-export const Booking = model<IBooking>("Booking", BookingSchema);
-
 BookingSchema.index({ userId: 1 });
 BookingSchema.index({ guideId: 1 });
 BookingSchema.index({ driverId: 1 });
 BookingSchema.index({ status: 1 });
+BookingSchema.index({ status: 1, paymentStatus: 1, bookingType: 1, bookingDate: -1 });
+BookingSchema.index({ bookingDate: -1 });
+BookingSchema.index({ touristName: 1, bookingDate: -1 });
+
+export const Booking = model<IBooking>("Booking", BookingSchema);

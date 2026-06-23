@@ -31,11 +31,21 @@ const handleResOrError = async (res: Response) => {
 };
 
 // Get Users
-export const getUsersApi = async (role?: string, status?: string, search?: string) => {
+export const getUsersApi = async (
+  role?: string,
+  status?: string,
+  search?: string,
+  verification?: string,
+  page: number = 1,
+  limit: number = 20
+) => {
   const params = new URLSearchParams();
   if (role && role !== "all") params.set("role", role);
   if (status && status !== "all") params.set("status", status);
   if (search) params.set("search", search);
+  if (verification && verification !== "all") params.set("verification", verification);
+  params.set("page", page.toString());
+  params.set("limit", limit.toString());
 
   const url = `${base_url}admin/users${params.toString() ? `?${params.toString()}` : ""}`;
   const res = await fetch(url, {

@@ -77,7 +77,7 @@ export default function Home() {
     { name: "Ramodhya | Ayodhya", image: assets.p_01 },
     { name: "AAYOVEA", image: assets.aayovea },
     { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
-    
+
     { name: "Ramodhya | Ayodhya", image: assets.p_01 },
     { name: "AAYOVEA", image: assets.aayovea },
     { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
@@ -193,27 +193,43 @@ export default function Home() {
               </b>{" "}
             </h2>
 
-            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth">
+            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth pb-2">
               {destinations.map((item, index) => (
                 <div
                   key={index}
                   className="
-              min-w-[35%] sm:min-w-[22%] md:min-w-[18%] lg:min-w-[16%]
-              snap-start
-              rounded-xl overflow-hidden hover:shadow-sm
-            "
+        flex-shrink-0
+        w-[70%]
+        sm:w-[45%]
+        md:w-[30%]
+        lg:w-[22%]
+        xl:w-[18%]
+        snap-start
+        overflow-hidden
+        rounded-2xl
+        bg-white
+        shadow-sm
+        transition-all duration-300
+        hover:shadow-lg
+      "
                 >
-                  <div className="relative h-32 sm:h-40 md:h-48 lg:h-56">
+                  <div className="relative aspect-[4/5] overflow-hidden">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 120px, 240px"
+                      className="object-cover transition-transform duration-300 hover:scale-105"
+                      sizes="
+            (max-width: 640px) 70vw,
+            (max-width: 768px) 45vw,
+            (max-width: 1024px) 30vw,
+            18vw
+          "
                     />
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-slate-800">
+
+                  <div className="py-3">
+                    <p className="text-center text-sm sm:text-base font-medium text-slate-800">
                       {item.name}
                     </p>
                   </div>

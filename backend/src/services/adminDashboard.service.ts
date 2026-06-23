@@ -61,7 +61,7 @@ export class DashboardService {
       isDeleted: { $ne: true }
     });
 
-    const totalBookings = await Booking.countDocuments(dateFilter) + await Ride.countDocuments(dateFilter);
+    const totalBookings = await Booking.countDocuments(dateFilter);
 
     const unseenBookings = await Booking.countDocuments({
       isSeenByAdmin: false,
@@ -70,16 +70,10 @@ export class DashboardService {
     const completedBookings = await Booking.countDocuments({
       status: "COMPLETED",
       ...dateFilter
-    }) + await Ride.countDocuments({
-      status: { $in: ["completed", "reviewed"] },
-      ...dateFilter
     });
 
     const pendingBookings = await Booking.countDocuments({
       status: "PENDING",
-      ...dateFilter
-    }) + await Ride.countDocuments({
-      status: "pending",
       ...dateFilter
     });
 

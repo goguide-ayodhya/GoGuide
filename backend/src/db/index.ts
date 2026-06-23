@@ -93,7 +93,7 @@ const initializeDatabase = (): Database => {
   // Seed Guides
   const guideData = [
     {
-      name: "Rahul Sharma",
+      name: "Go Guide",
       email: "rahul@example.com",
       phone: "+91 9876543211",
       status: GuideStatus.APPROVED,

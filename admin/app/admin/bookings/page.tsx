@@ -15,6 +15,15 @@ import { formatDate } from "@/lib/utils";
 import { BookingFilters } from "@/components/admin/bookings/BookingFilters";
 import { BookingTable } from "@/components/admin/bookings/BookingTable";
 import { BookingDetailsModal } from "@/components/admin/bookings/BookingDetailsModal";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface AdminBooking {
   id: string;
@@ -145,10 +154,16 @@ export default function BookingsPage() {
   );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalBookingsCount, setTotalBookingsCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch bookings on component mount and when filters change
+  // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
+  }, [filterStatus, filterPayment, filterDate, filterType, searchQuery]);
+
+  // Fetch bookings on page or filter changes
+  useEffect(() => {
     const fetchBookings = async () => {
       try {
         setLoading(true);
@@ -159,28 +174,34 @@ export default function BookingsPage() {
           dateRange: filterDate,
           bookingType: filterType,
           search: searchQuery.trim() || undefined,
+          page: currentPage,
+          limit: 20
         };
         const raw = await getAllBookings(filters);
-        const list = Array.isArray(raw)
-          ? raw
-          : (raw && (raw.data || raw.items)) || [];
+        const list = raw?.bookings || (Array.isArray(raw) ? raw : raw?.data || []);
+        const totalCount = raw?.totalCount ?? list.length;
+        const totalP = raw?.totalPages ?? Math.ceil(totalCount / 20);
 
         // Convert API bookings to UI format (defensive)
         const uiBookings = list.map((booking: ApiBooking | any) =>
           convertApiBookingToUi(booking),
         );
         setBookings(uiBookings);
+        setTotalBookingsCount(totalCount);
+        setTotalPages(totalP);
       } catch (err: any) {
         console.error("Failed to fetch bookings:", err);
         setError(err?.message || "Failed to load bookings");
         setBookings([]);
+        setTotalBookingsCount(0);
+        setTotalPages(1);
       } finally {
         setLoading(false);
       }
     };
 
     fetchBookings();
-  }, [filterStatus, filterPayment, filterDate, filterType, searchQuery]);
+  }, [filterStatus, filterPayment, filterDate, filterType, searchQuery, currentPage]);
 
   const handleApprove = async (booking: AdminBooking) => {
     try {
@@ -287,9 +308,36 @@ export default function BookingsPage() {
 
       {/* Loading State */}
       {loading && (
-        <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading bookings...</p>
+        <div className="space-y-4">
+          <BookingFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            filterStatus={filterStatus}
+            onStatusChange={setFilterStatus}
+            filterPayment={filterPayment}
+            onPaymentChange={setFilterPayment}
+            filterDate={filterDate}
+            onDateChange={setFilterDate}
+            filterType={filterType}
+            onTypeChange={setFilterType}
+          />
+          <Card className="border-border">
+            <CardHeader className="pb-2 sm:pb-4">
+              <Skeleton className="h-6 w-32 bg-muted/60 animate-pulse" />
+              <Skeleton className="h-4 w-48 bg-muted/60 animate-pulse mt-1.5" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4 items-center py-3 border-b border-border last:border-none">
+                  <Skeleton className="h-4 w-16 bg-muted/60 animate-pulse" />
+                  <Skeleton className="h-4 flex-1 bg-muted/60 animate-pulse" />
+                  <Skeleton className="h-4 w-32 bg-muted/60 animate-pulse" />
+                  <Skeleton className="h-4 w-20 bg-muted/60 animate-pulse" />
+                  <Skeleton className="h-4 w-24 bg-muted/60 animate-pulse" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -311,7 +359,7 @@ export default function BookingsPage() {
 
           {/* Bookings Table */}
           <BookingTable
-            bookings={bookings.slice((currentPage - 1) * 20, currentPage * 20)}
+            bookings={bookings}
             onViewDetails={viewDetails}
             onApprove={handleApprove}
             onMarkSeen={handleMarkSeen}
@@ -321,7 +369,7 @@ export default function BookingsPage() {
           />
 
           {/* Pagination Controls */}
-          {Math.ceil(bookings.length / 20) > 1 && (
+          {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border/40 px-4 py-3 sm:px-6 mt-4">
               <div className="flex flex-1 justify-between sm:hidden">
                 <Button
@@ -335,8 +383,8 @@ export default function BookingsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(Math.ceil(bookings.length / 20), p + 1))}
-                  disabled={currentPage === Math.ceil(bookings.length / 20)}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
                 >
                   Next
                 </Button>
@@ -346,9 +394,9 @@ export default function BookingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Showing <span className="font-medium">{(currentPage - 1) * 20 + 1}</span> to{" "}
                     <span className="font-medium">
-                      {Math.min(currentPage * 20, bookings.length)}
+                      {Math.min(currentPage * 20, totalBookingsCount)}
                     </span>{" "}
-                    of <span className="font-medium">{bookings.length}</span> results
+                    of <span className="font-medium">{totalBookingsCount}</span> results
                   </p>
                 </div>
                 <div>
@@ -363,13 +411,13 @@ export default function BookingsPage() {
                       Previous
                     </Button>
                     <div className="flex items-center px-4 text-sm font-medium text-foreground">
-                      Page {currentPage} of {Math.ceil(bookings.length / 20)}
+                      Page {currentPage} of {totalPages}
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(bookings.length / 20), p + 1))}
-                      disabled={currentPage === Math.ceil(bookings.length / 20)}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
                       className="rounded-r-md"
                     >
                       Next

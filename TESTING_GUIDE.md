@@ -62,7 +62,7 @@ curl "http://localhost:5000/api/review-qr/token/abc123-def456-ghi789"
 
 ### Step 3: Test Review Submission
 1. Click a star rating (e.g., 4 stars)
-2. Optionally enter name "Rahul Sharma"
+2. Optionally enter name "Go Guide"
 3. Optionally enter comment "Great guide!"
 4. Click "Submit Review"
 5. **Expected:**

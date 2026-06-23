@@ -12,8 +12,6 @@ import {
   User,
   ThumbsUp,
   Flag,
-  Upload,
-  Image as ImageIcon,
   CheckCircle,
   Shield,
   Loader2,
@@ -28,17 +26,17 @@ import {
   getWebsiteStatsApi,
   getReviewsAdminApi,
   toggleHelpfulApi,
-  reportReviewApi,
-  uploadReviewImagesApi
+  reportReviewApi
 } from "@/lib/api/reviews";
 import { useAuth } from "@/contexts/AuthContext";
+import { poppins } from "@/lib/fonts";
 
 export default function HappyTravelers() {
   const { user, isLoggedIn } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState({ averageRating: 4.8, totalReviews: 5 });
   const [loading, setLoading] = useState(true);
-  
+
   // Immersive Modal States
   const [modalOpen, setModalOpen] = useState(false);
   const [modalReviews, setModalReviews] = useState<any[]>([]);
@@ -46,12 +44,12 @@ export default function HappyTravelers() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
-  
+
   // Filters for Modal
   const [filterType, setFilterType] = useState<"all" | "website" | "guide">("all");
   const [filterSort, setFilterSort] = useState<"latest" | "highest" | "featured">("latest");
   const [searchText, setSearchText] = useState("");
-  
+
   // Write Review Modal States
   const [writeOpen, setWriteOpen] = useState(false);
   const [newReview, setNewReview] = useState({
@@ -63,12 +61,10 @@ export default function HappyTravelers() {
     bookingType: "Guide Booking",
     images: [] as string[]
   });
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
-  
+
   // Report States
   const [reportingReviewId, setReportingReviewId] = useState<string | null>(null);
   const [reportingReviewType, setReportingReviewType] = useState<"website" | "guide">("website");
@@ -93,7 +89,7 @@ export default function HappyTravelers() {
         getWebsiteReviewsApi(10).catch(() => null),
         getWebsiteStatsApi().catch(() => null)
       ]);
-      
+
       if (reviewsRes && Array.isArray(reviewsRes) && reviewsRes.length > 0) {
         setReviews(reviewsRes);
       } else {
@@ -129,7 +125,7 @@ export default function HappyTravelers() {
         type: filterType === "all" ? "" : filterType,
         sort: filterSort === "featured" ? "recent" : filterSort === "highest" ? "recent" : "recent", // default fallback, logic handled dynamically
       };
-      
+
       // Map frontend filter logic to backend query params
       if (filterSort === "featured") params.isFeatured = true;
       if (filterSort === "highest") params.rating = 5;
@@ -177,14 +173,6 @@ export default function HappyTravelers() {
     }
   }, [filterType, filterSort, searchText, modalOpen]);
 
-  // Image Upload helper
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files).slice(0, 3); // limit to 3
-      setSelectedFiles(files);
-    }
-  };
-
   // Submit Review Handler
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,24 +185,10 @@ export default function HappyTravelers() {
     setSubmitError(null);
 
     try {
-      let uploadedUrls: string[] = [];
-      if (selectedFiles.length > 0) {
-        setUploadingImages(true);
-        const formData = new FormData();
-        selectedFiles.forEach((file) => {
-          formData.append("images", file);
-        });
-        const uploadRes = await uploadReviewImagesApi(formData);
-        if (uploadRes && uploadRes.success) {
-          uploadedUrls = uploadRes.urls;
-        }
-        setUploadingImages(false);
-      }
-
       const payload = {
         ...newReview,
         profileImage: isLoggedIn && user ? (user.avatar || user.profileImage || "") : "",
-        images: uploadedUrls
+        images: []
       };
 
       const res = await createWebsiteReviewApi(payload);
@@ -229,7 +203,6 @@ export default function HappyTravelers() {
           bookingType: "Guide Booking",
           images: []
         });
-        setSelectedFiles([]);
         // Refresh stats and home listing
         loadHomepageData();
         // Refresh modal list if open
@@ -294,9 +267,8 @@ export default function HappyTravelers() {
         {Array.from({ length: 5 }).map((_, i) => (
           <Star
             key={i}
-            className={`w-${size} h-${size} ${
-              i < rating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700"
-            }`}
+            className={`w-${size} h-${size} ${i < rating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700"
+              }`}
           />
         ))}
       </div>
@@ -309,30 +281,27 @@ export default function HappyTravelers() {
 
   return (
     <section className="py-24 relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      
+
       {/* Dynamic Background Gradients */}
       <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/10 w-96 h-96 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Immersive Header Stats */}
         <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8 relative z-10">
           <div className="text-center md:text-left space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              Testimonials
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Happy Travelers
+            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
+              Happy{" "}
+              <b className={`${poppins.className} text-secondary`}>
+                Travelors
+              </b>{" "}
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg max-w-xl">
-              Discover authentic experiences and reviews shared by our tourist community in Ayodhya.
-            </p>
+
           </div>
 
           {/* Stats Glass Counter */}
-          <div className="flex items-center gap-6 p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-2xl backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-6 p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-xl shrink-0">
             <div className="text-center border-r border-slate-200/50 dark:border-slate-800/50 pr-6">
               <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-1">
                 <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
@@ -342,7 +311,7 @@ export default function HappyTravelers() {
               </div>
               <p className="text-xs text-slate-400 font-medium">Average Rating</p>
             </div>
-            
+
             <div className="text-center border-r border-slate-200/50 dark:border-slate-800/50 pr-6">
               <div className="flex items-center justify-center gap-1.5 text-indigo-500 mb-1">
                 <MessageSquare className="w-5 h-5 text-indigo-500" />
@@ -378,7 +347,7 @@ export default function HappyTravelers() {
           <>
             {/* ─── DESKTOP VIEW: Infinite Auto-scrolling Dual Marquee Tracks ─── */}
             <div className="hidden md:block relative marquee-container select-none overflow-hidden space-y-6 py-4">
-              
+
               {/* Edge Blur Gradients */}
               <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
               <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
@@ -389,9 +358,8 @@ export default function HappyTravelers() {
                   {duplicatedReviews1.map((item, idx) => (
                     <div
                       key={`r1-${item._id}-${idx}`}
-                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${
-                        idx % 3 === 0 ? "w-[340px]" : idx % 3 === 1 ? "w-[390px]" : "w-[440px]"
-                      }`}
+                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${idx % 3 === 0 ? "w-[340px]" : idx % 3 === 1 ? "w-[390px]" : "w-[440px]"
+                        }`}
                     >
                       <div className="space-y-4">
                         <div className="flex justify-between items-start">
@@ -459,9 +427,8 @@ export default function HappyTravelers() {
                   {duplicatedReviews2.map((item, idx) => (
                     <div
                       key={`r2-${item._id}-${idx}`}
-                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${
-                        idx % 3 === 0 ? "w-[440px]" : idx % 3 === 1 ? "w-[340px]" : "w-[390px]"
-                      }`}
+                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${idx % 3 === 0 ? "w-[440px]" : idx % 3 === 1 ? "w-[340px]" : "w-[390px]"
+                        }`}
                     >
                       <div className="space-y-4">
                         <div className="flex justify-between items-start">
@@ -567,7 +534,7 @@ export default function HappyTravelers() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="relative w-10 h-10 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center">
                       {item.profileImage ? (
@@ -652,7 +619,7 @@ export default function HappyTravelers() {
                     </h3>
                     <p className="text-sm text-slate-400">Read what visitors are saying about their trips.</p>
                   </div>
-                  
+
                   {/* Write a Review Button */}
                   <button
                     onClick={() => {
@@ -681,11 +648,10 @@ export default function HappyTravelers() {
                           setFilterType(btn.id as any);
                           setPage(1);
                         }}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          filterType === btn.id
-                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
-                        }`}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterType === btn.id
+                          ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
+                          }`}
                       >
                         {btn.label}
                       </button>
@@ -705,11 +671,10 @@ export default function HappyTravelers() {
                           setFilterSort(btn.id as any);
                           setPage(1);
                         }}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          filterSort === btn.id
-                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
-                        }`}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${filterSort === btn.id
+                          ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
+                          }`}
                       >
                         {btn.label}
                       </button>
@@ -847,11 +812,10 @@ export default function HappyTravelers() {
                         <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100 dark:border-slate-805">
                           <button
                             onClick={() => handleHelpfulClick(review._id, review.type)}
-                            className={`flex items-center gap-1.5 text-[11px] font-bold transition-all px-3 py-1.5 rounded-lg border ${
-                              review.userVoted
-                                ? "bg-indigo-50 border-indigo-200 text-indigo-600"
-                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50"
-                            }`}
+                            className={`flex items-center gap-1.5 text-[11px] font-bold transition-all px-3 py-1.5 rounded-lg border ${review.userVoted
+                              ? "bg-indigo-50 border-indigo-200 text-indigo-600"
+                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50"
+                              }`}
                           >
                             <ThumbsUp className={`w-3.5 h-3.5 ${review.userVoted ? "fill-indigo-600" : ""}`} />
                             Helpful ({review.helpfulCount})
@@ -961,11 +925,10 @@ export default function HappyTravelers() {
                             className="transition transform active:scale-95"
                           >
                             <Star
-                              className={`w-9 h-9 transition-colors ${
-                                star <= newReview.rating
-                                  ? "fill-amber-400 text-amber-400"
-                                  : "fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700"
-                              }`}
+                              className={`w-9 h-9 transition-colors ${star <= newReview.rating
+                                ? "fill-amber-400 text-amber-400"
+                                : "fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700"
+                                }`}
                             />
                           </button>
                         ))}
@@ -979,7 +942,7 @@ export default function HappyTravelers() {
                         type="text"
                         value={newReview.travelerName}
                         onChange={(e) => setNewReview({ ...newReview, travelerName: e.target.value })}
-                        placeholder="e.g. Rahul Sharma"
+                        placeholder="e.g. Go Guide"
                         required
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                       />
@@ -1037,28 +1000,6 @@ export default function HappyTravelers() {
                         required
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
                       />
-                    </div>
-
-                    {/* File Drop Area */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Upload photos (Max 3)</label>
-                      <div className="relative border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 text-center hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageChange}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                        <p className="text-xs text-slate-400">Click or drag images to upload</p>
-                      </div>
-                      {selectedFiles.length > 0 && (
-                        <div className="flex gap-2 mt-3 items-center text-xs text-indigo-500 font-semibold">
-                          <ImageIcon className="w-4 h-4 shrink-0" />
-                          <span>{selectedFiles.length} file(s) selected</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Submit */}
