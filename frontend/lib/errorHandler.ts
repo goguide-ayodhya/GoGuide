@@ -134,9 +134,9 @@ export function validatePassword(password: string, minLength = 6): string {
 export function validatePhone(phone: string): string {
   if (!phone) return "Phone number is required";
 
-  const phoneRegex = /^[0-9]{10,}$/;
+  const phoneRegex = /^[0-9]{10}$/;
   if (!phoneRegex.test(phone.replace(/\D/g, ""))) {
-    return "Phone number must be at least 10 digits";
+    return "Phone number must be exactly 10 digits";
   }
 
   return "";

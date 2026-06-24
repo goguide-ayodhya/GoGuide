@@ -185,56 +185,42 @@ export default function Home() {
         </section>
 
         {/* Destinations */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
+        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
+          <div className="mx-auto max-w-6xl relative">
+            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-12 text-balance">
               Popular{" "}
               <b className={`${poppins.className} text-secondary`}>
                 Destinations
               </b>{" "}
             </h2>
 
-            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth pb-2">
+            <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth pb-6 px-1">
               {destinations.map((item, index) => (
                 <div
                   key={index}
-                  className="
-        flex-shrink-0
-        w-[70%]
-        sm:w-[45%]
-        md:w-[30%]
-        lg:w-[22%]
-        xl:w-[18%]
-        snap-start
-        overflow-hidden
-      "
+                  className="flex-shrink-0 w-[75%] sm:w-[48%] md:w-[31%] lg:w-[23%] xl:w-[19%] snap-start group relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-slate-900 border border-slate-800"
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden border border-3 border-secondary bg-secondary/10 rounded-lg">
+                  <div className="relative aspect-[4/5] overflow-hidden">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      className="object-cover p-2 transition-transform duration-300 hover:scale-115"
-                      sizes="
-            (max-width: 640px) 70vw,
-            (max-width: 768px) 45vw,
-            (max-width: 1024px) 30vw,
-            18vw
-          "
-                    />
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      sizes="(max-width: 640px) 75vw, (max-width: 768px) 48vw, (max-width: 1024px) 31vw, 19vw" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
                   </div>
 
-                  <div className="py-3">
-                    <p className="text-center bg-primary rounded-full text-white font-semibold px-2 py-1 text-sm sm:text-base font-medium ">
+                  <div className="absolute bottom-0 inset-x-0 p-4">
+                    <p className="text-center font-bold text-white text-sm sm:text-base tracking-wide uppercase drop-shadow-md">
                       {item.name}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent"></div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-slate-50 to-transparent"></div>
 
-            <div className="flex justify-center mt-2 sm:hidden">
+            <div className="flex justify-center mt-4 sm:hidden">
               <p className="text-xs text-slate-500 animate-pulse">
                 ← Swipe to explore →
               </p>
@@ -243,9 +229,9 @@ export default function Home() {
         </section>
 
         {/* Top Guides */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8">
+        <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <div className="text-center mb-8">
+            <div className="text-center mb-12">
               <h2 className="text-4xl md:text-6xl font-bold text-foreground text-balance">
                 Popular{" "}
                 <b className={`${poppins.className} text-secondary`}>
@@ -262,7 +248,7 @@ export default function Home() {
             {guidesLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div
-                  className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"
+                  className="w-10 h-10 border-4 border-primary border-t-indigo-500 rounded-full animate-spin"
                   aria-hidden
                 ></div>
               </div>
@@ -279,15 +265,15 @@ export default function Home() {
                   return (
                     <article
                       key={guide.id}
-                      className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition transform hover:-translate-y-1 overflow-hidden"
+                      className="group bg-white rounded-2xl border border-slate-100 hover:border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col"
                     >
-                      <div className="relative aspect-square overflow-hidden rounded-[1.75rem] bg-slate-100 border shadow-sm border-border">
+                      <div className="relative aspect-square overflow-hidden bg-slate-50 border-b border-slate-100">
                         {guide.image ? (
                           <Image
                             src={guide.image}
                             alt={guide.userId?.name || guide.name || "Guide"}
                             fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
                             loading="lazy"
                             sizes="(max-width:768px) 100vw, 33vw"
                           />
@@ -297,32 +283,42 @@ export default function Home() {
                           </div>
                         )}
 
-                        <div className="absolute left-3 top-3 bg-white/80 text-slate-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                          {guide.verificationStatus === "VERIFIED"
-                            ? "Verified"
-                            : "Unverified"}
+                        <div className="absolute left-3 top-3 backdrop-blur-md bg-white/70 border border-white/40 text-slate-800 px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase flex items-center gap-1 shadow-sm">
+                          {guide.verificationStatus === "VERIFIED" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Verified
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              Pending
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      <div className="p-4">
-                        <h3 className="text-md font-semibold text-slate-900 truncate">
-                          {guide.userId?.name || guide.name || "Verified guide"}
-                        </h3>
-                        <div className="mt-2 flex items-center justify-between">
+                      <div className="p-5 flex-grow flex flex-col justify-between">
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors duration-200 truncate">
+                            {guide.userId?.name || guide.name || "Verified guide"}
+                          </h3>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-0.5 text-amber-400">
+                            <div className="flex items-center gap-0.5">
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`h-4 w-4 ${i < Math.round(displayRating) ? "text-amber-400 fill-current" : "text-slate-300 fill-current"}`}
+                                  className={`h-3.5 w-3.5 ${i < Math.round(displayRating) ? "text-amber-400 fill-current" : "text-slate-200 fill-current"}`}
                                 />
                               ))}
                             </div>
-                            <span className="text-sm font-medium text-slate-700">
+                            <span className="text-sm font-bold text-slate-700">
                               {displayRating.toFixed(1)}
                             </span>
                           </div>
-                          <span className="text-sm text-slate-500">
+                          <span className="text-xs font-medium text-slate-500">
                             {reviewsCount === 0
                               ? ""
                               : `${reviewsCount} reviews`}
@@ -335,11 +331,11 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-center pt-8">
             <Link href="/tourist/guides">
-              <p className="inline-flex items-center gap-2 bg-white text-slate-800 border border-slate-300 hover:border-indigo-600 hover:text-indigo-600 px-8 py-3.5 rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300 transform group-hover:scale-[1.02]">
+              <p className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-white hover:from-secondary/90 hover:to-orange-600/90 px-8 py-3.5 rounded-full font-bold shadow-md hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 transform hover:scale-[1.02]">
                 <span>View All Guides</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4" />
               </p>
             </Link>
           </div>
@@ -356,7 +352,6 @@ export default function Home() {
 
         {/* How it works */}
         <HowItWorks />
-
 
         {/* Happy Travelers */}
         <HappyTravelers />

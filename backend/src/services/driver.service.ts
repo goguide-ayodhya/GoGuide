@@ -80,7 +80,7 @@ export class DriverService {
     console.log("[DRIVER-SERVICE] Updating driver profile for user:", userId, "with data:", data);
     const driver = await Driver.findOneAndUpdate({ userId }, data, {
       new: true,
-    });
+    }).populate("userId");
     if (!driver) {
       throw new NotFound("Driver not found");
     }

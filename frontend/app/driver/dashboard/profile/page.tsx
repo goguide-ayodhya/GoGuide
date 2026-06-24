@@ -40,10 +40,15 @@ export default function ProfilePage() {
   const { reviews, getDriverReview } = useReview();
   const [isEditing, setIsEditing] = useState(false);
   const isDisabled = myDriver?.verificationStatus === "REJECTED";
+  const formatPhone = (phone?: string) => {
+    if (!phone || phone.startsWith("google-")) return "";
+    return phone;
+  };
+
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    phone: user?.phone || myDriver?.phone || "",
+    phone: formatPhone(user?.phone || myDriver?.phone),
     vehicleType: myDriver?.vehicleType || "",
     vehicleName: myDriver?.vehicleName || "",
     vehicleNumber: myDriver?.vehicleNumber || "",
@@ -103,7 +108,7 @@ export default function ProfilePage() {
     const newFormData = {
       name: myDriver.name || user?.name || "",
       email: myDriver.email || user?.email || "",
-      phone: myDriver.phone || user?.phone || "",
+      phone: formatPhone(myDriver.phone || user?.phone),
       vehicleType: myDriver.vehicleType || "",
       vehicleName: myDriver.vehicleName || "",
       vehicleNumber: myDriver.vehicleNumber || "",
@@ -129,6 +134,15 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!myDriver) return;
+
+    if (!formData.phone || formData.phone.length !== 10) {
+      toast({
+        title: "Validation error",
+        description: "Phone number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (formData.seats < 1) return;
 
@@ -162,13 +176,21 @@ export default function ProfilePage() {
     >,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "yearsOfExperience" || name === "seats"
-          ? parseInt(value) || 0
-          : value,
-    }));
+    if (name === "phone") {
+      const val = value.replace(/\D/g, "").slice(0, 10);
+      setFormData((prev) => ({
+        ...prev,
+        phone: val,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]:
+          name === "yearsOfExperience" || name === "seats"
+            ? parseInt(value) || 0
+            : value,
+      }));
+    }
   };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -454,6 +476,7 @@ export default function ProfilePage() {
                 </label>
                 <Input
                   name="phone"
+                  type="tel"
                   value={formData.phone}
                   onChange={handleChange}
                   disabled={!isEditing}

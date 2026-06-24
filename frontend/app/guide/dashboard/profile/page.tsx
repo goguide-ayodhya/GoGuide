@@ -43,7 +43,14 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const isDisabled = myGuide?.verificationStatus === "REJECTED";
+  const formatPhone = (phone?: string) => {
+    if (!phone || phone.startsWith("google-")) return "";
+    return phone;
+  };
+
   const [formData, setFormData] = useState({
+    name: user?.name || "",
+    phone: formatPhone(user?.phone || myGuide?.userId?.phone || myGuide?.phone),
     bio: myGuide?.bio || "",
     specialities: myGuide?.specialities || [],
     locations: myGuide?.locations || [],
@@ -82,6 +89,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!myGuide) return;
     setFormData({
+      name: myGuide.name || user?.name || "",
+      phone: formatPhone(myGuide.userId?.phone || myGuide.phone || user?.phone),
       bio: myGuide.bio || "",
       specialities: myGuide.specialities || [],
       locations: myGuide.locations || [],
@@ -90,7 +99,7 @@ export default function ProfilePage() {
       languages: myGuide.languages || [],
       reviews: myGuide.totalReviews,
     });
-  }, [myGuide]);
+  }, [myGuide, user]);
 
   // Fetch review QR token
   useEffect(() => {
@@ -105,7 +114,18 @@ export default function ProfilePage() {
   const handleSave = async () => {
     if (!myGuide) return;
 
+    if (!formData.phone || formData.phone.length !== 10) {
+      toast({
+        title: "Validation error",
+        description: "Phone number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updateData = {
+      name: formData.name,
+      phone: formData.phone,
       specialities: formData.specialities,
       bio: formData.bio,
       yearsOfExperience: formData.yearsOfExperience,
@@ -125,10 +145,23 @@ export default function ProfilePage() {
     >,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "yearsOfExperience" ? parseInt(value) : value,
-    }));
+    if (name === "phone") {
+      const val = value.replace(/\D/g, "").slice(0, 10);
+      setFormData((prev) => ({
+        ...prev,
+        phone: val,
+      }));
+    } else if (name === "name") {
+      setFormData((prev) => ({
+        ...prev,
+        name: value,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: name === "yearsOfExperience" ? parseInt(value) || 0 : value,
+      }));
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -421,17 +454,15 @@ export default function ProfilePage() {
               Manage your guide profile and preferences
             </p>
           </div>
-          <Button
-            disabled={isDisabled}
-            onClick={() => setIsEditing(!isEditing)}
-            className={
-              isEditing
-                ? "bg-red-500/20 text-red-600 hover:bg-red-500/30"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            }
-          >
-            {isEditing ? "Cancel" : "Edit Profile"}
-          </Button>
+          {!isEditing && (
+            <Button
+              disabled={isDisabled}
+              onClick={() => setIsEditing(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl"
+            >
+              Edit Profile
+            </Button>
+          )}
         </div>
 
         {/* Status Cards */}
@@ -519,8 +550,10 @@ export default function ProfilePage() {
                     Full Name
                   </label>
                   <Input
-                    value={user.name}
-                    disabled
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    disabled={!isEditing}
                     className="bg-muted border-border"
                   />
                 </div>
@@ -531,7 +564,27 @@ export default function ProfilePage() {
                   <Input
                     value={user.email}
                     disabled
+                    className="bg-muted border-border cursor-not-allowed opacity-60"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Email cannot be changed
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">
+                    Phone Number
+                  </label>
+                  <Input
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    disabled={!isEditing}
                     className="bg-muted border-border"
+                    placeholder="Your phone number"
                   />
                 </div>
               </div>
@@ -551,17 +604,7 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {isEditing && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSave}
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    <Save size={18} />
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              )}
+
             </div>
           </CardContent>
         </Card>
@@ -637,17 +680,7 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {isEditing && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSave}
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    <Save size={18} />
-                    {loading ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              )}
+
             </div>
           </CardContent>
         </Card>
@@ -1014,6 +1047,43 @@ export default function ProfilePage() {
         onCropComplete={handleAvatarCropComplete}
         outputFileName="avatar.jpg"
       />
+
+      {isEditing && (
+        <div className="fixed bottom-6 right-6 md:right-12 z-50 flex items-center gap-3 p-4 bg-background/90 dark:bg-slate-900/90 backdrop-blur-md border border-border rounded-2xl shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsEditing(false);
+              setPreviewImage(null);
+              setSelectedImage(null);
+              if (myGuide) {
+                setFormData({
+                  name: myGuide.name || user?.name || "",
+                  phone: formatPhone(myGuide.userId?.phone || myGuide.phone || user?.phone),
+                  bio: myGuide.bio || "",
+                  specialities: myGuide.specialities || [],
+                  locations: myGuide.locations || [],
+                  certificates: myGuide.certificates || [],
+                  yearsOfExperience: myGuide.yearsOfExperience || 0,
+                  languages: myGuide.languages || [],
+                  reviews: myGuide.totalReviews,
+                });
+              }
+            }}
+            className="rounded-xl border-border hover:bg-muted"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+          >
+            <Save size={18} />
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

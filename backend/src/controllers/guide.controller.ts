@@ -57,11 +57,19 @@ export class GuideController {
       }
     }
 
+    const userUpdate: any = {};
     if (files?.avatar?.[0]) {
       const url = await uploadImage(files.avatar[0]);
       if (url) {
-        await User.findByIdAndUpdate(userId, { avatar: url });
+        userUpdate.avatar = url;
       }
+    }
+
+    if (req.body.name) userUpdate.name = req.body.name;
+    if (req.body.phone) userUpdate.phone = req.body.phone;
+
+    if (Object.keys(userUpdate).length > 0) {
+      await User.findByIdAndUpdate(userId, userUpdate);
     }
 
     const guide = await guideService.updateGuideProfile(userId, data);

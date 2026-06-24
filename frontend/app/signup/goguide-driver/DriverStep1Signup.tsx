@@ -80,7 +80,10 @@ export function DriverStep1Signup({
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(event) => onChange("phone", event.target.value)}
+                onChange={(event) => {
+                  const val = event.target.value.replace(/\D/g, "").slice(0, 10);
+                  onChange("phone", val);
+                }}
                 className={cn(errors.phone ? "border-red-500" : "bg-muted")}
                 disabled={loading}
               />

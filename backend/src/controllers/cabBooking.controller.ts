@@ -26,7 +26,7 @@ export class CabBookingController {
       }
 
       const bookingData = {
-        userId: req.userId ? req.userId : undefined,
+        userId: req.userId ? req.userId as any : undefined,
         fullName,
         phone,
         numPeople: Number(numPeople),

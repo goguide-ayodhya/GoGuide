@@ -171,10 +171,10 @@ export class DriverController {
     if (req.body.driverName) userUpdate.name = req.body.driverName;
     if (req.body.phone) userUpdate.phone = req.body.phone;
 
-    const driver = await driverService.updateDriverProfile(userId, data);
-    
-    // Mark as complete, update user details
+    // Mark as complete, update user details first
     await User.findByIdAndUpdate(userId, userUpdate);
+
+    const driver = await driverService.updateDriverProfile(userId, data);
 
     res.status(200).json({ success: true, message: "Profile updated", data: driver });
   }

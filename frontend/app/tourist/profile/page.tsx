@@ -53,7 +53,7 @@ export default function ProfilePage() {
     setFormData({
       name: user.name || "",
       email: user.email || "",
-      phone: user.phone || "",
+      phone: (user.phone && !user.phone.startsWith("google-")) ? user.phone : "",
       bio: user.bio || "",
     });
   }, [user]);
@@ -62,14 +62,31 @@ export default function ProfilePage() {
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === "phone") {
+      const val = value.replace(/\D/g, "").slice(0, 10);
+      setFormData((prev) => ({
+        ...prev,
+        phone: val,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSave = async () => {
     if (!user) return;
+
+    if (formData.phone && formData.phone.length !== 10) {
+      toast({
+        title: "Validation error",
+        description: "Phone number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {

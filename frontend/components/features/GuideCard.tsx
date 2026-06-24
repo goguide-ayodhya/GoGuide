@@ -61,7 +61,7 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
       .then((data: any) => {
         if (data?.paymentQR) setPaymentQR(data.paymentQR);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const cardContent = (
@@ -177,10 +177,10 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                         className="px-3 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition"
                       >
                         {cert.name &&
-                        !cert.name.match(
-                          /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
-                        ) &&
-                        !cert.name.startsWith("http")
+                          !cert.name.match(
+                            /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                          ) &&
+                          !cert.name.startsWith("http")
                           ? cert.name
                           : "Doc"}
                       </button>
@@ -192,44 +192,31 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
               )}
             </div>
 
-            <div className="flex justify-between items-center pt-5">
-              <div>
-                {guide.reviewQRToken && guide.reviewCollectionEnabled && (
-                  <button
-                    onClick={() => {
-                      const path = guide.reviewQRToken
-                        ? `/tourist/guides/review/${guide.reviewQRToken}`
-                        : `/tourist/guides/${guide.id}`;
-                      router.push(path);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-primary/20 hover:bg-slate-50"
-                  >
-                    Leave a review
-                  </button>
-                )}
-              </div>
-              <div>
-                {paymentQR?.isEnabled && paymentQR?.url && (
-                  <button
-                    onClick={() => setShowPaymentQR(true)}
-                    className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 bg-primary/20 hover:bg-slate-50"
-                  >
-                    Show Payment QR
-                  </button>
-                )}
-              </div>
+            <div className="w-full pt-5">
+              {guide.reviewQRToken && guide.reviewCollectionEnabled && (
+                <button
+                  onClick={() => {
+                    const path = guide.reviewQRToken
+                      ? `/tourist/guides/review/${guide.reviewQRToken}`
+                      : `/tourist/guides/${guide.id}`;
+                    router.push(path);
+                  }}
+                  className="w-full cursor-pointer border border-slate-200 px-3 py-2 text-sm text-slate-700  hover:bg-slate-50"
+                >
+                  Leave a review
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-2">
             <Button
               onClick={() => router.push(`/tourist/guides/book/${guide.id}`)}
               disabled={!canBook}
-              className={`w-full rounded-2xl shadow-sm shadow-primary/10 ${
-                canBook
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-gray-400 text-gray-200 cursor-not-allowed hover:bg-gray-400"
-              }`}
+              className={`w-full rounded-2xl shadow-sm shadow-primary/10 ${canBook
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-gray-400 text-gray-200 cursor-not-allowed hover:bg-gray-400"
+                }`}
             >
               {canBook ? "Book Now" : "Currently Unavailable"}
             </Button>

@@ -42,7 +42,7 @@ export function CabBookingForm({ onSubmit, isLoading }: CabBookingFormProps) {
     if (!touristName.trim()) newErrors.touristName = 'Name is required'
     if (!email.trim()) newErrors.email = 'Email is required'
     if (!phone.trim()) newErrors.phone = 'Phone is required'
-    else if (phone.length < 10) newErrors.phone = 'Phone must be at least 10 digits'
+    else if (phone.length !== 10) newErrors.phone = 'Phone must be exactly 10 digits'
     if (groupSize < 1) newErrors.groupSize = 'Group size must be at least 1'
 
     // Check if date is in future
@@ -108,7 +108,10 @@ export function CabBookingForm({ onSubmit, isLoading }: CabBookingFormProps) {
           type="tel"
           placeholder="Enter your phone number"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+            setPhone(val);
+          }}
           className="bg-muted border-0"
         />
       </FormField>

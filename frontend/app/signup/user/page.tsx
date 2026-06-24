@@ -277,7 +277,13 @@ export default function UserForm() {
                 type="tel"
                 placeholder="Enter your phone number"
                 value={formData.phone}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setFormData((prev) => ({ ...prev, phone: val }));
+                  if (fieldErrors.phone) {
+                    setFieldErrors({ ...fieldErrors, phone: "" });
+                  }
+                }}
                 className={`bg-muted ${fieldErrors.phone ? "border-red-500" : ""}`}
               />
               {fieldErrors.phone && (

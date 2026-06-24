@@ -94,6 +94,11 @@ export default function BookCabPage() {
       return;
     }
 
+    if (phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -142,7 +147,7 @@ export default function BookCabPage() {
 
       <div className="flex-grow py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          
+
           {/* POSTER BANNER */}
           <section className="relative overflow-hidden rounded-[2rem] border border-indigo-100 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white p-8 md:p-12 shadow-xl shadow-indigo-950/20">
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -170,11 +175,11 @@ export default function BookCabPage() {
                       Talk to Consultant
                     </Button>
                   </a>
-                  
+
                   {/* Desktop show number */}
                   <div className="hidden md:block">
                     <a href="tel:+918881993735">
-                      <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-6 rounded-2xl flex items-center gap-3 text-base shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02]">
+                      <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-6 rounded-2xl flex items-center gap-3 text-base shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02]">
                         <Phone className="w-5 h-5 animate-pulse" />
                         <span>Talk to Consultant: <strong>+91 88819 93735</strong></span>
                       </Button>
@@ -186,25 +191,25 @@ export default function BookCabPage() {
               {/* Clipart - Minimalist Premium Car Graphic */}
               <div className="flex justify-center items-center">
                 <svg className="w-full max-w-[280px] h-auto text-indigo-400 drop-shadow-lg" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="100" cy="60" r="50" fill="url(#paint0_radial)" opacity="0.3"/>
-                  <path d="M10 95H190" stroke="#475569" strokeWidth="2" strokeDasharray="6 6"/>
+                  <circle cx="100" cy="60" r="50" fill="url(#paint0_radial)" opacity="0.3" />
+                  <path d="M10 95H190" stroke="#475569" strokeWidth="2" strokeDasharray="6 6" />
                   {/* Premium Car */}
                   <path d="M50 78C50 78 54 62 68 60C82 58 118 58 132 60C146 62 150 78 150 78C156 78 162 81 162 87C162 93 156 95 150 95H50C44 95 38 93 38 87C38 81 44 78 50 78Z" fill="url(#paint1_linear)" />
-                  <path d="M70 63H97V74H58C60 68 65 64 70 63Z" fill="#E2E8F0" opacity="0.9"/>
-                  <path d="M103 63H130C135 64 140 68 142 74H103V63Z" fill="#E2E8F0" opacity="0.9"/>
+                  <path d="M70 63H97V74H58C60 68 65 64 70 63Z" fill="#E2E8F0" opacity="0.9" />
+                  <path d="M103 63H130C135 64 140 68 142 74H103V63Z" fill="#E2E8F0" opacity="0.9" />
                   {/* Wheels */}
-                  <circle cx="70" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5"/>
-                  <circle cx="70" cy="95" r="4" fill="#94A3B8"/>
-                  <circle cx="130" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5"/>
-                  <circle cx="130" cy="95" r="4" fill="#94A3B8"/>
+                  <circle cx="70" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5" />
+                  <circle cx="70" cy="95" r="4" fill="#94A3B8" />
+                  <circle cx="130" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5" />
+                  <circle cx="130" cy="95" r="4" fill="#94A3B8" />
                   <defs>
                     <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(100 60) rotate(90) scale(50)">
-                      <stop stopColor="#6366F1" stopOpacity="0.5"/>
-                      <stop offset="1" stopColor="#6366F1" stopOpacity="0"/>
+                      <stop stopColor="#6366F1" stopOpacity="0.5" />
+                      <stop offset="1" stopColor="#6366F1" stopOpacity="0" />
                     </radialGradient>
                     <linearGradient id="paint1_linear" x1="38" y1="78" x2="162" y2="78" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#818CF8"/>
-                      <stop offset="1" stopColor="#22D3EE"/>
+                      <stop stopColor="#818CF8" />
+                      <stop offset="1" stopColor="#22D3EE" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -294,7 +299,10 @@ export default function BookCabPage() {
                       type="tel"
                       placeholder="e.g. 9876543210"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setPhone(val);
+                      }}
                       required
                       className="rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white h-11"
                     />
@@ -417,22 +425,20 @@ export default function BookCabPage() {
                       <button
                         type="button"
                         onClick={() => setAcPreference("AC")}
-                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                          acPreference === "AC"
-                            ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
-                            : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                        }`}
+                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${acPreference === "AC"
+                          ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
+                          : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                          }`}
                       >
                         AC Preference
                       </button>
                       <button
                         type="button"
                         onClick={() => setAcPreference("Non-AC")}
-                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                          acPreference === "Non-AC"
-                            ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
-                            : "border-slate-200 hover:bg-slate-50 text-slate-600"
-                        }`}
+                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${acPreference === "Non-AC"
+                          ? "bg-indigo-50 border-indigo-600 text-indigo-700 shadow-sm"
+                          : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                          }`}
                       >
                         Non-AC Preference
                       </button>
@@ -450,9 +456,8 @@ export default function BookCabPage() {
                 <p className="text-sm text-slate-500">Check all categories that apply to travelers in your group:</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    wheelchair ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                  }`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${wheelchair ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}>
                     <input
                       type="checkbox"
                       checked={wheelchair}
@@ -462,9 +467,8 @@ export default function BookCabPage() {
                     <span>Wheelchair</span>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    medicalSupport ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                  }`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${medicalSupport ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}>
                     <input
                       type="checkbox"
                       checked={medicalSupport}
@@ -474,9 +478,8 @@ export default function BookCabPage() {
                     <span>Medical Support</span>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    elderlyCare ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                  }`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${elderlyCare ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}>
                     <input
                       type="checkbox"
                       checked={elderlyCare}
@@ -486,9 +489,8 @@ export default function BookCabPage() {
                     <span>Elderly Care</span>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
-                    childCare ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                  }`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${childCare ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}>
                     <input
                       type="checkbox"
                       checked={childCare}
@@ -505,7 +507,7 @@ export default function BookCabPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 text-white font-semibold py-3.5 rounded-xl text-base shadow-lg shadow-indigo-600/10 transition-all"
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-indigo-600 hover:to-indigo-800 text-white font-semibold cursor-pointer rounded-xl text-base shadow-lg shadow-indigo-600/10 transition-all"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2 justify-center">
@@ -513,7 +515,7 @@ export default function BookCabPage() {
                       Submitting Request...
                     </span>
                   ) : (
-                    "Submit Cab Booking Request"
+                    "Submit Cab Enquiry "
                   )}
                 </Button>
               </div>

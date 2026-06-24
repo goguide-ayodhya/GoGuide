@@ -99,8 +99,8 @@ export function GuideBookingForm({
     if (!touristName.trim()) newErrors.touristName = "Name is required";
     if (!email.trim()) newErrors.email = "Email is required";
     if (!phone.trim()) newErrors.phone = "Phone is required";
-    else if (phone.length < 10)
-      newErrors.phone = "Phone must be at least 10 digits";
+    else if (phone.length !== 10)
+      newErrors.phone = "Phone must be exactly 10 digits";
     if (!groupSize || parseInt(groupSize) < 1)
       newErrors.groupSize = "Group size must be at least 1";
     if (selectedLocations.length === 0)
@@ -298,7 +298,15 @@ export function GuideBookingForm({
       </FormField>
 
       <FormField label="Phone" error={errors.phone} required>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full h-11 bg-muted border-0" />
+        <Input
+          type="tel"
+          value={phone}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+            setPhone(val);
+          }}
+          className="w-full h-11 bg-muted border-0"
+        />
       </FormField>
 
       <FormField label="Meeting Point" error={errors.meetingPoint} required>

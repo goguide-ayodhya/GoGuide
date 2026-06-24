@@ -107,8 +107,8 @@ export function PackageBookingForm({
     }
 
     // Phone validation
-    if (phone.length < 10) {
-      newErrors.phone = "Phone must be at least 10 digits";
+    if (phone.length !== 10) {
+      newErrors.phone = "Phone must be exactly 10 digits";
     }
 
     // Check if date is in future
@@ -218,7 +218,10 @@ export function PackageBookingForm({
                 type="tel"
                 placeholder="Enter your phone number"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setPhone(val);
+                }}
                 className="pl-12 rounded-2xl border-slate-200 bg-slate-50"
               />
             </div>

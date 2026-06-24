@@ -76,8 +76,8 @@ export default function GuideSignupPage() {
       setError("Phone number is required");
       return false;
     }
-    if (formData.phone.length < 10) {
-      setError("Phone number must be at least 10 digits");
+    if (formData.phone.length !== 10) {
+      setError("Phone number must be exactly 10 digits");
       return false;
     }
     if (!formData.password) {
@@ -240,7 +240,11 @@ export default function GuideSignupPage() {
                 type="tel"
                 placeholder="10-digit phone number"
                 value={formData.phone}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setFormData((prev) => ({ ...prev, phone: val }));
+                  setError("");
+                }}
                 className="bg-slate-50 border-slate-200"
                 required
               />
