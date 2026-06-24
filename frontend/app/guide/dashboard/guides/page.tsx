@@ -82,11 +82,10 @@ export default function GuidesPage() {
                   <button
                     key={speciality}
                     onClick={() => setSelectedSpeciality(speciality)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selectedSpeciality === speciality
-                        ? "bg-primary cursor-pointer text-primary-foreground"
-                        : "bg-muted cursor-pointer text-foreground hover:bg-secondary/80"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedSpeciality === speciality
+                      ? "bg-primary cursor-pointer text-primary-foreground"
+                      : "bg-muted cursor-pointer text-foreground hover:bg-secondary/80"
+                      }`}
                   >
                     {speciality.charAt(0).toUpperCase() + speciality.slice(1)}
                   </button>
@@ -109,14 +108,13 @@ export default function GuidesPage() {
                 <CardContent className="p-0">
                   {/* Guide Image */}
 
-                  <div className="relative h-48 w-full overflow-hidden bg-secondary">
+                  <div className="relative w-full aspect-square overflow-hidden bg-secondary">
                     {/* {guide.image ? ( */}
                     <Image
                       src={guide.image || assets.guideImage}
                       alt={guide.userId?.name || guide.name || "Guide"}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
                     {/* ) : (
                       <div>No Image</div>

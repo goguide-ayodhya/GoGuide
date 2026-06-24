@@ -9,7 +9,7 @@ import { getPublicSettingsApi } from "@/lib/api/finance";
 import { Header } from "@/components/common/Header";
 import { Footer } from "@/components/common/Footer";
 import { ServiceCard } from "@/components/common/ServiceCard";
-import { Car, MapPin, Ticket, Users, Star } from "lucide-react";
+import { Car, MapPin, Ticket, Users, Star, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 import Features from "@/components/home/Features";
@@ -24,6 +24,7 @@ import { poppins, manrope } from "@/lib/fonts";
 import Image from "next/image";
 import FAQSection from "@/components/home/FAQs";
 import TouristLoader from "@/components/common/TouristLoader";
+import TourPackagesSection from "@/components/home/TourPackagesSection";
 
 export default function Home() {
   const router = useRouter();
@@ -74,13 +75,13 @@ export default function Home() {
   ];
 
   const partners = [
-    { name: "Ramodhya | Ayodhya", image: assets.p_01 },
-    { name: "AAYOVEA", image: assets.aayovea },
-    { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
+    { image: assets.p_01 },
+    { image: assets.aayovea },
+    { image: assets.mj_wains },
 
-    { name: "Ramodhya | Ayodhya", image: assets.p_01 },
-    { name: "AAYOVEA", image: assets.aayovea },
-    { name: "MJ WAINS - Coming Soon", image: assets.mj_wains },
+    { image: assets.p_01 },
+    { image: assets.aayovea },
+    { image: assets.mj_wains },
   ];
 
   useEffect(() => {
@@ -206,19 +207,14 @@ export default function Home() {
         xl:w-[18%]
         snap-start
         overflow-hidden
-        rounded-2xl
-        bg-white
-        shadow-sm
-        transition-all duration-300
-        hover:shadow-lg
       "
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden">
+                  <div className="relative aspect-[4/5] overflow-hidden border border-3 border-secondary bg-secondary/10 rounded-lg">
                     <Image
                       src={item.image}
                       alt={item.name}
                       fill
-                      className="object-cover transition-transform duration-300 hover:scale-105"
+                      className="object-cover p-2 transition-transform duration-300 hover:scale-115"
                       sizes="
             (max-width: 640px) 70vw,
             (max-width: 768px) 45vw,
@@ -229,7 +225,7 @@ export default function Home() {
                   </div>
 
                   <div className="py-3">
-                    <p className="text-center text-sm sm:text-base font-medium text-slate-800">
+                    <p className="text-center bg-primary rounded-full text-white font-semibold px-2 py-1 text-sm sm:text-base font-medium ">
                       {item.name}
                     </p>
                   </div>
@@ -243,18 +239,8 @@ export default function Home() {
                 ← Swipe to explore →
               </p>
             </div>
-            <div className="flex items-center justify-center">
-              <Link href="/tourist/packages">
-                <p className="w-38 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
-                  View Packages
-                </p>
-              </Link>
-            </div>
           </div>
         </section>
-
-        {/* Gallery Preview */}
-        <GalleryPreview />
 
         {/* Top Guides */}
         <section className="py-12 px-4 sm:px-6 lg:px-8">
@@ -349,17 +335,28 @@ export default function Home() {
               </div>
             )}
           </div>
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-4">
             <Link href="/tourist/guides">
-              <p className="w-24 text-sm text-gray-600 mt-8 p-2 text-sm text-center text-black font-semibold border border-gray-600 rounded-md hover:bg-hray-300">
-                View all
+              <p className="inline-flex items-center gap-2 bg-white text-slate-800 border border-slate-300 hover:border-indigo-600 hover:text-indigo-600 px-8 py-3.5 rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300 transform group-hover:scale-[1.02]">
+                <span>View All Guides</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </p>
             </Link>
           </div>
         </section>
 
+        {/* Tour Packages Section */}
+        <TourPackagesSection />
+
+        {/* Gallery Preview */}
+        <GalleryPreview />
+
         {/* CTA Banner */}
         <CTABanner />
+
+        {/* How it works */}
+        <HowItWorks />
+
 
         {/* Happy Travelers */}
         <HappyTravelers />
@@ -369,9 +366,6 @@ export default function Home() {
 
         {/* Team Section */}
         {/* <TeamSection /> */}
-
-        {/* How it works */}
-        <HowItWorks />
 
         <FAQSection />
 
@@ -388,23 +382,22 @@ export default function Home() {
               <div
                 key={index}
                 className="
-              min-w-[5%] sm:min-w-[10%] md:min-w-[12%] lg:min-w-[15%]
-              rounded-xl overflow-hidden hover:shadow-md transition-all
-            "
+                  w-36 h-40 sm:w-44 sm:h-48 md:w-52 md:h-52
+                  flex-shrink-0
+                  rounded-2xl overflow-hidden
+                  border-4 border-indigo-600/20 hover:border-indigo-600
+                  transition-all duration-300 bg-white shadow-sm hover:shadow-md
+                "
               >
-                <div className="relative h-32 sm:h-36 md:h-48 lg:h-56">
+                <div className="relative w-full h-full p-2 flex items-center justify-center">
                   <Image
+                    alt="Our Partner"
                     src={item.image}
-                    alt={item.name}
                     fill
-                    className="object-cover hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 640px) 240px, (max-width: 768px) 160px, (max-width: 1024px) 200px, 144px"
+                    className="object-contain p-2 hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 640px) 144px, (max-width: 768px) 176px, 208px"
                   />
                 </div>
-
-                <p className="text-center text-sm font-semibold py-2">
-                  {item.name}
-                </p>
               </div>
             ))}
           </div>

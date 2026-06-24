@@ -155,3 +155,24 @@ export const updateCabPricingApi = async (pricing: { baseFare: number; pricePerK
   });
   return handleRes(res);
 };
+
+// Get all cab bookings for admin
+export const getAllCabBookingsApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/admin/all`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Update status of cab booking
+export const updateCabBookingStatusApi = async (bookingId: string, status: string) => {
+  const res = await fetch(`${base_url}cab-bookings/${bookingId}/status`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
+  });
+  return handleRes(res);
+};

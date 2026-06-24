@@ -10,10 +10,9 @@ import img_04 from "./tourist/img_04.jpg";
 import img_05 from "./tourist/img_05.jpg";
 import img_06 from "./tourist/img_06.webp";
 
-import p_01 from "./partners/p_01.jpeg";
-import p_02 from "./partners/p_02.png";
-import mj_wains from "./partners/mj_wains.jpeg";
-import aayovea from "./partners/aayovea.jpeg";
+import p_01 from "./partners/p_01.png";
+import mj_wains from "./partners/mj_wains.png";
+import aayovea from "./partners/aayovea.png";
 
 import digambarJainMandir from "./destinations/DigambarJainMandir.webp";
 import hanumanGarhi from "./destinations/HanumanGarhi.webp";
@@ -31,11 +30,22 @@ import ramMandir from "./destinations/RamMandir.webp";
 
 import adityaSahu from "./team/adityaSahu.png";
 import rahulSrivastava from "./team/rahulSrivastava.png";
-import abuzar from "./abuzar.jpg"; 
+import abuzar from "./abuzar.jpg";
 
 import goCab from "./vehicle/goCab.webp";
 import goMoto from "./vehicle/goMoto.webp";
 import goAuto from "./vehicle/goAuto.webp";
+
+import anytime from './clipart/anytime.png';
+import bookSlot from './clipart/bookSlot.png';
+import easyBookings from './clipart/easyBookings.png';
+import enjoy from './clipart/enjoy.png';
+import faq from './clipart/faq.png';
+import findGuide from './clipart/findGuide.png';
+import localExperts from './clipart/localExperts.png';
+import planTrip from './clipart/planTrip.png';
+import trustedGuides from './clipart/trustedGuides.png';
+
 
 export const assets = {
   bgHero,
@@ -50,7 +60,6 @@ export const assets = {
   img_06,
 
   p_01,
-  p_02,
   mj_wains,
   aayovea,
 
@@ -71,8 +80,18 @@ export const assets = {
   adityaSahu,
   rahulSrivastava,
   abuzar,
-  
+
   goCab,
   goMoto,
   goAuto,
+
+  anytime,
+  bookSlot,
+  easyBookings,
+  enjoy,
+  faq,
+  findGuide,
+  localExperts,
+  planTrip,
+  trustedGuides
 };

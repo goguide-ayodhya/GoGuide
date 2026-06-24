@@ -30,6 +30,7 @@ import {
 } from "@/lib/api/reviews";
 import { useAuth } from "@/contexts/AuthContext";
 import { poppins } from "@/lib/fonts";
+import { assets } from "@/public/assets/assets";
 
 export default function HappyTravelers() {
   const { user, isLoggedIn } = useAuth();
@@ -141,7 +142,7 @@ export default function HappyTravelers() {
           travelerName: r.unifiedTravelerName || r.travelerName || 'Traveler',
           profileImage: r.unifiedTravelerAvatar || r.profileImage || '',
           city: r.city || '',
-          bookingType: r.bookingType || (r.type === 'guide' ? 'Guide Booking' : 'Feedback'),
+          bookingType: r.bookingType || (r.type === 'guide' ? 'General Feedback' : 'Feedback'),
           helpfulCount: r.helpfulCount || 0,
           helpfulUsers: r.helpfulUsers || [],
           images: r.images || [],
@@ -200,7 +201,7 @@ export default function HappyTravelers() {
           comments: "",
           travelerName: "",
           city: "",
-          bookingType: "Guide Booking",
+          bookingType: "General Feedback",
           images: []
         });
         // Refresh stats and home listing
@@ -275,313 +276,392 @@ export default function HappyTravelers() {
     );
   };
 
-  // Create two tracks of reviews to enable continuous infinite marquee loop
-  const duplicatedReviews1 = [...reviews, ...reviews, ...reviews];
-  const duplicatedReviews2 = [...reviews, ...reviews, ...reviews].reverse();
+  // Helper to ensure marquee has enough items to scroll smoothly without leaving gaps
+  const getMarqueeItems = (list: any[], reverse = false) => {
+    if (!list || list.length === 0) return [];
+    let result = [...list];
+    // Duplicate until we have at least 8 items
+    while (result.length < 8) {
+      result = [...result, ...list];
+    }
+    // Duplicate once more to ensure infinite wrap logic (translateY(-50%))
+    const finalItems = [...result, ...result];
+    return reverse ? finalItems.reverse() : finalItems;
+  };
+
+  const verticalReviews1 = getMarqueeItems(reviews);
+  const verticalReviews2 = getMarqueeItems(reviews, true);
 
   return (
-    <section className="py-24 relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <section className="py-12 md:py-24 relative overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <style>{`
+        @keyframes marquee-vertical {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes marquee-vertical-reverse {
+          0% { transform: translateY(-50%); }
+          100% { transform: translateY(0); }
+        }
+        .animate-marquee-vertical {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          animation: marquee-vertical 35s linear infinite;
+        }
+        .animate-marquee-vertical-reverse {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          animation: marquee-vertical-reverse 35s linear infinite;
+        }
+        .marquee-vertical-wrapper:hover .animate-marquee-vertical,
+        .marquee-vertical-wrapper:hover .animate-marquee-vertical-reverse {
+          animation-play-state: paused;
+        }
+      `}</style>
 
-      {/* Dynamic Background Gradients */}
-      <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/10 w-96 h-96 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Dynamic Background Gradients - only visible on mobile */}
+      <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none md:hidden" />
+      <div className="absolute bottom-1/4 right-1/10 w-96 h-96 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none md:hidden" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Immersive Header Stats */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8 relative z-10">
-          <div className="text-center md:text-left space-y-3">
-            <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-8 text-balance">
-              Happy{" "}
-              <b className={`${poppins.className} text-secondary`}>
-                Travelors
-              </b>{" "}
-            </h2>
+        {/* Outer Frame Container for md+ */}
+        <div
+          className="
+    md:border-[16px]
+    md:border-white
+    md:shadow-2xl
+    md:rounded-[40px]
+    md:relative
+    md:overflow-hidden
+    md:bg-cover
+    md:bg-center
+    md:bg-no-repeat
+    md:min-h-[580px]
+    md:flex
+    md:flex-col
+    md:justify-center
+    transition-all
+    duration-500
+  "
+          style={{
+            backgroundImage:
+              typeof window !== "undefined" && window.innerWidth >= 768
+                ? `url(${assets.ramMandir?.src})`
+                : "none",
+          }}
+        >
+          {/* Overlay for md+ background image */}
+          <div className="hidden md:block absolute inset-0 bg-black/60 z-0" />
 
-          </div>
+          {/* Desktop/Tablet (md+) Layout */}
+          <div className="hidden md:flex relative z-10 flex-row gap-8 lg:gap-12 items-center justify-between p-8 md:p-10 lg:p-14 w-full">
 
-          {/* Stats Glass Counter */}
-          <div className="flex items-center gap-6 p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-xl shrink-0">
-            <div className="text-center border-r border-slate-200/50 dark:border-slate-800/50 pr-6">
-              <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-1">
-                <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
-                <span className="text-2xl font-black text-slate-800 dark:text-white">
-                  {stats.averageRating}
-                </span>
+            {/* Left Column: Heading, Subtitle, Stats, and CTAs */}
+            <div className="w-full md:w-[45%] flex flex-col items-start text-white space-y-6">
+              <div className="space-y-3">
+                <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                  Happy <span className={`${poppins.className} text-secondary`}>Travelors</span>
+                </h2>
+                <p className="text-slate-300 text-sm lg:text-base leading-relaxed max-w-sm">
+                  Discover authentic moments and stories shared by our verified visitors exploring sacred Ayodhya.
+                </p>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Average Rating</p>
-            </div>
 
-            <div className="text-center border-r border-slate-200/50 dark:border-slate-800/50 pr-6">
-              <div className="flex items-center justify-center gap-1.5 text-indigo-500 mb-1">
-                <MessageSquare className="w-5 h-5 text-indigo-500" />
-                <span className="text-2xl font-black text-slate-800 dark:text-white">
-                  {stats.totalReviews}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">Total Reviews</p>
-            </div>
+              {/* Stats Glass Counter */}
+              <div className="flex items-center gap-4 p-5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md w-full justify-between max-w-sm">
+                <div className="text-center md:text-left border-r border-white/15 pr-4 w-full">
+                  <div className="flex items-center justify-center md:justify-start gap-1 text-amber-400 mb-1">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <span className="text-xl font-black">
+                      {stats.averageRating}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 font-medium">Rating</p>
+                </div>
 
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1.5 text-rose-500 mb-1 animate-pulse">
-                <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
-                <span className="text-2xl font-black text-slate-800 dark:text-white">
-                  100%
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">Happy Travelers</p>
-            </div>
-          </div>
-        </div>
+                <div className="text-center md:text-left border-r border-white/15 pr-4 w-full">
+                  <div className="flex items-center justify-center md:justify-start gap-1 text-indigo-400 mb-1">
+                    <MessageSquare className="w-4 h-4 text-indigo-400" />
+                    <span className="text-xl font-black">
+                      {stats.totalReviews}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 font-medium">Reviews</p>
+                </div>
 
-        {/* Marquees & Swipe section */}
-        {reviews.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-white/5 backdrop-blur-md max-w-lg mx-auto py-16 relative z-10">
-            <Sparkles className="w-12 h-12 text-indigo-500 mb-4 animate-pulse" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">No reviews yet</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-sm">
-              Be the first happy traveler to share your experience with us! Click below to write a review.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* ─── DESKTOP VIEW: Infinite Auto-scrolling Dual Marquee Tracks ─── */}
-            <div className="hidden md:block relative marquee-container select-none overflow-hidden space-y-6 py-4">
-
-              {/* Edge Blur Gradients */}
-              <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
-
-              {/* Row 1: Left to Right */}
-              <div className="flex overflow-hidden">
-                <div className="animate-marquee gap-6 flex">
-                  {duplicatedReviews1.map((item, idx) => (
-                    <div
-                      key={`r1-${item._id}-${idx}`}
-                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${idx % 3 === 0 ? "w-[340px]" : idx % 3 === 1 ? "w-[390px]" : "w-[440px]"
-                        }`}
-                    >
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          {renderStars(item.rating, 4)}
-                          {item.bookingType && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
-                              {item.bookingType}
-                            </span>
-                          )}
-                        </div>
-                        {item.title && (
-                          <h4 className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">
-                            {item.title}
-                          </h4>
-                        )}
-                        <p className="text-xs text-slate-550 dark:text-slate-300 leading-relaxed line-clamp-3">
-                          “{item.comments}”
-                        </p>
-                        {/* Review Image Attachments */}
-                        {item.images && item.images.length > 0 && (
-                          <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-                            {item.images.map((img: string, i: number) => (
-                              <div
-                                key={i}
-                                className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200/20 dark:border-slate-800/50"
-                              >
-                                <img
-                                  src={img.startsWith("http") ? img : `${process.env.NEXT_PUBLIC_BASE_URL?.replace("/api/", "")}${img}`}
-                                  alt="Attachment"
-                                  className="w-10 h-10 object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-                        <div className="relative w-8 h-8 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
-                          {item.profileImage ? (
-                            <img src={item.profileImage} alt={item.travelerName} className="w-8 h-8 object-cover rounded-full" />
-                          ) : (
-                            <User className="w-4 h-4 text-indigo-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-800 dark:text-white">
-                              {item.travelerName}
-                            </span>
-                            <Shield className="w-3 h-3 text-emerald-500 fill-emerald-500/20" />
-                          </div>
-                          {item.city && (
-                            <p className="text-[10px] text-slate-400">{item.city}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center md:text-left w-full">
+                  <div className="flex items-center justify-center md:justify-start gap-1 text-rose-450 mb-1 animate-pulse">
+                    <Heart className="w-4 h-4 fill-rose-400 text-rose-400" />
+                    <span className="text-xl font-black">
+                      100%
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 font-medium">Happy</p>
                 </div>
               </div>
 
-              {/* Row 2: Right to Left */}
-              <div className="flex overflow-hidden">
-                <div className="animate-marquee-reverse gap-6 flex">
-                  {duplicatedReviews2.map((item, idx) => (
-                    <div
-                      key={`r2-${item._id}-${idx}`}
-                      className={`flex flex-col justify-between p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 shadow-lg backdrop-blur-md transition-transform duration-300 hover:scale-[1.03] hover:shadow-2xl shrink-0 ${idx % 3 === 0 ? "w-[440px]" : idx % 3 === 1 ? "w-[340px]" : "w-[390px]"
-                        }`}
-                    >
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          {renderStars(item.rating, 4)}
-                          {item.bookingType && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
-                              {item.bookingType}
-                            </span>
-                          )}
-                        </div>
-                        {item.title && (
-                          <h4 className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">
-                            {item.title}
-                          </h4>
-                        )}
-                        <p className="text-xs text-slate-550 dark:text-slate-300 leading-relaxed line-clamp-3">
-                          “{item.comments}”
-                        </p>
-                        {/* Review Image Attachments */}
-                        {item.images && item.images.length > 0 && (
-                          <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-                            {item.images.map((img: string, i: number) => (
-                              <div
-                                key={i}
-                                className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200/20 dark:border-slate-800/50"
-                              >
-                                <img
-                                  src={img.startsWith("http") ? img : `${process.env.NEXT_PUBLIC_BASE_URL?.replace("/api/", "")}${img}`}
-                                  alt="Attachment"
-                                  className="w-10 h-10 object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-                        <div className="relative w-8 h-8 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
-                          {item.profileImage ? (
-                            <img src={item.profileImage} alt={item.travelerName} className="w-8 h-8 object-cover rounded-full" />
-                          ) : (
-                            <User className="w-4 h-4 text-indigo-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-800 dark:text-white">
-                              {item.travelerName}
-                            </span>
-                            <Shield className="w-3 h-3 text-emerald-500 fill-emerald-500/20" />
-                          </div>
-                          {item.city && (
-                            <p className="text-[10px] text-slate-400">{item.city}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* ─── MOBILE VIEW: Horizontal Swipe Track with snap scrolling ─── */}
-            <div className="md:hidden flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-4 -mx-4 px-4">
-              {reviews.slice(0, 5).map((item) => (
-                <div
-                  key={`mob-${item._id}`}
-                  className="snap-center shrink-0 w-[85vw] max-w-[340px] flex flex-col justify-between p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 shadow-xl"
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap gap-4 pt-2">
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 hover:scale-[1.02] transform transition duration-300 shadow-lg cursor-pointer"
                 >
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      {renderStars(item.rating, 4.5)}
-                      {item.bookingType && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                          {item.bookingType}
-                        </span>
-                      )}
-                    </div>
-                    {item.title && (
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">
-                        {item.title}
-                      </h4>
-                    )}
-                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4">
-                      “{item.comments}”
-                    </p>
-                    {/* Review Image Attachments */}
-                    {item.images && item.images.length > 0 && (
-                      <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-                        {item.images.map((img: string, i: number) => (
-                          <div
-                            key={i}
-                            className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-200/50 dark:border-slate-800/50"
-                          >
-                            <img
-                              src={img.startsWith("http") ? img : `${process.env.NEXT_PUBLIC_BASE_URL?.replace("/api/", "")}${img}`}
-                              alt="Attachment"
-                              className="w-12 h-12 object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="relative w-10 h-10 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center">
-                      {item.profileImage ? (
-                        <img src={item.profileImage} alt={item.travelerName} className="w-10 h-10 object-cover rounded-full" />
-                      ) : (
-                        <User className="w-5 h-5 text-indigo-500" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-slate-800 dark:text-white">
-                          {item.travelerName}
-                        </span>
-                        <Shield className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/20" />
-                      </div>
-                      {item.city && (
-                        <p className="text-xs text-slate-400">{item.city}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  View All Reviews
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </button>
+                <button
+                  onClick={() => {
+                    setSubmitSuccess(false);
+                    setWriteOpen(true);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-bold text-slate-800 bg-white hover:bg-slate-100 hover:scale-[1.02] transform transition duration-300 shadow-md cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  Write a Review
+                </button>
+              </div>
             </div>
-          </>
-        )}
 
-        {/* View All / Write Review CTA Buttons directly on home page */}
-        <div className="flex flex-wrap justify-center gap-4 mt-12 relative z-10">
-          <button
-            onClick={() => setModalOpen(true)}
-            className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 hover:scale-[1.02] transform transition duration-300 shadow-xl shadow-indigo-500/20 cursor-pointer"
-          >
-            View All Reviews
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button
-            onClick={() => {
-              setSubmitSuccess(false);
-              setWriteOpen(true);
-            }}
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-sm font-semibold text-slate-800 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 hover:scale-[1.02] transform transition duration-300 shadow-xl cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-indigo-500" />
-            Write a Review
-          </button>
+            {/* Right Column: Vertical Marquee Flowing Reviews */}
+            <div className="w-full md:w-[50%] h-[420px] overflow-hidden relative marquee-vertical-wrapper select-none">
+
+              {/* Fade Overlays */}
+              <div className="absolute top-0 inset-x-0 h-14 bg-gradient-to-b from-black/80 to-transparent z-20 pointer-events-none" />
+              <div className="absolute bottom-0 inset-x-0 h-14 bg-gradient-to-t from-black/80 to-transparent z-20 pointer-events-none" />
+
+              {reviews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
+                  <MessageSquare className="w-10 h-10 mb-2" />
+                  <p>No reviews yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 h-full">
+
+                  {/* Column 1: Flows from bottom to up */}
+                  <div className="animate-marquee-vertical">
+                    {verticalReviews1.map((item, idx) => (
+                      <div
+                        key={`v1-${item._id}-${idx}`}
+                        className="flex flex-col justify-between p-4 rounded-2xl bg-white/10 border border-white/10 shadow-lg backdrop-blur-md text-white shrink-0 space-y-3 hover:bg-white/15 transition-all duration-300"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            {renderStars(item.rating, 3)}
+                            {item.bookingType && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-slate-300">
+                                {item.bookingType}
+                              </span>
+                            )}
+                          </div>
+                          {item.title && (
+                            <h4 className="text-[11px] font-bold text-white line-clamp-1">
+                              {item.title}
+                            </h4>
+                          )}
+                          <p className="text-[10px] text-slate-200 leading-normal line-clamp-3">
+                            “{item.comments}”
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2.5 border-t border-white/10">
+                          <div className="relative w-6 h-6 rounded-full bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                            {item.profileImage ? (
+                              <img src={item.profileImage} alt={item.travelerName} className="w-6 h-6 object-cover" />
+                            ) : (
+                              <User className="w-3 h-3 text-slate-300" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-[9px] font-bold truncate text-white leading-none">
+                              {item.travelerName}
+                            </span>
+                            {item.city && (
+                              <span className="block text-[8px] text-slate-400 truncate mt-0.5">{item.city}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Column 2: Flows from top to bottom */}
+                  <div className="animate-marquee-vertical-reverse">
+                    {verticalReviews2.map((item, idx) => (
+                      <div
+                        key={`v2-${item._id}-${idx}`}
+                        className="flex flex-col justify-between p-4 rounded-2xl bg-white/10 border border-white/10 shadow-lg backdrop-blur-md text-white shrink-0 space-y-3 hover:bg-white/15 transition-all duration-300"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            {renderStars(item.rating, 3)}
+                            {item.bookingType && (
+                              <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-slate-300">
+                                {item.bookingType}
+                              </span>
+                            )}
+                          </div>
+                          {item.title && (
+                            <h4 className="text-[11px] font-bold text-white line-clamp-1">
+                              {item.title}
+                            </h4>
+                          )}
+                          <p className="text-[10px] text-slate-200 leading-normal line-clamp-3">
+                            “{item.comments}”
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-2.5 border-t border-white/10">
+                          <div className="relative w-6 h-6 rounded-full bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                            {item.profileImage ? (
+                              <img src={item.profileImage} alt={item.travelerName} className="w-6 h-6 object-cover" />
+                            ) : (
+                              <User className="w-3 h-3 text-slate-300" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-[9px] font-bold truncate text-white leading-none">
+                              {item.travelerName}
+                            </span>
+                            {item.city && (
+                              <span className="block text-[8px] text-slate-400 truncate mt-0.5">{item.city}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Mobile (sm) Layout - Keep existing functional horizontal flow */}
+          <div className="md:hidden relative z-10 w-full">
+
+            {/* Header Section */}
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-foreground mb-4 text-balance">
+                Happy <b className={`${poppins.className} text-secondary`}>Travelors</b>
+              </h2>
+            </div>
+
+            {/* Mobile Stats Glass Counter */}
+            <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/20 dark:border-white/10 backdrop-blur-xl mb-8 justify-around">
+              <div className="text-center pr-2 border-r border-slate-200/50 dark:border-slate-800/50 w-full">
+                <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5">
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                  <span className="text-lg font-black text-slate-800 dark:text-white">
+                    {stats.averageRating}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium">Rating</p>
+              </div>
+
+              <div className="text-center pr-2 border-r border-slate-200/50 dark:border-slate-800/50 w-full">
+                <div className="flex items-center justify-center gap-1 text-indigo-505 mb-0.5">
+                  <MessageSquare className="w-4 h-4 text-indigo-500" />
+                  <span className="text-lg font-black text-slate-800 dark:text-white">
+                    {stats.totalReviews}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium">Reviews</p>
+              </div>
+
+              <div className="text-center w-full">
+                <div className="flex items-center justify-center gap-1 text-rose-500 mb-0.5 animate-pulse">
+                  <Heart className="w-4 h-4 fill-rose-500 text-rose-500" />
+                  <span className="text-lg font-black text-slate-800 dark:text-white">
+                    100%
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium">Happy</p>
+              </div>
+            </div>
+
+            {/* Reviews Swipe list */}
+            {reviews.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-white/5 max-w-sm mx-auto py-12">
+                <Sparkles className="w-10 h-10 text-indigo-500 mb-3 animate-pulse" />
+                <h3 className="text-md font-bold text-slate-800 dark:text-white">No reviews yet</h3>
+              </div>
+            ) : (
+              <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-2 -mx-4 px-4">
+                {reviews.slice(0, 5).map((item) => (
+                  <div
+                    key={`mob-${item._id}`}
+                    className="snap-center shrink-0 w-[85vw] max-w-[300px] flex flex-col justify-between p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 shadow-md"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        {renderStars(item.rating, 3.5)}
+                        {item.bookingType && (
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                            {item.bookingType}
+                          </span>
+                        )}
+                      </div>
+                      {item.title && (
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-white line-clamp-1">
+                          {item.title}
+                        </h4>
+                      )}
+                      <p className="text-xs text-slate-650 dark:text-slate-350 leading-relaxed line-clamp-4">
+                        “{item.comments}”
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-850">
+                      <div className="relative w-8 h-8 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center">
+                        {item.profileImage ? (
+                          <img src={item.profileImage} alt={item.travelerName} className="w-8 h-8 object-cover rounded-full" />
+                        ) : (
+                          <User className="w-4 h-4 text-indigo-550" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-slate-800 dark:text-white">
+                            {item.travelerName}
+                          </span>
+                        </div>
+                        {item.city && (
+                          <p className="text-[10px] text-slate-400">{item.city}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Mobile CTAs */}
+            <div className="flex flex-wrap justify-center gap-3 mt-8">
+              <button
+                onClick={() => setModalOpen(true)}
+                className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.02] transform transition shadow-md cursor-pointer"
+              >
+                View All
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                onClick={() => {
+                  setSubmitSuccess(false);
+                  setWriteOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-semibold text-slate-800 dark:text-white bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 cursor-pointer shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                Write
+              </button>
+            </div>
+
+          </div>
         </div>
-
       </div>
 
       {/* ─── IMMERSIVE FULLSCREEN MODAL (BACKDROP BLUR) ─── */}
@@ -969,10 +1049,10 @@ export default function HappyTravelers() {
                           onChange={(e) => setNewReview({ ...newReview, bookingType: e.target.value })}
                           className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                         >
+                          <option value="General Feedback">General Feedback</option>
                           <option value="Guide Booking">Guide Booking</option>
                           <option value="Cab Ride">Cab Ride</option>
                           <option value="Tour Package">Tour Package</option>
-                          <option value="General Feedback">General Feedback</option>
                         </select>
                       </div>
                     </div>

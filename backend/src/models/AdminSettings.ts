@@ -13,6 +13,7 @@ export interface IAdminSettings extends Document {
     fullDay: IGuidePricing;
   };
   locations?: string[];
+  vehicleTypes?: string[];
   paymentQR?: {
     url: string;
     isEnabled: boolean;
@@ -46,6 +47,10 @@ const AdminSettingsSchema = new Schema<IAdminSettings>(
       },
     },
     locations: [{ type: String }],
+    vehicleTypes: {
+      type: [String],
+      default: ["Sedan", "SUV", "Tempo Traveller", "Auto Rikshaw"],
+    },
     paymentQR: {
       url: { type: String, default: "" },
       isEnabled: { type: Boolean, default: false },

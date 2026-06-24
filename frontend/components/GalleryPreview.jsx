@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { galleryData } from "../public/assets/galleryData";
 import { ArrowRight } from "lucide-react";
+import { poppins } from "../lib/fonts";
 
 const container = {
   hidden: { opacity: 0 },
@@ -36,25 +37,12 @@ export default function GalleryPreview() {
       {/* Header Section */}
       <div className="max-w-7xl mx-auto mb-16">
         <motion.div variants={item} className="text-center mb-10">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-4">
-            Explore <span className="bg-gradient-to-r from-amber-500 to-rose-500 bg-clip-text text-transparent">Ayodhya's</span> Beauty
+          <h2 className="text-4xl md:text-6xl font-bold text-center text-foreground mb-4 text-balance">
+            Explore <b className={`${poppins.className} text-secondary`}>Ayodhya's</b> Beauty
           </h2>
-          <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Discover captivating moments from our curated collection of authentic experiences, spiritual journeys, and unforgettable adventures.
-          </p>
+
         </motion.div>
 
-        <motion.div variants={item} className="flex justify-center gap-4 flex-wrap">
-          <div className="px-4 py-2 bg-amber-100 text-amber-900 rounded-full text-sm font-semibold">
-            {total} Curated Photos
-          </div>
-          <div className="px-4 py-2 bg-rose-100 text-rose-900 rounded-full text-sm font-semibold">
-            Real Stories
-          </div>
-          <div className="px-4 py-2 bg-blue-100 text-blue-900 rounded-full text-sm font-semibold">
-            Travel Inspiration
-          </div>
-        </motion.div>
       </div>
 
       {/* Gallery Grid */}
@@ -62,30 +50,26 @@ export default function GalleryPreview() {
         className="max-w-7xl mx-auto"
         variants={item}
       >
-        {/* Large Featured Images Grid */}
+        {/* Gallery Images Grid - Uniform sizing for premium layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {featured.map((img, idx) => (
+          {featured.map((img) => (
             <motion.div
               key={img.id}
               variants={imageVariants}
-              className={`group relative rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 cursor-pointer
-                ${idx === 0 ? "lg:col-span-2 lg:row-span-2" : ""}
-              `}
-              whileHover={{ y: -8 }}
+              className="group relative rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer"
+              whileHover={{ y: -6 }}
             >
               {/* Image Container */}
-              <div className={`relative w-full bg-slate-200 overflow-hidden
-                ${idx === 0 ? "h-96 md:h-full" : "h-80"}
-              `}>
+              <div className="relative w-full h-72 sm:h-80 bg-slate-200 overflow-hidden">
                 <Image
                   src={img.image}
                   alt={img.alt}
                   fill
-                  sizes={idx === 0 ? "(max-width: 768px) 100vw, 66vw" : "(max-width: 768px) 100vw, 33vw"}
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                   loading="lazy"
                 />
-                
+
                 {/* Overlay Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-75 transition-opacity duration-500"></div>
 
@@ -95,7 +79,7 @@ export default function GalleryPreview() {
                     img.category.map((cat, cidx) => (
                       <span
                         key={cidx}
-                        className="px-3 py-1 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-semibold rounded-full shadow-md hover:bg-white transition"
+                        className="px-3 py-1 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-semibold rounded-full shadow-sm hover:bg-white transition"
                       >
                         {cat}
                       </span>
@@ -104,10 +88,10 @@ export default function GalleryPreview() {
 
                 {/* Content Overlay */}
                 <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-xl sm:text-2xl font-bold mb-2 leading-tight">
+                  <h3 className={`text-lg sm:text-xl font-bold mb-1 leading-tight ${poppins.className}`}>
                     {img.title}
                   </h3>
-                  <p className="text-white/90 text-sm flex items-center gap-1">
+                  <p className="text-white/90 text-xs sm:text-sm flex items-center gap-1">
                     📍 {img.location}
                   </p>
                 </div>
@@ -126,13 +110,13 @@ export default function GalleryPreview() {
           variants={item}
           className="text-center mt-12"
         >
-          <Link href="/gallery">
-            <button className="group relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white font-bold text-lg rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+          <Link href="/gallery" className="inline-block group">
+            <p className="inline-flex items-center gap-2 bg-white text-slate-800 border border-slate-300 hover:border-indigo-600 hover:text-indigo-600 px-8 py-3.5 rounded-full font-semibold shadow-sm hover:shadow-md transition-all duration-300 transform group-hover:scale-[1.02]">
               <span>Explore Full Gallery</span>
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </button>
+            </p>
           </Link>
-          <p className="mt-4 text-slate-600 text-sm">
+          <p className="mt-4 text-slate-500 text-sm">
             Discover all {total} stunning experiences
           </p>
         </motion.div>

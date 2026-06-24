@@ -1,27 +1,33 @@
 "use client";
+import { assets } from "@/public/assets/assets";
 import { motion } from "framer-motion";
 import { Users, Clock, MapPin, Headphones } from "lucide-react";
+import Image from "next/image";
 
 const features = [
   {
     title: "Trusted Guides",
     desc: "Vetted local experts you can rely on.",
     icon: <Users className="h-6 w-6 text-white" />,
+    image: assets.trustedGuides
   },
   {
     title: "Easy Booking",
     desc: "Fast checkout and secure payments.",
     icon: <Clock className="h-6 w-6 text-white" />,
+    image: assets.easyBookings
   },
   {
     title: "Local Experts",
     desc: "Insider knowledge for authentic experiences.",
     icon: <MapPin className="h-6 w-6 text-white" />,
+    image: assets.localExperts
   },
   {
     title: "24/7 Support",
     desc: "We're here to help, anytime.",
     icon: <Headphones className="h-6 w-6 text-white" />,
+    image: assets.anytime
   },
 ];
 
@@ -52,16 +58,26 @@ export default function Features() {
               transition={{ duration: 0.36, ease: "easeOut", delay: i * 0.06 }}
               className="relative bg-card border border-border rounded-2xl p-6 hover:shadow-lg transform-gpu transition-all"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex flex-col items-center gap-4">
                 <div
-                  className={`bg-secondary flex-none rounded-lg p-3 shadow-sm`}
+                  className={`bg-secondary rounded-lg p-3 shadow-sm`}
                 >
                   {f.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground leading-tight">
+                  <h3 className="text-lg font-semibold text-foreground text-center pb-4 leading-tight">
                     {f.title}
                   </h3>
+                  <div className="overflow-hidden rounded-lg">
+                    <Image
+                      alt={f.title}
+                      src={f.image}
+                      width={400}
+                      height={250}
+                      className="w-full h-40 object-cover transition duration-300 hover:scale-105"
+                    />
+                  </div>
+
                   <p className="text-sm mt-1">{f.desc}</p>
                 </div>
               </div>

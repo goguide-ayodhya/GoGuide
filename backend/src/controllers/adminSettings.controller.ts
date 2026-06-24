@@ -86,6 +86,29 @@ export class AdminSettingsController {
     }
   }
 
+  async updateVehicleTypes(req: AuthRequest, res: Response) {
+    const { vehicleTypes } = req.body;
+    if (!Array.isArray(vehicleTypes)) {
+      return res.status(400).json({
+        success: false,
+        message: "vehicleTypes must be an array",
+      });
+    }
+
+    try {
+      const settings = await adminSettingsService.updateVehicleTypes(
+        vehicleTypes,
+        req.userId!
+      );
+      res.status(200).json({ success: true, data: settings });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || "Failed to update vehicle types",
+      });
+    }
+  }
+
   async updatePaymentQR(req: AuthRequest, res: Response) {
     try {
       // If a file was uploaded via multipart/form-data, use it.

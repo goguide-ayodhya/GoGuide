@@ -29,9 +29,7 @@ export default function DriversPage() {
   // Filter drivers
   const filtered = drivers.filter((driver) => {
     const matchesSearch =
-      driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.vehicleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      driver.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesVehicle =
       selectedVehicle === "all" || driver.vehicleType === selectedVehicle;
     return matchesSearch && matchesVehicle;
@@ -63,7 +61,7 @@ export default function DriversPage() {
                 placeholder="Search drivers by name, vehicle, or plate..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                className="pl-10 border-border"
               />
             </div>
 
@@ -77,11 +75,10 @@ export default function DriversPage() {
                   <button
                     key={vehicle}
                     onClick={() => setSelectedVehicle(vehicle)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      selectedVehicle === vehicle
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-foreground hover:bg-secondary/80"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedVehicle === vehicle
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-2 border-secondary text-foreground hover:bg-secondary/30 cursor-pointer"
+                      }`}
                   >
                     {vehicle.charAt(0).toUpperCase() + vehicle.slice(1)}
                   </button>
@@ -95,7 +92,7 @@ export default function DriversPage() {
       {/* Drivers Grid */}
       <div>
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filtered.map((driver) => (
               <Card
                 key={driver.id}
@@ -103,12 +100,12 @@ export default function DriversPage() {
               >
                 <CardContent className="p-0">
                   {/* Driver Image */}
-                  <div className="relative h-48 w-full overflow-hidden bg-secondary">
+                  <div className="relative w-full aspect-square overflow-hidden bg-secondary">
                     <Image
                       src={driver.avatar || assets.guideImage}
                       alt={driver.name}
                       fill
-                      className="object-cover w-full h-full"
+                      className="object-cover"
                     />
                   </div>
 
@@ -170,29 +167,18 @@ export default function DriversPage() {
                       </div>
                     </div>
 
-                    {/* Pricing */}
-                    {/* <div className="text-lg font-bold text-primary">
-                      ₹{driver.pricePerKm}/km
-                    </div> */}
-
                     {/* Status */}
                     <div className="flex items-center gap-2">
                       <div
-                        className={`h-3 w-3 rounded-full ${
-                          driver.isAvailable
-                            ? "bg-green-500"
-                            : "bg-gray-500"
-                        }`}
+                        className={`h-3 w-3 rounded-full ${driver.isAvailable
+                          ? "bg-green-500"
+                          : "bg-gray-500"
+                          }`}
                       />
                       <span className="text-sm">
                         {driver.isAvailable ? "Available" : "Not Available"}
                       </span>
                     </div>
-
-                    {/* Actions */}
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                      View Profile
-                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -185,6 +185,7 @@ export default function ProfilePage() {
     setRawAvatarSrc(null);
     setSelectedImage(croppedFile);
     setPreviewImage(croppedPreview);
+    setIsEditing(true);
   };
 
   const handleAvatarCropCancel = () => {
@@ -196,6 +197,7 @@ export default function ProfilePage() {
   const handleLicenseImagesChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setSelectedLicenseImages(files);
+    setIsEditing(true);
   };
 
   const handleSaveAvatar = async () => {
@@ -324,7 +326,7 @@ export default function ProfilePage() {
 
   if (!user) return null;
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -335,17 +337,15 @@ export default function ProfilePage() {
             Manage your driver profile and preferences
           </p>
         </div>
-        <Button
-          disabled={isDisabled}
-          onClick={() => setIsEditing(!isEditing)}
-          className={
-            isEditing
-              ? "bg-red-500/20 text-red-600 hover:bg-red-500/30"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }
-        >
-          {isEditing ? "Cancel" : "Edit Profile"}
-        </Button>
+        {!isEditing && (
+          <Button
+            disabled={isDisabled}
+            onClick={() => setIsEditing(true)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl"
+          >
+            Edit Profile
+          </Button>
+        )}
       </div>
 
       {/* Status Cards */}
@@ -398,17 +398,6 @@ export default function ProfilePage() {
                   <Upload size={18} />
                   Upload New Picture
                 </Button>
-
-                {selectedImage && (
-                  <Button
-                    onClick={handleSaveAvatar}
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
-                    disabled={avatarLoading}
-                  >
-                    <Save size={18} />
-                    {avatarLoading ? "Saving..." : "Save Avatar"}
-                  </Button>
-                )}
               </div>
 
               <p className="text-xs text-muted-foreground mt-2">
@@ -752,8 +741,7 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
-    
-    
+
       <ImageCropModal
         imageSrc={rawAvatarSrc}
         open={avatarCropOpen}
@@ -761,6 +749,48 @@ export default function ProfilePage() {
         onCropComplete={handleAvatarCropComplete}
         outputFileName="avatar.jpg"
       />
+
+      {isEditing && (
+        <div className="fixed bottom-6 right-6 md:right-12 z-50 flex items-center gap-3 p-4 bg-background/90 dark:bg-slate-900/90 backdrop-blur-md border border-border rounded-2xl shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsEditing(false);
+              setSelectedLicenseImages([]);
+              setSelectedDriverPhoto(null);
+              setPreviewImage(null);
+              setSelectedImage(null);
+              if (myDriver) {
+                setFormData({
+                  name: myDriver.name || user?.name || "",
+                  email: myDriver.email || user?.email || "",
+                  phone: myDriver.phone || user?.phone || "",
+                  vehicleType: myDriver.vehicleType || "",
+                  vehicleName: myDriver.vehicleName || "",
+                  vehicleNumber: myDriver.vehicleNumber || "",
+                  seats: myDriver.seats || 4,
+                  driverLicenseName: myDriver.driverLicenseName || "",
+                  driverLicenseImages: myDriver.driverLicenseImage || [],
+                  driverPhoto: myDriver.driverPhoto || "",
+                  yearsOfExperience: myDriver.totalRides || 0,
+                  reviews: myDriver.totalRides,
+                });
+              }
+            }}
+            className="rounded-xl border-border hover:bg-muted"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={loading}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 rounded-xl"
+          >
+            <Save size={18} />
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

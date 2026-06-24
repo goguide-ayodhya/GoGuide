@@ -29,6 +29,10 @@ router.patch("/settings/locations", authenticate, authorize(["ADMIN"]), (req, re
   adminSettingsController.updateLocations(req, res).catch(next);
 });
 
+router.patch("/settings/vehicle-types", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  adminSettingsController.updateVehicleTypes(req, res).catch(next);
+});
+
 // Support JSON body or multipart upload (field: paymentQRFile)
 router.patch(
   "/settings/payment-qr",

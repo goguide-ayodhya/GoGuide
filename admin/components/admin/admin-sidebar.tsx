@@ -19,6 +19,7 @@ import {
   DollarSign,
   MessageSquare,
   Star,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,9 +41,14 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Bookings",
+    title: "Guide Bookings",
     href: "/admin/bookings",
     icon: CalendarDays,
+  },
+  {
+    title: "Cab Bookings",
+    href: "/admin/cab-bookings",
+    icon: ClipboardList,
   },
   {
     title: "Users",
@@ -109,7 +115,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         const packageBookings = Array.isArray(allBookings) ? allBookings : allBookings?.data || [];
         const pendingPackagesCount = packageBookings.filter((b: any) => b.bookingType === "PACKAGE" && b.status === "PENDING").length;
 
-        
+
         // Count users joined today
         const users = await getRecentUsers(50);
         const today = new Date().toDateString();
@@ -208,7 +214,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                       )}
                     />
                     <span className="flex-1">{item.title}</span>
-                    
+
                     {/* Badges */}
                     {item.title === "Bookings" && stats.bookings > 0 && (
                       <Badge className="ml-auto bg-rose-500 hover:bg-rose-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">

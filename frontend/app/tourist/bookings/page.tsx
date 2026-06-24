@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooking } from "@/contexts/BookingsContext";
 import { useReview } from "@/contexts/ReviewContext";
@@ -29,7 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, User, Filter, RefreshCw } from "lucide-react";
+import { Calendar, User, Filter, RefreshCw, Car, Heart, MapPin, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { getMyCabBookingsApi, updateCabBookingStatusApi } from "@/lib/api/cabBookings";
 import Link from "next/link";
 import HeadingTitle from "@/components/common/headingTitle";
 import {
@@ -41,10 +43,125 @@ import {
 import { cancelBookingApi } from "@/lib/api/bookings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: string) => void }) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "CONFIRMED":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "COMPLETED":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "CANCELLED":
+        return "bg-rose-100 text-rose-800 border-rose-200";
+      default:
+        return "bg-slate-100 text-slate-800";
+    }
+  };
+
+  const getSpecialAssistanceText = (assist: any) => {
+    const list = [];
+    if (assist?.wheelchair) list.push("Wheelchair");
+    if (assist?.medicalSupport) list.push("Medical Support");
+    if (assist?.elderlyCare) list.push("Elderly Care");
+    if (assist?.childCare) list.push("Child Care");
+    return list.join(", ");
+  };
+
+  return (
+    <Card className="overflow-hidden border border-slate-200 rounded-3xl bg-white hover:shadow-md transition-all duration-300 flex flex-col justify-between p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+            <Car className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-900">{booking.vehicleType}</h4>
+            <p className="text-xs text-muted-foreground">{booking.acPreference}</p>
+          </div>
+        </div>
+        <Badge className={getStatusColor(booking.status)} variant="outline">
+          {booking.status.charAt(0) + booking.status.slice(1).toLowerCase()}
+        </Badge>
+      </div>
+
+      <div className="space-y-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+          <span>{new Date(booking.startDate).toLocaleDateString()} ({booking.numDays} days)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-slate-400 shrink-0" />
+          <span>{booking.numPeople} people</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <span className="truncate">{booking.pickupLocation} → {booking.dropoffLocation}</span>
+        </div>
+        {getSpecialAssistanceText(booking.specialAssistance) ? (
+          <div className="flex items-center gap-2 text-rose-600 font-medium text-xs">
+            <Heart className="w-4 h-4 shrink-0 fill-rose-500 text-rose-500" />
+            <span>Assistance: {getSpecialAssistanceText(booking.specialAssistance)}</span>
+          </div>
+        ) : null}
+      </div>
+
+      {booking.status === "PENDING" && (
+        <Button
+          onClick={() => onCancel(booking._id)}
+          variant="outline"
+          className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 rounded-2xl h-10 font-semibold"
+        >
+          Cancel Request
+        </Button>
+      )}
+    </Card>
+  );
+}
+
 export default function BookingsPage() {
   const { isLoggedIn } = useAuth();
   const { bookings, cancelBooking, setBookings, refreshBookings } =
     useBooking();
+  const [cabBookings, setCabBookings] = useState<any[]>([]);
+  const [loadingCabs, setLoadingCabs] = useState(true);
+
+  const fetchCabBookings = async () => {
+    try {
+      setLoadingCabs(true);
+      const data = await getMyCabBookingsApi();
+      setCabBookings(Array.isArray(data) ? data : data?.bookings || data?.data || []);
+    } catch (err) {
+      console.error("Failed to load cab bookings", err);
+    } finally {
+      setLoadingCabs(false);
+    }
+  };
+
+  const handleCancelCabRequest = async (bookingId: string) => {
+    try {
+      await updateCabBookingStatusApi(bookingId, "CANCELLED");
+      setCabBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, status: "CANCELLED" } : b))
+      );
+      toast({
+        title: "Cab request cancelled",
+        description: "Your cab booking request has been successfully cancelled.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Failed to cancel",
+        description: err.message || "Failed to cancel request.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchCabBookings();
+    }
+  }, [isLoggedIn]);
   const { createReview, getBookingReview } = useReview();
   const { toast } = useToast();
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
@@ -120,6 +237,7 @@ export default function BookingsPage() {
     setIsRefreshing(true);
     try {
       await refreshBookings();
+      await fetchCabBookings();
       toast({
         title: "Bookings refreshed",
         description: "Your booking list is now up to date.",
@@ -290,7 +408,7 @@ export default function BookingsPage() {
 
       <div className="flex-1 px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
         <div className="mx-auto flex items-center justify-center">
-          {bookings.length === 0 ? (
+          {bookings.length === 0 && cabBookings.length === 0 ? (
             <Card className="p-6 sm:p-8 md:p-10 text-center max-w-xl">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-foreground mb-2">
@@ -629,6 +747,7 @@ export default function BookingsPage() {
                     <TabsList className="mb-6 w-full flex bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar justify-start sm:justify-center h-auto">
                       <TabsTrigger value="tourPackages" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tour Packages</TabsTrigger>
                       <TabsTrigger value="guideBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Guide Bookings</TabsTrigger>
+                      <TabsTrigger value="cabRequests" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Cab Requests</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="tourPackages" className="mt-0">
@@ -666,6 +785,24 @@ export default function BookingsPage() {
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             No guide bookings match your filters.
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="cabRequests" className="mt-0">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                        {cabBookings.length > 0 ? (
+                          cabBookings.map((booking) => (
+                            <CabBookingCard
+                              key={booking._id}
+                              booking={booking}
+                              onCancel={handleCancelCabRequest}
+                            />
+                          ))
+                        ) : (
+                          <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                            No cab requests found.
                           </div>
                         )}
                       </div>

@@ -44,6 +44,7 @@ import {
   updateLocationsApi,
   updatePaymentQRApi,
   uploadPaymentQRApi,
+  updateVehicleTypesApi,
 } from "@/lib/api/finance";
 
 export default function SettingsPage() {
@@ -84,6 +85,9 @@ export default function SettingsPage() {
   const [locations, setLocations] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState("");
   const [isSavingGuide, setIsSavingGuide] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
+  const [newVehicleType, setNewVehicleType] = useState("");
+  const [isSavingVehicles, setIsSavingVehicles] = useState(false);
   const [paymentQR, setPaymentQR] = useState({
     url: "",
     isEnabled: false,
@@ -114,6 +118,9 @@ export default function SettingsPage() {
       }
       if (data.locations) {
         setLocations(data.locations);
+      }
+      if (data.vehicleTypes) {
+        setVehicleTypes(data.vehicleTypes);
       }
       if (data.paymentQR) {
         setPaymentQR({
@@ -252,6 +259,30 @@ export default function SettingsPage() {
     setLocations((prev) => prev.filter((l) => l !== loc));
   };
 
+  const handleAddVehicleType = () => {
+    if (newVehicleType.trim() && !vehicleTypes.includes(newVehicleType.trim())) {
+      setVehicleTypes((prev) => [...prev, newVehicleType.trim()]);
+      setNewVehicleType("");
+    }
+  };
+
+  const handleRemoveVehicleType = (vType: string) => {
+    setVehicleTypes((prev) => prev.filter((v) => v !== vType));
+  };
+
+  const handleSaveVehicleSettings = async () => {
+    setIsSavingVehicles(true);
+    try {
+      await updateVehicleTypesApi(vehicleTypes);
+      setError(null);
+      window.alert("Vehicle settings updated successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to save vehicle settings");
+    } finally {
+      setIsSavingVehicles(false);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -362,13 +393,13 @@ export default function SettingsPage() {
             <Percent className="w-4 h-4" />
             Commissions
           </TabsTrigger>
+          <TabsTrigger value="cab-settings" className="flex items-center gap-2">
+            <Car className="w-4 h-4" />
+            Cab Settings
+          </TabsTrigger>
           <TabsTrigger value="payment-qr" className="flex items-center gap-2">
             <QrCode className="w-4 h-4" />
             Payment QR
-          </TabsTrigger>
-          <TabsTrigger value="profile-info" className="flex items-center gap-2">
-            <UserIcon className="w-4 h-4" />
-            Profile Info
           </TabsTrigger>
         </TabsList>
 
@@ -814,13 +845,21 @@ export default function SettingsPage() {
                       <Badge
                         key={loc}
                         variant="secondary"
-                        className="flex items-center gap-1 bg-card hover:bg-card/80 border border-border px-3 py-1"
+                        className="flex items-center gap-1 bg-card hover:bg-card/80 border text-black border-border px-3 py-1"
                       >
                         {loc}
-                        <X
-                          className="w-3.5 h-3.5 cursor-pointer text-muted-foreground hover:text-destructive"
-                          onClick={() => handleRemoveLocation(loc)}
-                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRemoveLocation(loc);
+                          }}
+                          className="hover:text-destructive focus:outline-none rounded-sm shrink-0"
+                          aria-label={`Remove ${loc}`}
+                        >
+                          <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                        </button>
                       </Badge>
                     ))}
                   </div>
@@ -833,6 +872,76 @@ export default function SettingsPage() {
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {isSavingGuide ? "Saving..." : "Save Guide Pricing & Locations"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Cab Settings Tab */}
+        <TabsContent value="cab-settings" className="outline-none">
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Car className="w-5 h-5 text-orange-500" />
+                Cab Vehicle Configuration
+              </CardTitle>
+              <CardDescription>
+                Manage the types of vehicles tourists can choose when requesting a cab.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold mb-4 flex items-center gap-2 text-foreground">
+                    <Car className="w-4 h-4 text-orange-500" />
+                    Manage Vehicle Types
+                  </h4>
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={newVehicleType}
+                      onChange={(e) => setNewVehicleType(e.target.value)}
+                      placeholder="Enter a new vehicle type (e.g., Sedan, SUV)"
+                      onKeyPress={(e) => e.key === "Enter" && handleAddVehicleType()}
+                    />
+                    <Button onClick={handleAddVehicleType}>Add</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {vehicleTypes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No vehicle types configured. Add one above.</p>
+                    ) : (
+                      vehicleTypes.map((vType) => (
+                        <Badge
+                          key={vType}
+                          variant="secondary"
+                          className="flex items-center gap-1 text-black bg-card hover:bg-card/80 border border-border px-3 py-1 text-sm font-medium"
+                        >
+                          {vType}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRemoveVehicleType(vType);
+                            }}
+                            className="hover:text-destructive focus:outline-none rounded-sm shrink-0"
+                            aria-label={`Remove ${vType}`}
+                          >
+                            <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                          </button>
+                        </Badge>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveVehicleSettings}
+                  disabled={isSavingVehicles}
+                  className="w-full h-11 mt-4"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSavingVehicles ? "Saving..." : "Save Vehicle Types"}
                 </Button>
               </div>
             </CardContent>
@@ -1055,39 +1164,6 @@ export default function SettingsPage() {
                   <Save className="w-4 h-4 mr-2" />
                   {isSavingQR ? "Saving..." : "Save Payment QR Settings"}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Profile Info Tab */}
-        <TabsContent value="profile-info" className="outline-none">
-          <Card className="border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-orange-500" />
-                Admin Audit Information
-              </CardTitle>
-              <CardDescription>
-                Auditing detail regarding the current logged-in administrator session.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider animate-pulse">Admin Email</p>
-                  <p className="text-sm font-semibold text-foreground">{profile?.email || "loading..."}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider animate-pulse">Last Login</p>
-                  <p className="text-sm font-semibold text-foreground">
-                    {profile?.lastLogin ? new Date(profile.lastLogin).toLocaleString() : "loading..."}
-                  </p>
-                </div>
-              </div>
-              <div className="p-4 rounded-lg bg-muted/30 border border-border flex items-center gap-3">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping shrink-0" />
-                <p className="text-xs font-semibold text-muted-foreground">Admin API endpoints fully operational and authenticated.</p>
               </div>
             </CardContent>
           </Card>

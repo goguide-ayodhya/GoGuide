@@ -77,6 +77,24 @@ export class AdminSettingsService {
     return settings;
   }
 
+  async updateVehicleTypes(vehicleTypes: string[], adminId: string): Promise<IAdminSettings> {
+    let settings = await AdminSettings.findOne({});
+    if (!settings) {
+      settings = await AdminSettings.create({
+        driverCommissionPercent: 20,
+        vehicleTypes,
+        lastUpdatedBy: adminId,
+        lastUpdatedAt: new Date(),
+      });
+    } else {
+      settings.vehicleTypes = vehicleTypes;
+      settings.lastUpdatedBy = adminId;
+      settings.lastUpdatedAt = new Date();
+      await settings.save();
+    }
+    return settings;
+  }
+
   async updatePaymentQR(qr: { url: string; isEnabled: boolean; upiId?: string; merchantName?: string }, adminId: string): Promise<IAdminSettings> {
     let settings = await AdminSettings.findOne({});
     if (!settings) {

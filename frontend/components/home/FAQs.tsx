@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { assets } from "@/public/assets/assets";
 
 interface FAQ {
   question: string;
@@ -70,7 +72,7 @@ export default function FAQSection() {
 
   const stats = [
     { label: "Clients", value: bookingsCount ? `${bookingsCount}+` : "50+" },
-    // { label: "On Time", value: "100%" },
+    { label: "On Time", value: "100%" },
     { label: "Success", value: "98%+" },
     { label: "Support", value: "24/7" },
   ];
@@ -80,9 +82,9 @@ export default function FAQSection() {
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           {/* Left: Heading + description + stats */}
-          <div className="flex flex-col justify-between h-full gap-6">
+          <div className="flex flex-col justify-between h-full">
             <div
-              className="flex flex-col gap-3 px-3 py-1 rounded-full border faq-badge font-medium"
+              className="flex flex-col px-3 py-1 rounded-full border faq-badge font-medium"
               style={{ borderWidth: 1 }}
             >
               <div className="rounded-full text-secondary mb-2">
@@ -97,6 +99,10 @@ export default function FAQSection() {
                 Get answers to common questions about our development process,
                 project complexity and system integrations.
               </p>
+              <Image
+                src={assets.faq}
+                alt={assets.faq.src}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 mt-6">

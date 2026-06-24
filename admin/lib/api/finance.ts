@@ -70,6 +70,15 @@ export const updateLocationsApi = async (locations: string[]) => {
   return handleRes(res);
 };
 
+export const updateVehicleTypesApi = async (vehicleTypes: string[]) => {
+  const res = await fetch(`${base_url}finance/settings/vehicle-types`, {
+    method: "PATCH",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ vehicleTypes }),
+  });
+  return handleRes(res);
+};
+
 export const updatePaymentQRApi = async (
   url: string,
   isEnabled: boolean,

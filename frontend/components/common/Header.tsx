@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, User, Phone, Menu, LogOut, BookOpen } from "lucide-react";
+import { ChevronLeft, User, Phone, Menu, LogOut, BookOpen, Car } from "lucide-react";
 import { assets } from "@/public/assets/assets";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +71,11 @@ export function Header({
             My Bookings
           </Link>
 
+          {/* Desktop Book Cab */}
+          <Link href="/tourist/cabs/book-cab" className="items-center px-3 bg-secondary text-white  py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-secondary/90 transition">
+            Book Cab
+          </Link>
+
           {/* Contact */}
           <Link href="/contact-us" className="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-50 to-indigo-50 text-indigo-600 text-sm hover:from-sky-100 hover:to-indigo-100 transition">
             <Phone size={16} />
@@ -105,6 +110,11 @@ export function Header({
           <Link href="/tourist/bookings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-sm font-medium px-2 py-2 rounded hover:bg-slate-50">
             <BookOpen size={16} />
             My Bookings
+          </Link>
+
+          <Link href="/tourist/cabs/book-cab" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-sm font-medium px-2 py-2 rounded hover:bg-slate-50">
+            <Car size={16} />
+            Book Cab
           </Link>
 
           {user ? (

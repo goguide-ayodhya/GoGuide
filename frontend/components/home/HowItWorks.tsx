@@ -1,6 +1,8 @@
 "use client";
+import { assets } from "@/public/assets/assets";
 import { motion } from "framer-motion";
 import { Search, Calendar, Map } from "lucide-react";
+import Image from "next/image";
 
 const steps = [
   {
@@ -8,18 +10,21 @@ const steps = [
     desc: "Search verified local guides.",
     icon: <Search className="h-5 w-5 text-white" />,
     color: "bg-indigo-600",
+    image: assets.findGuide
   },
   {
     title: "Book a Slot",
     desc: "Choose date, time and confirm booking.",
     icon: <Calendar className="h-5 w-5 text-white" />,
     color: "bg-indigo-600",
+    image: assets.bookSlot
   },
   {
     title: "Enjoy the Tour",
     desc: "Meet your guide and explore safely.",
     icon: <Map className="h-5 w-5 text-white" />,
     color: "bg-indigo-600",
+    image: assets.enjoy
   },
 ];
 
@@ -58,12 +63,28 @@ export default function HowItWorks() {
               </div>
 
               <div className="mt-3 w-full">
-                <div className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition transform-gpu hover:-translate-y-1">
-                  <div className="mb-3 inline-flex items-center bg-secondary justify-center rounded-md p-2 bg-muted/40">
+                <div className="bg-card border border-border rounded-xl p-5 hover:bg-secondary/10 shadow-sm hover:shadow-md transition transform-gpu hover:-translate-y-1">
+                  <div className="mb-3 inline-flex items-center justify-center rounded-md p-2 bg-secondary">
                     {s.icon}
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">{s.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{s.desc}</p>
+
+                  <h3 className="text-lg font-semibold text-foreground mb-3">
+                    {s.title}
+                  </h3>
+
+                  <div className="overflow-hidden rounded-lg">
+                    <Image
+                      alt={s.title}
+                      src={s.image}
+                      width={400}
+                      height={250}
+                      className="w-full h-40 object-cover transition duration-300 hover:scale-105"
+                    />
+                  </div>
+
+                  <p className="text-sm text-muted-foreground mt-3">
+                    {s.desc}
+                  </p>
                 </div>
               </div>
             </motion.div>
