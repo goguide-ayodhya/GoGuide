@@ -233,6 +233,7 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
           onClose={() => setShowPaymentQR(false)}
         />
       )}
+      
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]"

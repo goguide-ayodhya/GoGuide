@@ -149,6 +149,9 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
+      tourist-workspace:
+        specifier: file:..
+        version: Tourist@file:..
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1231,6 +1234,9 @@ packages:
         optional: true
       vue-router:
         optional: true
+
+  Tourist@file:..:
+    resolution: {directory: .., type: directory}
 
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
@@ -2713,6 +2719,8 @@ snapshots:
     optionalDependencies:
       next: 16.1.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react: 19.2.4
+
+  Tourist@file:..: {}
 
   aria-hidden@1.2.6:
     dependencies:
