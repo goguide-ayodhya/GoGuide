@@ -158,6 +158,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         originalPrice: b.originalPrice,
         guideEarning: b.guideEarning,
         adminCommission: b.adminCommission,
+        fullPaymentDiscountEligible: b.fullPaymentDiscountEligible,
         cancellationReason: b.cancellationReason,
         cancelledBy: b.cancelledBy,
         createdAt: b.createdAt,

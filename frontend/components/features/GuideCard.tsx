@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Guide } from "@/contexts/GuideContext";
 import { assets } from "@/public/assets/assets";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,9 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
   } | null>(null);
 
   const router = useRouter();
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedCertificateIndex, setSelectedCertificateIndex] = useState<
+    number | null
+  >(null);
   const statusBadge = getStatusBadge(guide.isAvailable);
   const canBook = guide.isAvailable;
   const profileImage = guide.avatar || guide.image || assets.guideImage;
@@ -55,6 +57,35 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
       ? guide.specialities[0]
       : "Friendly local guide with stories and insider tips.");
   const recentReviews = guide.recentReviews?.slice(0, 3) || [];
+  const certificates = guide.certificates || [];
+  const selectedCertificate =
+    selectedCertificateIndex !== null
+      ? certificates[selectedCertificateIndex]
+      : null;
+
+  const openCertificateViewer = (index: number) => {
+    setSelectedCertificateIndex(index);
+  };
+
+  const closeCertificateViewer = () => {
+    setSelectedCertificateIndex(null);
+  };
+
+  const showPreviousCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return certificates.length - 1;
+      return current === 0 ? certificates.length - 1 : current - 1;
+    });
+  };
+
+  const showNextCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return 0;
+      return (current + 1) % certificates.length;
+    });
+  };
 
   useEffect(() => {
     getPublicSettingsApi()
@@ -173,7 +204,7 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
                     {guide.certificates.map((cert, i) => (
                       <button
                         key={i}
-                        onClick={() => setSelectedImage(cert.image)}
+                        onClick={() => openCertificateViewer(i)}
                         className="px-3 py-1 text-xs rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition"
                       >
                         {cert.name &&
@@ -234,17 +265,78 @@ export function GuideCard({ guide, pricing }: GuideCardProps) {
         />
       )}
       
-      {selectedImage && (
+      {selectedCertificate && (
         <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]"
-          onClick={() => setSelectedImage(null)}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+          onClick={closeCertificateViewer}
         >
-          <img
-            src={selectedImage}
-            alt="certificate"
-            className="max-w-[90%] max-h-[90%] rounded-lg shadow-lg"
+          <div
+            className="relative w-full max-w-5xl rounded-2xl border border-border bg-background p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <button
+              type="button"
+              onClick={closeCertificateViewer}
+              className="absolute right-4 top-4 z-10 rounded-full bg-background/90 p-2 text-foreground shadow-sm transition hover:bg-muted"
+              aria-label="Close certificate viewer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-foreground">
+                {selectedCertificate.name &&
+                !selectedCertificate.name.match(
+                  /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                ) &&
+                !selectedCertificate.name.startsWith("http")
+                  ? selectedCertificate.name
+                  : `Certificate ${selectedCertificateIndex! + 1}`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {selectedCertificateIndex! + 1} of {certificates.length}
+              </p>
+            </div>
+
+            <div className="relative flex min-h-[60vh] items-center justify-center rounded-xl bg-muted/30 p-2">
+              <button
+                type="button"
+                onClick={showPreviousCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-md transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Previous certificate"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={showNextCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-md transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Next certificate"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {selectedCertificate.image?.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={selectedCertificate.image}
+                  title="Certificate preview"
+                  className="h-[70vh] w-full rounded-lg border border-border"
+                />
+              ) : (
+                <img
+                  src={selectedCertificate.image}
+                  alt={
+                    selectedCertificate.name ||
+                    `Certificate ${selectedCertificateIndex! + 1}`
+                  }
+                  className="max-h-[75vh] w-full rounded-lg object-contain"
+                />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </>

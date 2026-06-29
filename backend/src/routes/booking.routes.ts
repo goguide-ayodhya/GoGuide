@@ -19,6 +19,16 @@ router.post(
   },
 );
 
+router.post(
+  "/admin/manual-create",
+  authenticate,
+  authorize(["ADMIN"]),
+  validate(createBookingSchema),
+  (req, res, next) => {
+    bookingController.createAdminBooking(req, res).catch(next);
+  },
+);
+
 router.get("/my-bookings", authenticate, (req, res, next) => {
   bookingController.getMyBookings(req, res).catch(next);
 });

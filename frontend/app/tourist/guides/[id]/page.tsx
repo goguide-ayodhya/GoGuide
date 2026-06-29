@@ -15,7 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Guide, useGuide } from "@/contexts/GuideContext";
 import { getGuideById } from "@/lib/api/guides";
 import { assets } from "@/public/assets/assets";
-import { Star, MapPin, Users, Award, MessageCircle, Circle } from "lucide-react";
+import {
+  Star,
+  MapPin,
+  Users,
+  Award,
+  MessageCircle,
+  Circle,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { poppins } from "@/lib/fonts";
 
 export default function GuideDetailsPage() {
@@ -26,6 +36,9 @@ export default function GuideDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
+  const [selectedCertificateIndex, setSelectedCertificateIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const fetchGuide = async () => {
@@ -118,6 +131,35 @@ export default function GuideDetailsPage() {
 
   const specialties = guide.specialities || [];
   const isAvailable = guide.isAvailable;
+  const certificates = guide?.certificates || [];
+  const selectedCertificate =
+    selectedCertificateIndex !== null
+      ? certificates[selectedCertificateIndex]
+      : null;
+
+  const openCertificateViewer = (index: number) => {
+    setSelectedCertificateIndex(index);
+  };
+
+  const closeCertificateViewer = () => {
+    setSelectedCertificateIndex(null);
+  };
+
+  const showPreviousCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return certificates.length - 1;
+      return current === 0 ? certificates.length - 1 : current - 1;
+    });
+  };
+
+  const showNextCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return 0;
+      return (current + 1) % certificates.length;
+    });
+  };
 
   const handleBookingSubmit = (data: BookingData) => {
     setBookingData(data);
@@ -247,7 +289,7 @@ export default function GuideDetailsPage() {
                           <div
                             key={index}
                             className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer"
-                            onClick={() => cert.image && window.open(cert.image, "_blank")}
+                            onClick={() => cert.image && openCertificateViewer(index)}
                           >
                             <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
                               <Award className="h-6 w-6 text-muted-foreground" />
@@ -332,6 +374,82 @@ export default function GuideDetailsPage() {
           </div>
         </div>
       </div>
+
+      {selectedCertificate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={closeCertificateViewer}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-[1.5rem] border border-border bg-background p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeCertificateViewer}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              aria-label="Close certificate viewer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {selectedCertificate.name &&
+                  !selectedCertificate.name.match(
+                    /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                  ) &&
+                  !selectedCertificate.name.startsWith("http")
+                    ? selectedCertificate.name
+                    : `Certificate ${selectedCertificateIndex! + 1}`}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedCertificateIndex! + 1} of {certificates.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative flex min-h-[60vh] items-center justify-center rounded-[1rem] bg-muted/30 p-2">
+              <button
+                type="button"
+                onClick={showPreviousCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-md transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Previous certificate"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={showNextCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-md transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Next certificate"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {selectedCertificate.image?.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={selectedCertificate.image}
+                  title="Certificate preview"
+                  className="h-[70vh] w-full rounded-[0.8rem] border border-border"
+                />
+              ) : (
+                <img
+                  src={selectedCertificate.image}
+                  alt={
+                    selectedCertificate.name || `Certificate ${selectedCertificateIndex! + 1}`
+                  }
+                  className="max-h-[75vh] w-full rounded-[0.8rem] object-contain"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
 

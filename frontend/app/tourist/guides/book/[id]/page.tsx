@@ -13,7 +13,15 @@ import { getPublicSettingsApi } from "@/lib/api/finance";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Circle, Star, AlertCircle, Map } from "lucide-react";
+import {
+  Circle,
+  Star,
+  AlertCircle,
+  Map,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { assets } from "@/public/assets/assets";
 import { createBooking } from "@/lib/api/bookings";
 import { poppins } from "@/lib/fonts";
@@ -35,6 +43,9 @@ export default function GuideBookingPage() {
   }>({});
   const [reviews, setReviews] = useState<any[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [selectedCertificateIndex, setSelectedCertificateIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     getPublicSettingsApi()
@@ -85,6 +96,35 @@ export default function GuideBookingPage() {
   console.log("recentReviews:", reviews);
 
   const isGuideAvailable = guide?.isAvailable;
+  const certificates = guide?.certificates || [];
+  const selectedCertificate =
+    selectedCertificateIndex !== null
+      ? certificates[selectedCertificateIndex]
+      : null;
+
+  const openCertificateViewer = (index: number) => {
+    setSelectedCertificateIndex(index);
+  };
+
+  const closeCertificateViewer = () => {
+    setSelectedCertificateIndex(null);
+  };
+
+  const showPreviousCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return certificates.length - 1;
+      return current === 0 ? certificates.length - 1 : current - 1;
+    });
+  };
+
+  const showNextCertificate = () => {
+    if (!certificates.length) return;
+    setSelectedCertificateIndex((current) => {
+      if (current === null) return 0;
+      return (current + 1) % certificates.length;
+    });
+  };
 
   if (!guideId) {
     router.replace("/tourist/guides");
@@ -339,7 +379,7 @@ export default function GuideBookingPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(cert.image, "_blank")}
+                            onClick={() => openCertificateViewer(index)}
                           >
                             View
                           </Button>
@@ -450,6 +490,82 @@ export default function GuideBookingPage() {
           </Card>
         </div>
       </div>
+      {selectedCertificate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={closeCertificateViewer}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeCertificateViewer}
+              className="absolute right-4 top-4 rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Close certificate viewer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedCertificate.name &&
+                  !selectedCertificate.name.match(
+                    /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                  ) &&
+                  !selectedCertificate.name.startsWith("http")
+                    ? selectedCertificate.name
+                    : `Certificate ${selectedCertificateIndex! + 1}`}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {selectedCertificateIndex! + 1} of {certificates.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative flex min-h-[60vh] items-center justify-center rounded-[1rem] bg-slate-50 p-2">
+              <button
+                type="button"
+                onClick={showPreviousCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Previous certificate"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={showNextCertificate}
+                disabled={certificates.length <= 1}
+                className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Next certificate"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {selectedCertificate.image?.toLowerCase().endsWith(".pdf") ? (
+                <iframe
+                  src={selectedCertificate.image}
+                  title="Certificate preview"
+                  className="h-[70vh] w-full rounded-[0.8rem] border border-slate-200"
+                />
+              ) : (
+                <img
+                  src={selectedCertificate.image}
+                  alt={
+                    selectedCertificate.name || `Certificate ${selectedCertificateIndex! + 1}`
+                  }
+                  className="max-h-[75vh] w-full rounded-[0.8rem] object-contain"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </main>
   );

@@ -39,6 +39,16 @@ export const createBooking = async (data: any) => {
   return handleRes(res);
 };
 
+export const createAdminBookingApi = async (data: any) => {
+  const res = await fetch(`${base_url}bookings/admin/manual-create`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  return handleRes(res);
+};
+
 // My Bookings
 export const getMyBookings = async () => {
   const res = await fetch(`${base_url}bookings/my-bookings`, {

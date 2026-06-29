@@ -4,7 +4,7 @@ import { bookingService } from "../services/booking.service";
 import { Guide } from "../models/Guide";
 import { Driver } from "../models/Driver";
 import { User } from "../models/User";
-import { HttpException, Unauthorized } from "../utils/httpException";
+import { HttpException, NotFound, Unauthorized } from "../utils/httpException";
 
 export class BookingController {
   async createBooking(req: AuthRequest, res: Response) {
@@ -14,6 +14,33 @@ export class BookingController {
       res.status(201).json({
         success: true,
         message: "Booking created successfully",
+        data: booking,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async createAdminBooking(req: AuthRequest, res: Response) {
+    try {
+      const { touristUserId, ...bookingData } = req.body;
+      let bookingOwnerUserId: string | undefined;
+
+      if (touristUserId) {
+        const tourist = await User.findById(touristUserId);
+        if (!tourist) {
+          throw new NotFound("Tourist user not found");
+        }
+        bookingOwnerUserId = tourist._id.toString();
+      }
+
+      const booking = await bookingService.createBooking(req.userId!, bookingData, {
+        bookingOwnerUserId: bookingOwnerUserId ?? req.userId,
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Admin booking created successfully",
         data: booking,
       });
     } catch (error) {

@@ -9,7 +9,9 @@ import {
   completeBookingApi,
   refundBookingApi,
   adminAcceptBookingApi,
+  createAdminBookingApi,
 } from "@/lib/api/bookings";
+import { getAllGuides } from "@/lib/api/guides";
 import type { Booking as ApiBooking } from "@/contexts/BookingsContext";
 import { formatDate } from "@/lib/utils";
 import { BookingFilters } from "@/components/admin/bookings/BookingFilters";
@@ -24,6 +26,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus } from "lucide-react";
 
 interface AdminBooking {
   id: string;
@@ -140,6 +161,11 @@ const convertApiBookingToUi = (apiBooking: any): AdminBooking => {
   };
 };
 
+interface GuideOption {
+  id: string;
+  name: string;
+}
+
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,11 +182,55 @@ export default function BookingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalBookingsCount, setTotalBookingsCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [guides, setGuides] = useState<GuideOption[]>([]);
+  const [guidesLoading, setGuidesLoading] = useState(false);
+  const [submittingBooking, setSubmittingBooking] = useState(false);
+  const [formData, setFormData] = useState({
+    touristName: "",
+    email: "",
+    phone: "",
+    touristUserId: "",
+    guideId: "",
+    bookingDate: "",
+    startTime: "",
+    tourType: "half_day",
+    groupSize: 1,
+    meetingPoint: "",
+    dropoffLocation: "",
+    notes: "",
+  });
 
   // Reset page to 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, filterPayment, filterDate, filterType, searchQuery]);
+
+  useEffect(() => {
+    const loadGuides = async () => {
+      try {
+        setGuidesLoading(true);
+        const rawGuides = await getAllGuides();
+        const guideList = Array.isArray(rawGuides)
+          ? rawGuides
+          : rawGuides?.data || rawGuides?.guides || [];
+        setGuides(
+          guideList
+            .filter((guide: any) => guide?._id || guide?.id)
+            .map((guide: any) => ({
+              id: guide._id || guide.id,
+              name: guide.userId?.name || guide.name || "Unnamed guide",
+            })),
+        );
+      } catch (err) {
+        console.error("Failed to load guides", err);
+      } finally {
+        setGuidesLoading(false);
+      }
+    };
+
+    loadGuides();
+  }, []);
 
   // Fetch bookings on page or filter changes
   useEffect(() => {
@@ -287,16 +357,83 @@ export default function BookingsPage() {
     setDetailsDialogOpen(true);
   };
 
+  const resetCreateForm = () => {
+    setFormData({
+      touristName: "",
+      email: "",
+      phone: "",
+      touristUserId: "",
+      guideId: "",
+      bookingDate: "",
+      startTime: "",
+      tourType: "half_day",
+      groupSize: 1,
+      meetingPoint: "",
+      dropoffLocation: "",
+      notes: "",
+    });
+  };
+
+  const handleCreateBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmittingBooking(true);
+      setError(null);
+
+      const payload = {
+        ...formData,
+        groupSize: Number(formData.groupSize),
+        bookingType: "GUIDE",
+        guideId: formData.guideId,
+        bookingDate: new Date(formData.bookingDate).toISOString(),
+        touristUserId: formData.touristUserId || undefined,
+        createdByAdmin: true,
+      };
+
+      await createAdminBookingApi(payload);
+      setCreateDialogOpen(false);
+      resetCreateForm();
+      setCurrentPage(1);
+      const raw = await getAllBookings({
+        status: filterStatus,
+        paymentStatus: filterPayment,
+        dateRange: filterDate,
+        bookingType: filterType,
+        search: searchQuery.trim() || undefined,
+        page: 1,
+        limit: 20,
+      });
+      const list = raw?.bookings || (Array.isArray(raw) ? raw : raw?.data || []);
+      const uiBookings = list.map((booking: ApiBooking | any) =>
+        convertApiBookingToUi(booking),
+      );
+      setBookings(uiBookings);
+      setTotalBookingsCount(raw?.totalCount ?? list.length);
+      setTotalPages(raw?.totalPages ?? Math.ceil((raw?.totalCount ?? list.length) / 20));
+    } catch (err: any) {
+      console.error("Failed to create booking", err);
+      setError(err?.message || "Failed to create booking");
+    } finally {
+      setSubmittingBooking(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
-          Booking Management
-        </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-          View and manage all tour bookings.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
+            Booking Management
+          </h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+            View and manage all tour bookings.
+          </p>
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)} className="w-fit">
+          <Plus className="mr-2 h-4 w-4" />
+          Create Booking
+        </Button>
       </div>
 
       {/* Error Message */}
@@ -434,6 +571,163 @@ export default function BookingsPage() {
             open={detailsDialogOpen}
             onOpenChange={setDetailsDialogOpen}
           />
+
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) resetCreateForm();
+          }}>
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create guide booking</DialogTitle>
+                <DialogDescription>
+                  Create a guide booking on behalf of a tourist when they cannot book themselves.
+                </DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleCreateBooking} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="touristName">Tourist name</Label>
+                    <Input
+                      id="touristName"
+                      value={formData.touristName}
+                      onChange={(e) => setFormData({ ...formData, touristName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="touristEmail">Tourist email</Label>
+                    <Input
+                      id="touristEmail"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="touristPhone">Tourist phone</Label>
+                    <Input
+                      id="touristPhone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="touristUserId">Existing tourist user ID (optional)</Label>
+                    <Input
+                      id="touristUserId"
+                      value={formData.touristUserId}
+                      onChange={(e) => setFormData({ ...formData, touristUserId: e.target.value })}
+                      placeholder="Leave blank to create without a linked account"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="guideId">Guide</Label>
+                    <Select
+                      value={formData.guideId}
+                      onValueChange={(value) => setFormData({ ...formData, guideId: value })}
+                      required
+                    >
+                      <SelectTrigger id="guideId">
+                        <SelectValue placeholder={guidesLoading ? "Loading guides..." : "Select a guide"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {guides.map((guide) => (
+                          <SelectItem key={guide.id} value={guide.id}>
+                            {guide.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingDate">Booking date</Label>
+                    <Input
+                      id="bookingDate"
+                      type="date"
+                      value={formData.bookingDate}
+                      onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Start time</Label>
+                    <Input
+                      id="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tourType">Tour type</Label>
+                    <Select
+                      value={formData.tourType}
+                      onValueChange={(value) => setFormData({ ...formData, tourType: value })}
+                    >
+                      <SelectTrigger id="tourType">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="half_day">Half Day</SelectItem>
+                        <SelectItem value="full_day">Full Day</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="groupSize">Group size</Label>
+                    <Input
+                      id="groupSize"
+                      type="number"
+                      min="1"
+                      value={formData.groupSize}
+                      onChange={(e) => setFormData({ ...formData, groupSize: Number(e.target.value) })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="meetingPoint">Meeting point</Label>
+                    <Input
+                      id="meetingPoint"
+                      value={formData.meetingPoint}
+                      onChange={(e) => setFormData({ ...formData, meetingPoint: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="dropoffLocation">Drop-off location</Label>
+                    <Input
+                      id="dropoffLocation"
+                      value={formData.dropoffLocation}
+                      onChange={(e) => setFormData({ ...formData, dropoffLocation: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Optional notes for the booking"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={submittingBooking || guidesLoading}>
+                    {submittingBooking ? "Creating..." : "Create booking"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

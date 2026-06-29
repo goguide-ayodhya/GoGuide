@@ -358,24 +358,15 @@ export default function BookingsPage() {
     return matchesSearch && matchesStatus && matchesPaymentStatus;
   });
 
-  // Sort bookings: Pending first (by date), then others by status priority and date
-  const statusPriority = {
-    PENDING: 1,
-    ACCEPTED: 2,
-    REJECTED: 3,
-    CANCELLED: 4,
-    COMPLETED: 5,
-  };
-
   const sortedFiltered = [...filtered].sort((a, b) => {
-    const aPriority =
-      statusPriority[a.status as keyof typeof statusPriority] || 99;
-    const bPriority =
-      statusPriority[b.status as keyof typeof statusPriority] || 99;
-    if (aPriority !== bPriority) return aPriority - bPriority;
-    return (
-      new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime()
-    );
+    const aTime = new Date(a.createdAt || a.bookingDate).getTime();
+    const bTime = new Date(b.createdAt || b.bookingDate).getTime();
+
+    if (!Number.isNaN(aTime) && !Number.isNaN(bTime) && aTime !== bTime) {
+      return bTime - aTime;
+    }
+
+    return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
   });
 
   // Pagination

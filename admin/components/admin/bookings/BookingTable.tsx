@@ -1,8 +1,26 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Eye, CheckCircle, XCircle, IndianRupee, Calendar } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MoreVertical,
+  Eye,
+  CheckCircle,
+  XCircle,
+  IndianRupee,
+  Calendar,
+} from "lucide-react";
 
 interface AdminBooking {
   id: string;
@@ -73,7 +91,9 @@ export function BookingTable({
             <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4">
               <Calendar className="w-6 h-6 text-muted-foreground" />
             </div>
-            <h3 className="text-sm font-medium text-foreground mb-1">No bookings found</h3>
+            <h3 className="text-sm font-medium text-foreground mb-1">
+              No bookings found
+            </h3>
             <p className="text-xs text-muted-foreground">
               Try adjusting your filters or search terms.
             </p>
@@ -86,9 +106,7 @@ export function BookingTable({
   return (
     <Card className="border-border">
       <CardHeader className="pb-2 sm:pb-4">
-        <CardTitle className="text-sm sm:text-base">
-          All Bookings
-        </CardTitle>
+        <CardTitle className="text-sm sm:text-base">All Bookings</CardTitle>
         <CardDescription className="text-xs sm:text-sm">
           {bookings.length} bookings found
         </CardDescription>
@@ -99,15 +117,21 @@ export function BookingTable({
           {bookings.map((booking) => (
             <div
               key={booking.id}
-              className={`p-3 sm:p-4 rounded-lg border border-border bg-card ${!booking.isSeenByAdmin ? 'ring-2 ring-blue-500/20 bg-blue-50/50' : ''
-                }`}
+              className={`p-3 sm:p-4 rounded-lg border border-border bg-card ${
+                !booking.isSeenByAdmin
+                  ? "ring-2 ring-blue-500/20 bg-blue-50/50"
+                  : ""
+              }`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     {booking.id}
                     {!booking.isSeenByAdmin && (
-                      <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-blue-500 text-white">
+                      <Badge
+                        variant="secondary"
+                        className="text-[8px] px-1 py-0 bg-blue-500 text-white"
+                      >
                         NEW
                       </Badge>
                     )}
@@ -136,9 +160,7 @@ export function BookingTable({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tour:</span>
-                  <span className="text-foreground">
-                    {booking.tourType}
-                  </span>
+                  <span className="text-foreground">{booking.tourType}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Date:</span>
@@ -161,9 +183,7 @@ export function BookingTable({
                   <span className="text-muted-foreground">Type:</span>
                   <Badge
                     variant={
-                      booking.bookingType === "VIP"
-                        ? "default"
-                        : "secondary"
+                      booking.bookingType === "VIP" ? "default" : "secondary"
                     }
                     className="text-[10px]"
                   >
@@ -211,7 +231,8 @@ export function BookingTable({
                     </Button>
                   </>
                 )}
-                {(booking.status === "Confirmed" || booking.status === "On the Way") && (
+                {(booking.status === "Confirmed" ||
+                  booking.status === "On the Way") && (
                   <Button
                     variant="outline"
                     className="h-10 flex-1 text-xs"
@@ -221,15 +242,17 @@ export function BookingTable({
                     Complete
                   </Button>
                 )}
-                {(booking.status === "Completed" || booking.status === "Cancelled") && booking.paymentStatus !== "REFUNDED" && (
-                  <Button
-                    variant="outline"
-                    className="h-10 flex-1 text-xs text-orange-600 hover:text-orange-600"
-                    onClick={() => onRefund(booking)}
-                  >
-                    Refund
-                  </Button>
-                )}
+                {(booking.status === "Completed" ||
+                  booking.status === "Cancelled") &&
+                  booking.paymentStatus !== "REFUNDED" && (
+                    <Button
+                      variant="outline"
+                      className="h-10 flex-1 text-xs text-orange-600 hover:text-orange-600"
+                      onClick={() => onRefund(booking)}
+                    >
+                      Refund
+                    </Button>
+                  )}
               </div>
             </div>
           ))}
@@ -241,7 +264,7 @@ export function BookingTable({
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left text-xs font-medium text-muted-foreground py-3 px-2">
-                  Booking ID
+                  Tour Type
                 </th>
                 <th className="text-left text-xs font-medium text-muted-foreground py-3 px-2">
                   Tourist
@@ -272,13 +295,17 @@ export function BookingTable({
                 <tr
                   key={booking.id}
                   onClick={() => onViewDetails(booking)}
-                  className={`border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors ${!booking.isSeenByAdmin ? 'bg-blue-50/50' : ''
-                    }`}
+                  className={`border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors ${
+                    !booking.isSeenByAdmin ? "bg-blue-50/50" : ""
+                  }`}
                 >
                   <td className="py-3 px-2 text-sm font-medium text-foreground flex items-center gap-2">
-                    {booking.id}
+                    {booking.tourType?.toLocaleUpperCase()}
                     {!booking.isSeenByAdmin && (
-                      <Badge variant="secondary" className="text-[8px] px-1 py-0 bg-blue-500 text-white">
+                      <Badge
+                        variant="secondary"
+                        className="text-[8px] px-1 py-0 bg-blue-500 text-white"
+                      >
                         NEW
                       </Badge>
                     )}
@@ -296,9 +323,7 @@ export function BookingTable({
                   <td className="py-3 px-2">
                     <Badge
                       variant={
-                        booking.bookingType === "VIP"
-                          ? "default"
-                          : "secondary"
+                        booking.bookingType === "VIP" ? "default" : "secondary"
                       }
                       className="text-xs"
                     >
@@ -328,7 +353,10 @@ export function BookingTable({
                       {booking.status ?? "Pending"}
                     </Badge>
                   </td>
-                  <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
+                  <td
+                    className="py-3 px-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -347,9 +375,7 @@ export function BookingTable({
                           View Details
                         </DropdownMenuItem>
                         {!booking.isSeenByAdmin && (
-                          <DropdownMenuItem
-                            onClick={() => onMarkSeen(booking)}
-                          >
+                          <DropdownMenuItem onClick={() => onMarkSeen(booking)}>
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Mark as Seen
                           </DropdownMenuItem>
@@ -389,14 +415,16 @@ export function BookingTable({
                               </DropdownMenuItem>
                             </>
                           )} */}
-                        {(booking.status === "Completed" || booking.status === "Cancelled") && booking.paymentStatus !== "REFUNDED" && (
-                          <DropdownMenuItem
-                            className="text-orange-600"
-                            onClick={() => onRefund(booking)}
-                          >
-                            Refund
-                          </DropdownMenuItem>
-                        )}
+                        {(booking.status === "Completed" ||
+                          booking.status === "Cancelled") &&
+                          booking.paymentStatus !== "REFUNDED" && (
+                            <DropdownMenuItem
+                              className="text-orange-600"
+                              onClick={() => onRefund(booking)}
+                            >
+                              Refund
+                            </DropdownMenuItem>
+                          )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>

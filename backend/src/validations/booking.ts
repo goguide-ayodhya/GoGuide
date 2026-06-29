@@ -9,6 +9,8 @@ export const createBookingSchema = z
     touristName: z.string().min(2, "Tourist name required"),
     email: z.string().email("Valid email required"),
     phone: z.string().min(10, "Valid phone required"),
+    touristUserId: z.string().optional(),
+    createdByAdmin: z.boolean().optional(),
     groupSize: z.number().min(1).max(100),
     bookingDate: z.string().datetime("Valid date required"),
     bookingType: z.enum(["GUIDE", "DRIVER", "TOKEN", "PACKAGE"]),

@@ -15,7 +15,11 @@ import { TourPackage } from "../models/Tour";
 import { AdminSettings } from "../models/AdminSettings";
 
 export class BookingService {
-  async createBooking(userId: string, input: CreateBookingInput) {
+  async createBooking(
+    userId: string,
+    input: CreateBookingInput,
+    options?: { bookingOwnerUserId?: string },
+  ) {
     let entity: any;
     let assignedUserId: string | undefined;
     console.log(
@@ -128,9 +132,13 @@ export class BookingService {
       discountPercent: 0, // No discount at creation time
     });
 
+    const bookingOwnerId = options?.bookingOwnerUserId ?? userId;
+
+    const isAdminCreatedBooking = Boolean(input.createdByAdmin);
+
     const booking = await Booking.create({
       ...input,
-      userId,
+      userId: bookingOwnerId,
       originalPrice: pricing.totalPrice,
       totalPrice: pricing.totalPrice,
       discount: pricing.discount,
@@ -142,6 +150,9 @@ export class BookingService {
       baseGuideEarning,
       guideEarning: 0,
       adminCommission: 0,
+      paymentType: isAdminCreatedBooking ? "COD" : input.paymentType,
+      paymentMethod: isAdminCreatedBooking ? "COD" : input.paymentMethod,
+      paymentStatus: isAdminCreatedBooking ? "PENDING" : undefined,
     });
 
     console.log(
