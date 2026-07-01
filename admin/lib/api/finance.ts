@@ -61,11 +61,20 @@ export const updateGuidePricingApi = async (guidePricing: any) => {
   return handleRes(res);
 };
 
-export const updateLocationsApi = async (locations: string[]) => {
+export const updateLocationsApi = async (
+  locations: string[] | { halfDay: string[]; fullDay: string[] }
+) => {
+  const payload = Array.isArray(locations)
+    ? { locations }
+    : {
+        halfDayLocations: locations.halfDay,
+        fullDayLocations: locations.fullDay,
+      };
+
   const res = await fetch(`${base_url}finance/settings/locations`, {
     method: "PATCH",
     headers: jsonHeaders(),
-    body: JSON.stringify({ locations }),
+    body: JSON.stringify(payload),
   });
   return handleRes(res);
 };

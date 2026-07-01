@@ -82,8 +82,10 @@ export default function SettingsPage() {
     halfDay: { touristPrice: 0, guideEarning: 0, maxLocations: 6 },
     fullDay: { touristPrice: 0, guideEarning: 0, maxLocations: 8 },
   });
-  const [locations, setLocations] = useState<string[]>([]);
+  const [halfDayLocations, setHalfDayLocations] = useState<string[]>([]);
+  const [fullDayLocations, setFullDayLocations] = useState<string[]>([]);
   const [newLocation, setNewLocation] = useState("");
+  const [activeLocationType, setActiveLocationType] = useState<"halfDay" | "fullDay">("halfDay");
   const [isSavingGuide, setIsSavingGuide] = useState(false);
   const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const [newVehicleType, setNewVehicleType] = useState("");
@@ -116,8 +118,12 @@ export default function SettingsPage() {
       if (data.guidePricing) {
         setGuidePricing(data.guidePricing);
       }
-      if (data.locations) {
-        setLocations(data.locations);
+      if (data.locationsByTourType) {
+        setHalfDayLocations(data.locationsByTourType.halfDay || []);
+        setFullDayLocations(data.locationsByTourType.fullDay || []);
+      } else if (data.locations) {
+        setHalfDayLocations(data.locations);
+        setFullDayLocations(data.locations);
       }
       if (data.vehicleTypes) {
         setVehicleTypes(data.vehicleTypes);
@@ -192,7 +198,10 @@ export default function SettingsPage() {
     setIsSavingGuide(true);
     try {
       await updateGuidePricingApi(guidePricing);
-      await updateLocationsApi(locations);
+      await updateLocationsApi({
+        halfDay: halfDayLocations,
+        fullDay: fullDayLocations,
+      });
       setError(null);
       // Optional: Add a success toast here
     } catch (err: any) {
@@ -249,14 +258,24 @@ export default function SettingsPage() {
   };
 
   const handleAddLocation = () => {
-    if (newLocation.trim() && !locations.includes(newLocation.trim())) {
-      setLocations((prev) => [...prev, newLocation.trim()]);
-      setNewLocation("");
+    const trimmed = newLocation.trim();
+    if (!trimmed) return;
+    if (activeLocationType === "halfDay") {
+      if (!halfDayLocations.includes(trimmed)) {
+        setHalfDayLocations((prev) => [...prev, trimmed]);
+      }
+    } else if (!fullDayLocations.includes(trimmed)) {
+      setFullDayLocations((prev) => [...prev, trimmed]);
     }
+    setNewLocation("");
   };
 
   const handleRemoveLocation = (loc: string) => {
-    setLocations((prev) => prev.filter((l) => l !== loc));
+    if (activeLocationType === "halfDay") {
+      setHalfDayLocations((prev) => prev.filter((l) => l !== loc));
+    } else {
+      setFullDayLocations((prev) => prev.filter((l) => l !== loc));
+    }
   };
 
   const handleAddVehicleType = () => {
@@ -831,17 +850,33 @@ export default function SettingsPage() {
                     <MapPin className="w-4 h-4 text-orange-500" />
                     Manage Available Locations
                   </h4>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Button
+                      type="button"
+                      variant={activeLocationType === "halfDay" ? "default" : "outline"}
+                      onClick={() => setActiveLocationType("halfDay")}
+                    >
+                      Half Day Locations
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={activeLocationType === "fullDay" ? "default" : "outline"}
+                      onClick={() => setActiveLocationType("fullDay")}
+                    >
+                      Full Day Locations
+                    </Button>
+                  </div>
                   <div className="flex gap-2 mb-4">
                     <Input
                       value={newLocation}
                       onChange={(e) => setNewLocation(e.target.value)}
-                      placeholder="Enter a new location"
+                      placeholder={`Enter a new ${activeLocationType === "halfDay" ? "half day" : "full day"} location`}
                       onKeyPress={(e) => e.key === "Enter" && handleAddLocation()}
                     />
                     <Button onClick={handleAddLocation}>Add</Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {locations.map((loc) => (
+                    {(activeLocationType === "halfDay" ? halfDayLocations : fullDayLocations).map((loc) => (
                       <Badge
                         key={loc}
                         variant="secondary"

@@ -59,17 +59,32 @@ export class AdminSettingsService {
     return settings;
   }
 
-  async updateLocations(locations: string[], adminId: string): Promise<IAdminSettings> {
+  async updateLocations(
+    locations: string[] | { halfDay: string[]; fullDay: string[] },
+    adminId: string
+  ): Promise<IAdminSettings> {
+    const normalizedLocations = Array.isArray(locations)
+      ? locations
+      : [...(locations.halfDay || []), ...(locations.fullDay || [])];
+    const normalizedByTourType = Array.isArray(locations)
+      ? { halfDay: locations, fullDay: locations }
+      : {
+          halfDay: locations.halfDay || [],
+          fullDay: locations.fullDay || [],
+        };
+
     let settings = await AdminSettings.findOne({});
     if (!settings) {
       settings = await AdminSettings.create({
         driverCommissionPercent: 20,
-        locations,
+        locations: normalizedLocations,
+        locationsByTourType: normalizedByTourType,
         lastUpdatedBy: adminId,
         lastUpdatedAt: new Date(),
       });
     } else {
-      settings.locations = locations;
+      settings.locations = normalizedLocations;
+      settings.locationsByTourType = normalizedByTourType;
       settings.lastUpdatedBy = adminId;
       settings.lastUpdatedAt = new Date();
       await settings.save();

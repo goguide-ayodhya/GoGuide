@@ -64,17 +64,26 @@ export class AdminSettingsController {
   }
 
   async updateLocations(req: AuthRequest, res: Response) {
-    const { locations } = req.body;
-    if (!Array.isArray(locations)) {
+    const { locations, halfDayLocations, fullDayLocations } = req.body;
+    const locationPayload = Array.isArray(locations)
+      ? locations
+      : locations && typeof locations === "object" && !Array.isArray(locations)
+        ? locations
+        : {
+            halfDay: Array.isArray(halfDayLocations) ? halfDayLocations : [],
+            fullDay: Array.isArray(fullDayLocations) ? fullDayLocations : [],
+          };
+
+    if (!Array.isArray(locationPayload) && (!locationPayload || typeof locationPayload !== "object")) {
       return res.status(400).json({
         success: false,
-        message: "locations must be an array",
+        message: "locations must be an array or an object with halfDay/fullDay arrays",
       });
     }
 
     try {
       const settings = await adminSettingsService.updateLocations(
-        locations,
+        locationPayload,
         req.userId!
       );
       res.status(200).json({ success: true, data: settings });

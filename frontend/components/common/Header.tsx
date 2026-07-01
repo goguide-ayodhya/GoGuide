@@ -72,7 +72,7 @@ export function Header({
           </Link>
 
           {/* Desktop Book Cab */}
-          <Link href="/tourist/cabs/book-cab" className="items-center px-3 bg-secondary text-white  py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-secondary/90 transition">
+          <Link href="/tourist/cabs/book-cab" className="items-center px-3 bg-primary text-white  py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-primary/90 transition">
             Book Cab
           </Link>
 

@@ -13,6 +13,10 @@ export interface IAdminSettings extends Document {
     fullDay: IGuidePricing;
   };
   locations?: string[];
+  locationsByTourType?: {
+    halfDay?: string[];
+    fullDay?: string[];
+  };
   vehicleTypes?: string[];
   paymentQR?: {
     url: string;
@@ -47,6 +51,10 @@ const AdminSettingsSchema = new Schema<IAdminSettings>(
       },
     },
     locations: [{ type: String }],
+    locationsByTourType: {
+      halfDay: { type: [String], default: [] },
+      fullDay: { type: [String], default: [] },
+    },
     vehicleTypes: {
       type: [String],
       default: ["Sedan", "SUV", "Tempo Traveller", "Auto Rikshaw"],

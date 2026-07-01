@@ -65,7 +65,7 @@ export function GuideBookingForm({
     getPublicSettingsApi().then(data => setSettings(data)).catch(console.error);
   }, []);
 
-  const availableLocations = settings?.locations || [];
+  const availableLocations = settings?.locationsByTourType?.[tourType] || settings?.locations || [];
   const pricingConfig = settings?.guidePricing;
   
   const currentPricing = pricingConfig ? pricingConfig[tourType] : { touristPrice: 0, guideEarning: 0, maxLocations: 6 };

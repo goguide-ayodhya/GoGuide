@@ -23,7 +23,7 @@ export default function CTABanner() {
           {/* Left */}
           <div className="max-w-xl text-white">
             <span className="inline-flex items-center rounded-full bg-white/15 px-4 py-1 text-sm font-medium backdrop-blur">
-              ✨ Trusted by Travelers
+              Trusted by Travelers
             </span>
 
             <h2 className="mt-4 text-3xl md:text-5xl font-bold leading-tight">
@@ -43,12 +43,12 @@ export default function CTABanner() {
                 href="tel:+918881993735"
                 className="rounded-full bg-white px-6 py-3 font-semibold text-primary shadow-lg hover:scale-105 transition"
               >
-                📞 Call Expert
+                Call Expert
               </a>
 
               <Link href="/tourist/cabs">
                 <span className="cursor-pointer rounded-full border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur hover:bg-white/20 transition">
-                  🚕 Book Cab
+                  Book Cab
                 </span>
               </Link>
             </div>
