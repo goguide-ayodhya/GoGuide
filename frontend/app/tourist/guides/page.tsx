@@ -50,11 +50,12 @@ export default function GuidesPage() {
       guide.specialities?.some((s: string) => s.toLowerCase().includes(term)) ||
       false;
 
-    const languages = Array.isArray(guide.languages)
+    const languages = (Array.isArray(guide.languages)
       ? guide.languages
       : guide.languages
         ? [guide.languages]
-        : [];
+        : []
+    ).map((lang: string) => lang.trim());
 
     const matchesLanguage =
       !languageFilter || languages.includes(languageFilter);
@@ -84,7 +85,8 @@ export default function GuidesPage() {
               ? [g.languages]
               : [],
         )
-        .filter(Boolean),
+        .filter(Boolean)
+        .map((lang: string) => lang.trim()),
     ),
   ).sort();
 

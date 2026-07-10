@@ -42,7 +42,18 @@ export class TourPackageService {
     }
 
     payload.price = Number(payload.price);
-    if (payload.discount) payload.discount = Number(payload.discount);
+    if (payload.discount !== undefined) {
+      if (
+        payload.discount === null ||
+        payload.discount === "null" ||
+        payload.discount === "" ||
+        Number.isNaN(Number(payload.discount))
+      ) {
+        payload.discount = null;
+      } else {
+        payload.discount = Number(payload.discount);
+      }
+    }
     if (payload.soldCount === undefined) payload.soldCount = 0;
 
     if (
@@ -142,7 +153,18 @@ export class TourPackageService {
     // if (data.basePrice !== undefined) data.basePrice = Number(data.basePrice);
     // if (data.cabPrice !== undefined) data.cabPrice = Number(data.cabPrice);
     // if (data.guidePrice !== undefined) data.guidePrice = Number(data.guidePrice);
-    if (data.discount !== undefined) data.discount = Number(data.discount);
+    if (data.discount !== undefined) {
+      if (
+        data.discount === null ||
+        data.discount === "null" ||
+        data.discount === "" ||
+        Number.isNaN(Number(data.discount))
+      ) {
+        data.discount = null;
+      } else {
+        data.discount = Number(data.discount);
+      }
+    }
 
     const pkg = await TourPackage.findByIdAndUpdate(id, data, { new: true });
     if (!pkg) throw new NotFound("Package not found");

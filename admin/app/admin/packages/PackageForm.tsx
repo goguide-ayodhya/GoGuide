@@ -61,6 +61,9 @@ function normalizeExisting(e: any) {
 
 export default function PackageForm({ existing, onSuccess, onClose }: Props) {
   const [form, setForm] = useState(() => normalizeExisting(existing));
+  const [showDiscount, setShowDiscount] = useState(
+    !!(existing && existing.discount),
+  );
   const [previewMain, setPreviewMain] = useState<string | null>(null);
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
   const [previewImages, setPreviewImages] = useState<(string | null)[]>([]);
@@ -68,15 +71,12 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
 
   useEffect(() => {
     setForm(normalizeExisting(existing));
+    setShowDiscount(!!(existing && existing.discount));
     setPreviewMain(null);
     setMainImageFile(null);
     setPreviewImages([]);
     setImageFiles([]);
   }, [existing]);
-
-  const [showDiscount, setShowDiscount] = useState(
-    !!(existing && existing.discount),
-  );
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -178,9 +178,7 @@ export default function PackageForm({ existing, onSuccess, onClose }: Props) {
       locations: form.locations || [],
 
       type: form.type,
-      ...(showDiscount && {
-        discount: Number(form.discount || 0),
-      }),
+      discount: showDiscount ? Number(form.discount || 0) : null,
     };
 
     const newFiles = (imageFiles || []).filter(

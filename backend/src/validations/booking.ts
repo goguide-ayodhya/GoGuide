@@ -22,6 +22,8 @@ export const createBookingSchema = z
     dropoffLocation: z.string().min(1),
     totalPrice: z.number().min(0).optional(),
     notes: z.string().optional(),
+    paymentType: z.enum(["FULL", "PARTIAL", "COD", "REMAINING"]).optional(),
+    paymentMethod: z.enum(["UPI", "COD", "CARD", "RAZORPAY"]).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.bookingType === "GUIDE") {

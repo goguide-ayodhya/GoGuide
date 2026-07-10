@@ -647,6 +647,7 @@ export default function BookingsPage() {
                     <Input
                       id="bookingDate"
                       type="date"
+                      min={new Date().toLocaleDateString("en-CA")}
                       value={formData.bookingDate}
                       onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })}
                       required

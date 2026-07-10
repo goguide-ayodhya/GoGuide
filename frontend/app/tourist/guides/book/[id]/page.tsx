@@ -72,10 +72,10 @@ export default function GuideBookingPage() {
               reviewer: r.userId?.name || "Anonymous Traveler",
               date: r.createdAt
                 ? new Date(r.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
                 : "Recent review",
               comments: r.comments || "",
               rating: r.rating || 0,
@@ -320,7 +320,7 @@ export default function GuideBookingPage() {
             <Alert className="rounded-[1.75rem] border border-amber-200 bg-amber-50 text-amber-900">
               <AlertDescription>
                 {guide.isAvailable
-                  ? "This guide is currently busy. You can still request a booking, and we will notify you when they are ready."
+                  ? "This guide is currently Offline. You can still request a booking, and we will notify you when they are ready."
                   : "This guide is currently offline. Please check back later or choose another expert for instant booking."}
               </AlertDescription>
             </Alert>
@@ -369,10 +369,10 @@ export default function GuideBookingPage() {
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-slate-900">
                             {cert.name &&
-                            !cert.name.match(
-                              /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
-                            ) &&
-                            !cert.name.startsWith("http")
+                              !cert.name.match(
+                                /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                              ) &&
+                              !cert.name.startsWith("http")
                               ? cert.name
                               : `Certificate ${index + 1}`}
                           </h4>
@@ -512,10 +512,10 @@ export default function GuideBookingPage() {
               <div>
                 <p className="text-sm font-semibold text-slate-900">
                   {selectedCertificate.name &&
-                  !selectedCertificate.name.match(
-                    /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
-                  ) &&
-                  !selectedCertificate.name.startsWith("http")
+                    !selectedCertificate.name.match(
+                      /\.(jpg|jpeg|png|webp|gif|pdf|avif)$/i,
+                    ) &&
+                    !selectedCertificate.name.startsWith("http")
                     ? selectedCertificate.name
                     : `Certificate ${selectedCertificateIndex! + 1}`}
                 </p>
