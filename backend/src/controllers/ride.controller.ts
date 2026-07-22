@@ -105,6 +105,25 @@ export const createRide = async (req: AuthRequest, res: Response) => {
         });
 
         console.log(`[RIDE] Created ride ${ride._id} and sent to ${nearbyDrivers.length}/${activeDrivers.length} nearby drivers`);
+
+        // Trigger push notification to nearby drivers asynchronously
+        try {
+            const driverUserIds = nearbyDrivers
+                .map(driver => (driver.userId as any)?._id?.toString() || driver.userId?.toString())
+                .filter(Boolean);
+            if (driverUserIds.length > 0) {
+                NotificationService.sendNotificationToUsers(driverUserIds, {
+                    title: "New Ride Available 🚗",
+                    body: `A new ride request is available nearby.`,
+                    data: {
+                        type: "RIDE_REQUEST",
+                        rideId: ride._id.toString(),
+                    }
+                }).catch(err => console.error('[RIDE] Failed to send push to nearby drivers:', err));
+            }
+        } catch (notifyErr) {
+            console.warn('[RIDE] Failed to initiate push notifications for nearby drivers:', notifyErr);
+        }
         
         // Send single response
         return res.status(201).json(ride);
@@ -331,6 +350,25 @@ export const endRide = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        // Notify tourist that ride has ended and payment is pending
+        try {
+            const touristUserId = ride.user._id?.toString() || ride.user.toString();
+            if (touristUserId) {
+                NotificationService.sendNotification(
+                    touristUserId,
+                    "Ride Ended",
+                    `Your ride has ended. Please complete the payment of ₹${ride.fare}.`,
+                    {
+                        type: "RIDE_ENDED",
+                        rideId: ride._id.toString(),
+                        fare: ride.fare.toString(),
+                    }
+                ).catch(err => console.error('[RIDE] Failed to send ride ended push notification:', err));
+            }
+        } catch (notifyErr) {
+            console.warn('[RIDE] Failed to initiate ride ended push notification:', notifyErr);
+        }
+
         return res.status(200).json(ride);
     } catch (err: any) {
         return res.status(500).json({ message: err.message });
@@ -443,6 +481,37 @@ export const confirmPayment = async (req: AuthRequest, res: Response) => {
             });
         } else {
             console.warn(`[SOCKET_SYNC] Tourist socket ID not found for user ${populatedRide.user}`);
+        }
+
+        // Send payment confirmation notifications
+        try {
+            const touristUserId = populatedRide.user._id?.toString() || populatedRide.user.toString();
+            if (touristUserId) {
+                NotificationService.sendNotification(
+                    touristUserId,
+                    "Ride Completed ✅",
+                    `Thank you for riding with us. Your payment of ₹${populatedRide.fare} has been confirmed.`,
+                    {
+                        type: "RIDE_COMPLETED",
+                        rideId: rideId,
+                    }
+                ).catch(err => console.error('[PAYMENT] Failed to send payment confirmation push to tourist:', err));
+            }
+
+            const driverUserId = (driver.userId as any)?._id?.toString() || driver.userId?.toString();
+            if (driverUserId) {
+                NotificationService.sendNotification(
+                    driverUserId,
+                    "Payment Received 💰",
+                    `Payment of ₹${populatedRide.fare} has been successfully received for ride ${rideId}.`,
+                    {
+                        type: "RIDE_PAYMENT_RECEIVED",
+                        rideId: rideId,
+                    }
+                ).catch(err => console.error('[PAYMENT] Failed to send payment confirmation push to driver:', err));
+            }
+        } catch (notifyErr) {
+            console.warn('[PAYMENT] Failed to initiate payment confirmation push notifications:', notifyErr);
         }
 
         return res.status(200).json({
@@ -644,6 +713,27 @@ export const submitReview = async (req: AuthRequest, res: Response) => {
         await ride.save();
 
         console.log(`[REVIEW_FLOW] Ride ${rideId} status updated to 'reviewed'`);
+
+        // Send review notification to driver if not skipped
+        if (!skip) {
+            try {
+                const driverUserId = (ride.driver as any)?.userId?._id?.toString() || (ride.driver as any)?.userId?.toString();
+                if (driverUserId) {
+                    NotificationService.sendNotification(
+                        driverUserId,
+                        "New Rating Received ⭐",
+                        `A passenger has rated your ride ${rating} stars.`,
+                        {
+                            type: "RIDE_REVIEWED",
+                            rideId: rideId,
+                            rating: rating.toString(),
+                        }
+                    ).catch(err => console.error('[REVIEW_FLOW] Failed to send review notification to driver:', err));
+                }
+            } catch (notifyErr) {
+                console.warn('[REVIEW_FLOW] Failed to initiate review notification to driver:', notifyErr);
+            }
+        }
         // Notify room about the review/skip
         sendMessageToRoom(`ride_${rideId}`, {
             event: 'ride-reviewed',
@@ -704,8 +794,12 @@ export const cancelRide = async (req: AuthRequest, res: Response) => {
         // Delegate to service (includes status guard + ownership check)
         const ride = await rideService.cancelRide({ rideId, userId: req.userId! });
 
+        // Determine who cancelled — driver or tourist
+        const requesterDriver = await Driver.findOne({ userId: req.userId });
+        const cancelledBy = requesterDriver ? 'DRIVER' : 'TOURIST';
+
         // Trigger push notification asynchronously
-        NotificationService.sendRideCancelledNotification(rideId, 'TOURIST').catch(err => {
+        NotificationService.sendRideCancelledNotification(rideId, cancelledBy).catch(err => {
             console.error('Failed to send ride cancelled push notification:', err);
         });
 
@@ -713,8 +807,6 @@ export const cancelRide = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Ride not found after cancellation' });
         }
 
-        // Determine who cancelled — driver or tourist
-        const requesterDriver = await Driver.findOne({ userId: req.userId });
         const cancelledByDriver = !!requesterDriver;
         const cancelMessage = cancelledByDriver
             ? 'Ride has been cancelled by the driver'

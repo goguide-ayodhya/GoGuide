@@ -7,7 +7,7 @@ export const createBookingSchema = z
     packageId: z.string().optional(),
     
     touristName: z.string().min(2, "Tourist name required"),
-    email: z.string().email("Valid email required"),
+    email: z.string().email("Valid email required").optional().or(z.literal("")),
     phone: z.string().min(10, "Valid phone required"),
     touristUserId: z.string().optional(),
     createdByAdmin: z.boolean().optional(),

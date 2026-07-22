@@ -40,7 +40,6 @@ export function CabBookingForm({ onSubmit, isLoading }: CabBookingFormProps) {
     if (!bookingDate) newErrors.bookingDate = 'Date is required'
     if (!startTime) newErrors.startTime = 'Time is required'
     if (!touristName.trim()) newErrors.touristName = 'Name is required'
-    if (!email.trim()) newErrors.email = 'Email is required'
     if (!phone.trim()) newErrors.phone = 'Phone is required'
     else if (phone.length !== 10) newErrors.phone = 'Phone must be exactly 10 digits'
     if (groupSize < 1) newErrors.groupSize = 'Group size must be at least 1'
@@ -92,7 +91,7 @@ export function CabBookingForm({ onSubmit, isLoading }: CabBookingFormProps) {
       </FormField>
 
       {/* Email */}
-      <FormField label="Email" error={errors.email} required>
+      <FormField label="Email" error={errors.email}>
         <Input
           type="email"
           placeholder="Enter your email"

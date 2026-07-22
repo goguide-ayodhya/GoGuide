@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -9,7 +8,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
-  Car,
   CreditCard,
   TrendingUp,
   Settings,
@@ -20,13 +18,12 @@ import {
   MessageSquare,
   Star,
   ClipboardList,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
-import { getAdminDashboard, getPendingGuides, getRecentUsers } from "@/lib/api/adminDashboard";
-import { getAllBookings } from "@/lib/api/bookings";
-import { getCommissionOverviewStatsApi } from "@/lib/api/finance";
+import { getRecentUsers, getAdminSidebarCounts } from "@/lib/api/adminDashboard";
 import { Badge } from "@/components/ui/badge";
 
 interface AdminSidebarProps {
@@ -41,6 +38,21 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Messages",
+    href: "/admin/messages",
+    icon: MessageSquare,
+  },
+  {
+    title: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    title: "Packages",
+    href: "/admin/packages",
+    icon: Package,
+  },
+  {
     title: "Guide Bookings",
     href: "/admin/bookings",
     icon: CalendarDays,
@@ -51,24 +63,19 @@ const menuItems = [
     icon: ClipboardList,
   },
   {
-    title: "Users",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Drivers",
-    href: "/admin/cabs",
-    icon: Car,
-  },
-  {
-    title: "Packages",
-    href: "/admin/packages",
-    icon: Package,
+    title: "Upcoming Bookings",
+    href: "/admin/upcoming-bookings",
+    icon: Clock,
   },
   {
     title: "Payments",
     href: "/admin/payments",
     icon: CreditCard,
+  },
+  {
+    title: "Revenue",
+    href: "/admin/revenue",
+    icon: TrendingUp,
   },
   {
     title: "Guide payouts",
@@ -81,19 +88,9 @@ const menuItems = [
     icon: DollarSign,
   },
   {
-    title: "Revenue",
-    href: "/admin/revenue",
-    icon: TrendingUp,
-  },
-  {
     title: "Reviews",
     href: "/admin/reviews",
     icon: Star,
-  },
-  {
-    title: "Messages",
-    href: "/admin/messages",
-    icon: MessageSquare,
   },
   {
     title: "Settings",
@@ -104,45 +101,40 @@ const menuItems = [
 
 export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
-  const [stats, setStats] = useState({ bookings: 0, pendingGuides: 0, newUsers: 0, pendingPackages: 0, pendingCommissions: 0 });
+  const [stats, setStats] = useState({
+    packagesCount: 0,
+    guidesCount: 0,
+    cabsCount: 0,
+    paymentsCount: 0,
+    upcomingCount: 0,
+    newUsers: 0,
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const dashboard = await getAdminDashboard();
-        const pending = await getPendingGuides(100);
-        const allBookings = await getAllBookings();
-        const packageBookings = Array.isArray(allBookings) ? allBookings : allBookings?.data || [];
-        const pendingPackagesCount = packageBookings.filter((b: any) => b.bookingType === "PACKAGE" && b.status === "PENDING").length;
+        const [countsData, users] = await Promise.all([
+          getAdminSidebarCounts(),
+          getRecentUsers(50),
+        ]);
 
-
-        // Count users joined today
-        const users = await getRecentUsers(50);
         const today = new Date().toDateString();
         const newUsersCount = users?.filter((u: any) => new Date(u.joinedAt).toDateString() === today)?.length || 0;
 
-        // Pending commission requests count
-        let pendingCommissions = 0;
-        try {
-          const commStats = await getCommissionOverviewStatsApi();
-          pendingCommissions = commStats?.pendingRequestsCount || 0;
-        } catch (e) {
-          // non-critical
-        }
-
         setStats({
-          bookings: dashboard?.bookings?.unseen || 0,
-          pendingGuides: pending?.length || 0,
+          packagesCount: countsData?.packagesCount || 0,
+          guidesCount: countsData?.guidesCount || 0,
+          cabsCount: countsData?.cabsCount || 0,
+          paymentsCount: countsData?.paymentsCount || 0,
+          upcomingCount: countsData?.upcomingCount || 0,
           newUsers: newUsersCount,
-          pendingPackages: pendingPackagesCount,
-          pendingCommissions,
         });
       } catch (err) {
         console.error("Error fetching sidebar stats", err);
       }
     };
     fetchStats();
-    // Optional: add interval to refresh stats
+    // Refresh stats every 60 seconds
     const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -152,7 +144,7 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 fixed lg:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -216,29 +208,34 @@ export function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                     <span className="flex-1">{item.title}</span>
 
                     {/* Badges */}
-                    {item.title === "Bookings" && stats.bookings > 0 && (
-                      <Badge className="ml-auto bg-rose-500 hover:bg-rose-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
-                        {stats.bookings}
+                    {item.title === "Packages" && stats.packagesCount > 0 && (
+                      <Badge className="ml-auto bg-indigo-500 hover:bg-indigo-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.packagesCount}
                       </Badge>
                     )}
-                    {/* {item.title === "Cabs" && stats.pendingGuides > 0 && (
-                      <Badge className="ml-auto bg-amber-500 hover:bg-amber-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
-                        {stats.pendingGuides}
+                    {item.title === "Guide Bookings" && stats.guidesCount > 0 && (
+                      <Badge className="ml-auto bg-rose-500 hover:bg-rose-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.guidesCount}
                       </Badge>
-                    )} */}
+                    )}
+                    {item.title === "Cab Bookings" && stats.cabsCount > 0 && (
+                      <Badge className="ml-auto bg-amber-500 hover:bg-amber-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.cabsCount}
+                      </Badge>
+                    )}
+                    {item.title === "Payments" && stats.paymentsCount > 0 && (
+                      <Badge className="ml-auto bg-orange-500 hover:bg-orange-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.paymentsCount}
+                      </Badge>
+                    )}
+                    {item.title === "Upcoming Bookings" && stats.upcomingCount > 0 && (
+                      <Badge className="ml-auto bg-violet-500 hover:bg-violet-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
+                        {stats.upcomingCount}
+                      </Badge>
+                    )}
                     {item.title === "Users" && stats.newUsers > 0 && (
                       <Badge className="ml-auto bg-blue-500 hover:bg-blue-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
                         {stats.newUsers}
-                      </Badge>
-                    )}
-                    {item.title === "Packages" && stats.pendingPackages > 0 && (
-                      <Badge className="ml-auto bg-indigo-500 hover:bg-indigo-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
-                        {stats.pendingPackages}
-                      </Badge>
-                    )}
-                    {item.title === "Driver Collections" && stats.pendingCommissions > 0 && (
-                      <Badge className="ml-auto bg-orange-500 hover:bg-orange-600 text-white border-0 h-5 px-1.5 min-w-5 flex items-center justify-center rounded-full text-[10px]">
-                        {stats.pendingCommissions}
                       </Badge>
                     )}
                   </Link>

@@ -132,6 +132,15 @@ router.get(
   },
 );
 
+router.post(
+  "/admin/mark-all-read",
+  authenticate,
+  authorize(["ADMIN"]),
+  (req, res, next) => {
+    paymentController.markAllPaymentsAsRead(req, res).catch(next);
+  },
+);
+
 router.get(
   "/admin/revenue",
   authenticate,

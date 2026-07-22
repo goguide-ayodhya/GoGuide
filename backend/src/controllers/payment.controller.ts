@@ -601,12 +601,22 @@ export class PaymentController {
   }
 
   async getAdminPaymentsSummary(req: AuthRequest, res: Response) {
-    const data = await paymentService.getAdminPaymentsSummary();
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
+    const data = await paymentService.getAdminPaymentsSummary(page, limit);
 
     res.status(200).json({
       success: true,
       message: "Admin payment summary",
       data,
+    });
+  }
+
+  async markAllPaymentsAsRead(req: AuthRequest, res: Response) {
+    const result = await paymentService.markAllPaymentsAsRead();
+    res.status(200).json({
+      success: true,
+      message: result.message,
     });
   }
 }

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const setPaymentModeSchema = z.object({
-  paymentType: z.enum(["FULL", "PARTIAL", "COD"]),
+  paymentType: z.enum(["FULL", "PARTIAL", "COD", "CARD"]),
 });
 
 export const createRazorpayOrderSchema = z.object({

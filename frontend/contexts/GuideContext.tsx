@@ -20,6 +20,7 @@ export type GuideUser = {
 };
 
 export type Guide = {
+  phone: string | undefined;
   id: string;
   userId?: GuideUser | null;
   name: string;
@@ -75,13 +76,13 @@ export const GuideProvider = ({ children }: any) => {
   const mapGuide = (guide: any): Guide => {
     const normalizedUserId = guide.userId
       ? {
-          id: guide.userId._id || guide.userId.id || "",
-          name: guide.userId.name || "Unknown",
-          email: guide.userId.email || "",
-          avatar: guide.userId.avatar || "",
-          phone: guide.userId.phone || "",
-          status: guide.userId.status || "ACTIVE",
-        }
+        id: guide.userId._id || guide.userId.id || "",
+        name: guide.userId.name || "Unknown",
+        email: guide.userId.email || "",
+        avatar: guide.userId.avatar || "",
+        phone: guide.userId.phone || "",
+        status: guide.userId.status || "ACTIVE",
+      }
       : null;
 
     return {
@@ -90,8 +91,7 @@ export const GuideProvider = ({ children }: any) => {
       name: normalizedUserId?.name || guide.name || "Unknown",
       email: normalizedUserId?.email || guide.email || "",
       avatar: normalizedUserId?.avatar || guide.avatar || "",
-      image:
-        normalizedUserId?.avatar || guide.image || guide.userId?.profileImage || "",
+      image: normalizedUserId?.avatar || guide.image || guide.userId?.profileImage || "",
       bio: guide.bio || guide.userId?.bio || "",
       experience: guide.yearsOfExperience || guide.experience || 0,
       rating: guide.averageRating || guide.rating || 0,
@@ -99,8 +99,8 @@ export const GuideProvider = ({ children }: any) => {
       specialities: guide.speciality
         ? [guide.speciality]
         : Array.isArray(guide.specialities)
-        ? guide.specialities
-        : [],
+          ? guide.specialities
+          : [],
       locations: Array.isArray(guide.locations) ? guide.locations : [],
       price: guide.price || 0,
       duration: guide.duration || "4 hours",
@@ -112,6 +112,7 @@ export const GuideProvider = ({ children }: any) => {
       reviewCollectionEnabled: guide.reviewCollectionEnabled ?? true,
       reviewQRImage: guide.reviewQRImage || null,
       verificationStatus: guide.verificationStatus || "PENDING",
+      phone: undefined,
     };
   };
 
@@ -127,17 +128,17 @@ export const GuideProvider = ({ children }: any) => {
         // Backend already filters for VERIFIED guides with ACTIVE users
         // No need for additional filtering here
         const formattedData = data.map((guide: any) => mapGuide(guide));
-        
+
         // Sort guides: active guides first, then by rating
         const sortedData = formattedData.sort((a: Guide, b: Guide) => {
           // Active guides come first
           if (a.isAvailable && !b.isAvailable) return -1;
           if (!a.isAvailable && b.isAvailable) return 1;
-          
+
           // If both have same availability status, sort by rating (highest first)
           return b.rating - a.rating;
         });
-        
+
         setGuides(sortedData);
       } catch (error) {
         console.error("Failed to fetch guides", error);
@@ -198,10 +199,10 @@ export const GuideProvider = ({ children }: any) => {
       bio: updated.bio,
       yearsOfExperience: updated.yearsOfExperience,
       totalReviews: updated.totalReviews,
-      verificationStatus: updated.verificationStatus as
-        | "PENDING"
-        | "VERIFIED"
-        | "REJECTED",
+      verificationStatus: updated.verificationStatus as "PENDING" |
+        "VERIFIED" |
+        "REJECTED",
+      phone: undefined
     };
 
     setMyGuide(formattedData);

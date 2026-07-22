@@ -187,7 +187,7 @@ const initializeDatabase = (): Database => {
       email: guide.email,
       phone: guide.phone,
       status: guide.status,
-      languages: ["English", "Hindi"],
+      languages: ["English"],
       specializations: ["Historical Tours", "Cultural Tours"],
       experience: Math.floor(Math.random() * 10) + 1,
       price: Math.floor(Math.random() * 500) + 500,

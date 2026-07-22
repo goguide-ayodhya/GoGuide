@@ -293,6 +293,25 @@ export class DriverCommissionService {
       requestedBy: "ADMIN",
     });
 
+    // Notify driver about the admin-recorded commission request
+    try {
+      const driver = await Driver.findById(driverId).lean();
+      const driverUserId = driver?.userId?.toString();
+      if (driverUserId) {
+        await NotificationService.sendNotificationToUser(driverUserId, {
+          title: "Commission Payment Recorded",
+          body: `Admin has recorded a commission payment request of ₹${amount}.`,
+          data: {
+            type: "COMMISSION_RECORDED",
+            paymentId: payment._id.toString(),
+            amount: amount.toString(),
+          },
+        });
+      }
+    } catch (notifyErr) {
+      console.warn("[COMMISSION] Driver notification failed (non-blocking):", notifyErr);
+    }
+
     return payment;
   }
 

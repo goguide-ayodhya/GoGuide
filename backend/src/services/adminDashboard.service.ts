@@ -6,6 +6,9 @@ import { Notification } from "../models/Notification";
 import { Review } from "../models/Review";
 import { Driver } from "../models/Driver";
 import { Ride } from "../models/Ride";
+import { CabBooking } from "../models/CabBooking";
+import { DriverCommissionPayment } from "../models/DriverCommissionPayment";
+import { reviewService } from "./review.service";
 
 export class DashboardService {
   // ---------------- PUBLIC STATS ----------------
@@ -101,6 +104,10 @@ export class DashboardService {
     const weeklyBookings = await this.getWeeklyBookings();
     const monthlyRevenue = await this.getMonthlyRevenue();
     const recentBookings = await this.getRecentBookings();
+    const upcomingBookingsPreview = await this.getUpcomingBookingsPreview(3);
+    const recentReviewsPreview = await this.getRecentReviewsPreview(3);
+    const topSoldPackagesPreview = await this.getTopSoldPackagesPreview(3);
+    const topBookedGuidesPreview = await this.getTopBookedGuidesPreview(3);
 
     return {
       users: totalUsers,
@@ -117,6 +124,10 @@ export class DashboardService {
       weeklyBookings,
       monthlyRevenue,
       recentBookings,
+      upcomingBookingsPreview,
+      recentReviewsPreview,
+      topSoldPackagesPreview,
+      topBookedGuidesPreview,
     };
   }
 
@@ -193,10 +204,169 @@ export class DashboardService {
       email: (guide.userId as any)?.email || 'N/A',
       phone: (guide.userId as any)?.phone || 'N/A',
       specialization: guide.specialities.join(', '),
-      experience: guide.yearsOfExperience,
       bio: guide.bio || '',
       appliedAt: guide.createdAt,
     }));
+  }
+
+  async getUpcomingBookingsPreview(limit = 3) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const guideBookings = await Booking.find({
+      bookingDate: { $gte: today },
+      status: { $in: ["CONFIRMED", "ACCEPTED", "PENDING"] },
+    })
+      .sort({ bookingDate: 1 })
+      .limit(limit)
+      .lean();
+
+    const cabBookings = await CabBooking.find({
+      startDate: { $gte: today },
+      status: { $in: ["CONFIRMED", "ACCEPTED", "PENDING"] },
+    })
+      .sort({ startDate: 1 })
+      .limit(limit)
+      .lean();
+
+    const combined = [
+      ...guideBookings.map((b: any) => ({
+        id: b._id.toString(),
+        touristName: b.touristName || "Tourist",
+        type: b.bookingType === "PACKAGE" ? "Package" : "Guide",
+        date: b.bookingDate,
+        time: b.timeSlot || "N/A",
+        status: b.status,
+      })),
+      ...cabBookings.map((c: any) => ({
+        id: c._id.toString(),
+        touristName: c.fullName || "Tourist",
+        type: "Cab",
+        date: c.startDate,
+        time: c.pickupTime || "N/A",
+        status: c.status,
+      })),
+    ];
+
+    combined.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return combined.slice(0, limit);
+  }
+
+  async getRecentReviewsPreview(limit = 3) {
+    const reviews = await Review.find({})
+      .populate("userId", "name email avatar")
+      .populate("guideId", "name")
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const populatedReviews = await reviewService.populateBookingNamesForReviews(reviews);
+
+    return populatedReviews.map((r: any) => ({
+      id: r._id.toString(),
+      userName: r.userId?.name || r.reviewerName || "Anonymous",
+      rating: r.rating || 5,
+      comments: r.comments || "No comment provided",
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async getTopSoldPackagesPreview(limit = 3) {
+    const { TourPackage } = await import("../models/Tour");
+
+    const bookingCountsAgg = await Booking.aggregate([
+      { $match: { packageId: { $exists: true, $ne: null }, status: { $ne: "CANCELLED" } } },
+      { $group: { _id: "$packageId", bookingCount: { $sum: 1 } } },
+      { $sort: { bookingCount: -1 } },
+      { $limit: limit },
+    ]);
+
+    const bookingCountMap = new Map<string, number>();
+    bookingCountsAgg.forEach((b: any) => {
+      if (b._id) bookingCountMap.set(b._id.toString(), b.bookingCount);
+    });
+
+    let packages = await TourPackage.find({ isActive: true })
+      .sort({ soldCount: -1, createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    if (!packages.length) {
+      packages = await TourPackage.find({})
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+    }
+
+    return packages.map((pkg: any) => {
+      const idStr = pkg._id.toString();
+      const countFromBookings = bookingCountMap.get(idStr) || 0;
+      const salesCount = Math.max(pkg.soldCount || 0, countFromBookings);
+
+      return {
+        id: idStr,
+        title: pkg.title,
+        price: pkg.price,
+        type: pkg.type || "standard",
+        salesCount,
+        image: pkg.mainImage || (pkg.images && pkg.images[0]) || "",
+        duration: `${pkg.duration || 1} ${pkg.durationType || "days"}`,
+      };
+    });
+  }
+
+  async getTopBookedGuidesPreview(limit = 3) {
+    const guideCountsAgg = await Booking.aggregate([
+      { $match: { guideId: { $exists: true, $ne: null }, status: { $ne: "CANCELLED" } } },
+      { $group: { _id: "$guideId", bookingCount: { $sum: 1 } } },
+      { $sort: { bookingCount: -1 } },
+      { $limit: limit },
+    ]);
+
+    const guideCountMap = new Map<string, number>();
+    guideCountsAgg.forEach((g: any) => {
+      if (g._id) guideCountMap.set(g._id.toString(), g.bookingCount);
+    });
+
+    let topGuideIds = guideCountsAgg.map((g: any) => g._id);
+
+    let guides: any[] = [];
+    if (topGuideIds.length) {
+      guides = await Guide.find({ _id: { $in: topGuideIds } })
+        .populate("userId", "name email phone avatar")
+        .lean();
+    }
+
+    if (guides.length < limit) {
+      const fallbackGuides = await Guide.find({
+        verificationStatus: "VERIFIED",
+        isDeleted: { $ne: true },
+        _id: { $nin: guides.map((g: any) => g._id) },
+      })
+        .populate("userId", "name email phone avatar")
+        .sort({ rating: -1, createdAt: -1 })
+        .limit(limit - guides.length)
+        .lean();
+
+      guides = [...guides, ...fallbackGuides];
+    }
+
+    return guides.slice(0, limit).map((guide: any) => {
+      const idStr = guide._id.toString();
+      const countFromBookings = guideCountMap.get(idStr) || 0;
+      const totalBookings = Math.max(guide.totalTrips || 0, countFromBookings);
+
+      return {
+        id: idStr,
+        name: (guide.userId as any)?.name || "Guide",
+        avatar: (guide.userId as any)?.avatar || "",
+        city: guide.city || "Ayodhya",
+        rating: guide.rating || 5,
+        totalBookings,
+        experience: guide.yearsOfExperience || 1,
+        specialities: guide.specialities || [],
+      };
+    });
   }
 
   private async getWeeklyBookings(days = 7) {
@@ -373,6 +543,59 @@ export class DashboardService {
       totalBookings: bookings.length,
       completed: bookings.filter((b) => b.status === "COMPLETED").length,
       pending: bookings.filter((b) => b.status === "PENDING").length,
+    };
+  }
+
+  // ---------------- SIDEBAR BADGE COUNTS ----------------
+  async getSidebarCounts() {
+    const packagesCount = await Booking.countDocuments({
+      bookingType: "PACKAGE",
+      $or: [
+        { status: "PENDING" },
+        { isRescheduled: true }
+      ]
+    });
+
+    const guidesCount = await Booking.countDocuments({
+      bookingType: "GUIDE",
+      $or: [
+        { status: "PENDING" },
+        { isRescheduled: true }
+      ]
+    });
+
+    const cabsCount = await CabBooking.countDocuments({
+      $or: [
+        { status: "PENDING" },
+        { isRescheduled: true }
+      ]
+    });
+
+    const unseenPaymentsCount = await Payment.countDocuments({ isSeenByAdmin: { $ne: true } });
+    const pendingDriverCommissions = await DriverCommissionPayment.countDocuments({ status: "PENDING" });
+    const paymentsCount = unseenPaymentsCount + pendingDriverCommissions;
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const upcomingBookingsCount = await Booking.countDocuments({
+      bookingDate: { $gte: today },
+      status: { $in: ["CONFIRMED", "ACCEPTED"] },
+    });
+
+    const upcomingCabsCount = await CabBooking.countDocuments({
+      startDate: { $gte: today },
+      status: "CONFIRMED",
+    });
+
+    const upcomingCount = upcomingBookingsCount + upcomingCabsCount;
+
+    return {
+      packagesCount,
+      guidesCount,
+      cabsCount,
+      paymentsCount,
+      upcomingCount,
     };
   }
 }

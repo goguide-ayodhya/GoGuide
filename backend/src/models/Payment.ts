@@ -25,6 +25,7 @@ export interface IPayment extends Document {
   refundedAmount?: number;
   lastRefundedAt?: Date;
   failureReason?: string;
+  isSeenByAdmin?: boolean;
   paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -95,6 +96,10 @@ const PaymentSchema = new Schema<IPayment>(
     },
     lastRefundedAt: Date,
     failureReason: String,
+    isSeenByAdmin: {
+      type: Boolean,
+      default: false,
+    },
     paidAt: Date,
   },
   { timestamps: true },

@@ -78,10 +78,12 @@ export default function Home() {
     { image: assets.p_01 },
     { image: assets.aayovea },
     { image: assets.mj_wains },
+    { image: assets.evoke },
 
     { image: assets.p_01 },
     { image: assets.aayovea },
     { image: assets.mj_wains },
+    { image: assets.evoke },
   ];
 
   useEffect(() => {

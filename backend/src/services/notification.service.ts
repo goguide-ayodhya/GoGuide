@@ -40,13 +40,6 @@ export class NotificationService {
         return false;
       }
 
-      const user = await User.findById(userId).select("fcmToken");
-
-      if (!user?.fcmToken) {
-        console.warn(`❌ No FCM token for user ${userId}`);
-        return false;
-      }
-
       // Persist notification in DB (so it's visible in-app even if push fails)
       try {
         await Notification.create({
@@ -59,6 +52,13 @@ export class NotificationService {
         });
       } catch (dbErr) {
         console.warn("Failed to persist notification in DB:", dbErr);
+      }
+
+      const user = await User.findById(userId).select("fcmToken");
+
+      if (!user?.fcmToken) {
+        console.warn(`❌ No FCM token for user ${userId}`);
+        return false;
       }
 
       console.log("🚀 Sending Notification");
@@ -151,6 +151,22 @@ export class NotificationService {
       console.log("🚀 Sending Notifications to multiple users");
       console.log(`userIds: ${userIds.join(", ")}`);
       console.log("payload:", payload);
+
+      // Persist notifications in DB for all target users
+      try {
+        const dbDocs = userIds.map((uId) => ({
+          userId: new Types.ObjectId(uId),
+          title: payload.title,
+          description: payload.body,
+          type: (payload.data && (payload.data.type as string)) || payload.data?.type || "GENERIC",
+          data: payload.data || {},
+          read: false,
+        }));
+        await Notification.insertMany(dbDocs);
+        console.log(`✅ Persisted notifications in DB for ${userIds.length} users`);
+      } catch (dbErr) {
+        console.warn("Failed to persist batch notifications in DB:", dbErr);
+      }
 
       const users = await User.find({ _id: { $in: userIds } }).select(
         "fcmToken",

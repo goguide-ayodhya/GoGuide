@@ -88,7 +88,6 @@ export function PackageBookingForm({
     if (!startDate) newErrors.startDate = "Start date is required";
     if (!groupSize) newErrors.groupSize = "Number of participants is required";
     if (!touristName.trim()) newErrors.touristName = "Name is required";
-    if (!email.trim()) newErrors.email = "Email is required";
     if (!phone.trim()) newErrors.phone = "Phone is required";
 
     const numParticipantsNum = parseInt(groupSize);
@@ -197,7 +196,7 @@ export function PackageBookingForm({
           </FormField>
 
           {/* Email */}
-          <FormField label="Email" error={errors.email} required>
+          <FormField label="Email" error={errors.email}>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input

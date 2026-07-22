@@ -108,7 +108,7 @@ export default function ProfilePage() {
         if (data?.reviewQRToken) setReviewQRToken(data.reviewQRToken);
         setReviewCollectionEnabled(data?.reviewCollectionEnabled ?? true);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleSave = async () => {
@@ -929,7 +929,7 @@ export default function ProfilePage() {
                   className="p-4 bg-white rounded-2xl border border-border shadow-sm"
                 >
                   <QRCodeCanvas
-                    value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || ""}/tourist/guides/review/${reviewQRToken}`}
+                    value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin || "goguide.in"}/tourist/guides/review/${reviewQRToken}`}
                     size={200}
                     level="M"
                     includeMargin
@@ -972,7 +972,7 @@ export default function ProfilePage() {
                     size="sm"
                     className="gap-2"
                     onClick={() => {
-                      const url = `${window.location.origin}/tourist/guides/review/${reviewQRToken}`;
+                      const url = `https://goguide.in/tourist/guides/review/${reviewQRToken}`;
                       const msg = encodeURIComponent(
                         `Please share your experience with me on GoGuide: ${url}`,
                       );

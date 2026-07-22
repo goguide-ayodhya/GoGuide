@@ -46,6 +46,8 @@ import localExperts from './clipart/localExperts.png';
 import planTrip from './clipart/planTrip.png';
 import trustedGuides from './clipart/trustedGuides.png';
 
+import evoke from './main/evoke.png'
+
 
 export const assets = {
   bgHero,
@@ -93,5 +95,7 @@ export const assets = {
   findGuide,
   localExperts,
   planTrip,
-  trustedGuides
+  trustedGuides,
+
+  evoke
 };

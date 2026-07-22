@@ -176,3 +176,174 @@ export const updateCabBookingStatusApi = async (bookingId: string, status: strin
   });
   return handleRes(res);
 };
+
+// Admin Cab Locations CRUD
+export const getCabLocationsAdminApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/locations`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const createCabLocationApi = async (data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/locations`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const updateCabLocationApi = async (id: string, data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/locations/${id}`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const deleteCabLocationApi = async (id: string) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/locations/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Admin Cab Categories CRUD
+export const getCabCategoriesAdminApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/categories`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const createCabCategoryApi = async (data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/categories`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const updateCabCategoryApi = async (id: string, data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/categories/${id}`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const deleteCabCategoryApi = async (id: string) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/categories/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Admin Route Pricing CRUD
+export const getCabRoutePricesApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/admin/prices`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const createCabRoutePriceApi = async (data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/prices`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const updateCabRoutePriceApi = async (id: string, data: any) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/prices/${id}`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return handleRes(res);
+};
+
+export const deleteCabRoutePriceApi = async (id: string) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/prices/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Admin Tax Config APIs
+export const getCabTaxApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/admin/tax`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const updateCabTaxApi = async (taxPercent: number) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/tax`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ taxPercent }),
+  });
+  return handleRes(res);
+};
+
+// Admin Additional Charges APIs
+export const getCabAdditionalChargesAdminApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/admin/additional-charges`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+export const updateCabAdditionalChargesApi = async (wheelchairCharge: number, medicalSupportCharge: number) => {
+  const res = await fetch(`${base_url}cab-bookings/admin/additional-charges`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ wheelchairCharge, medicalSupportCharge }),
+  });
+  return handleRes(res);
+};
+
+export const confirmCabPaymentApi = async (bookingId: string) => {
+  const res = await fetch(`${base_url}cab-bookings/${bookingId}/confirm-payment`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+  });
+  return handleRes(res);
+};

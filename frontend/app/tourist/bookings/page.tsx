@@ -29,9 +29,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, User, Filter, RefreshCw, Car, Heart, MapPin, Users } from "lucide-react";
+import {
+  Calendar,
+  User,
+  Filter,
+  RefreshCw,
+  Car,
+  Heart,
+  MapPin,
+  Users,
+  Eye,
+  Clock,
+  CreditCard,
+  AlertTriangle,
+  Info,
+  Phone,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getMyCabBookingsApi, updateCabBookingStatusApi } from "@/lib/api/cabBookings";
+import {
+  getMyCabBookingsApi,
+  updateCabBookingStatusApi,
+  rescheduleCabBookingApi,
+} from "@/lib/api/cabBookings";
 import Link from "next/link";
 import HeadingTitle from "@/components/common/headingTitle";
 import {
@@ -39,11 +58,66 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { cancelBookingApi } from "@/lib/api/bookings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: string) => void }) {
+// Utility to parse Date & Time to local JS Date
+const parseDateTime = (dateStr: string, timeStr: string): Date => {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  let hours = 0;
+  let minutes = 0;
+
+  const cleanTime = timeStr.trim().toLowerCase();
+  const ampmMatch = cleanTime.match(/^(\d+):(\d+)\s*(am|pm)$/);
+  if (ampmMatch) {
+    hours = parseInt(ampmMatch[1], 10);
+    minutes = parseInt(ampmMatch[2], 10);
+    const ampm = ampmMatch[3];
+    if (ampm === "pm" && hours < 12) {
+      hours += 12;
+    } else if (ampm === "am" && hours === 12) {
+      hours = 0;
+    }
+  } else {
+    const normalMatch = cleanTime.match(/^(\d+):(\d+)$/);
+    if (normalMatch) {
+      hours = parseInt(normalMatch[1], 10);
+      minutes = parseInt(normalMatch[2], 10);
+    }
+  }
+
+  return new Date(year, month, day, hours, minutes);
+};
+
+// Check if booking is within 1 hour cancellation/rescheduling limit
+const isWithinOneHourLimit = (startDate: string | Date, timeStr: string) => {
+  try {
+    const bookingDateTime = parseDateTime(new Date(startDate).toISOString(), timeStr || "12:00 PM");
+    const now = new Date();
+    return bookingDateTime.getTime() - now.getTime() < 60 * 60 * 1000;
+  } catch (e) {
+    return false;
+  }
+};
+
+function CabBookingCard({
+  booking,
+  onCancel,
+  onReschedule,
+  onViewDetails,
+}: {
+  booking: any;
+  onCancel: (id: string) => void;
+  onReschedule: (booking: any) => void;
+  onViewDetails: (booking: any) => void;
+}) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -68,6 +142,27 @@ function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: st
     return list.join(", ");
   };
 
+  // Determine if booking is within the 1-hour window limit
+  const isRestricted = isWithinOneHourLimit(booking.startDate, booking.pickupTime);
+
+  const handleCancelClick = () => {
+    if (booking.status === "CANCELLED" || booking.status === "COMPLETED") return;
+    if (isRestricted) {
+      alert("Cab bookings cannot be cancelled or rescheduled within 1 hour of pickup time.");
+      return;
+    }
+    onCancel(booking._id);
+  };
+
+  const handleRescheduleClick = () => {
+    if (booking.status === "CANCELLED" || booking.status === "COMPLETED") return;
+    if (isRestricted) {
+      alert("Cab bookings cannot be cancelled or rescheduled within 1 hour of pickup time.");
+      return;
+    }
+    onReschedule(booking);
+  };
+
   return (
     <Card className="overflow-hidden border border-slate-200 rounded-3xl bg-white hover:shadow-md transition-all duration-300 flex flex-col justify-between p-5 space-y-4">
       <div className="flex justify-between items-start">
@@ -77,7 +172,6 @@ function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: st
           </div>
           <div>
             <h4 className="font-bold text-slate-900">{booking.vehicleType}</h4>
-            <p className="text-xs text-muted-foreground">{booking.acPreference}</p>
           </div>
         </div>
         <Badge className={getStatusColor(booking.status)} variant="outline">
@@ -86,17 +180,27 @@ function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: st
       </div>
 
       <div className="space-y-2 text-sm text-slate-600">
+        <div className="flex justify-between text-xs font-semibold text-indigo-600">
+          <span>Booking ID:</span>
+          <span>{booking.bookingId || booking._id}</span>
+        </div>
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-          <span>{new Date(booking.startDate).toLocaleDateString()} ({booking.numDays} days)</span>
+          <span>
+            {new Date(booking.startDate).toLocaleDateString()} at {booking.pickupTime || "N/A"}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-slate-400 shrink-0" />
-          <span>{booking.numPeople} people</span>
+          <span>
+            {booking.numPeople} people
+          </span>
         </div>
         <div className="flex items-start gap-2">
           <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-          <span className="truncate">{booking.pickupLocation} → {booking.dropoffLocation}</span>
+          <span className="truncate">
+            {booking.pickupLocation} → {booking.dropoffLocation}
+          </span>
         </div>
         {getSpecialAssistanceText(booking.specialAssistance) ? (
           <div className="flex items-center gap-2 text-rose-600 font-medium text-xs">
@@ -104,27 +208,74 @@ function CabBookingCard({ booking, onCancel }: { booking: any; onCancel: (id: st
             <span>Assistance: {getSpecialAssistanceText(booking.specialAssistance)}</span>
           </div>
         ) : null}
+        <div className="flex justify-between font-bold text-slate-800 border-t border-slate-100 pt-2 text-base">
+          <span>Amount:</span>
+          <span>₹{booking.totalAmount || booking.price || 0}</span>
+        </div>
       </div>
 
-      {booking.status === "PENDING" && (
+      <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
         <Button
-          onClick={() => onCancel(booking._id)}
+          onClick={() => onViewDetails(booking)}
           variant="outline"
-          className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 rounded-2xl h-10 font-semibold"
+          className="w-full text-indigo-600 border-indigo-200 hover:bg-indigo-50 rounded-2xl h-10 font-semibold flex items-center justify-center gap-2"
         >
-          Cancel Request
+          <Eye className="w-4 h-4" /> View Details
         </Button>
-      )}
+
+        {(booking.status === "PENDING" || booking.status === "CONFIRMED") && (
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRescheduleClick}
+              variant="outline"
+              className={`flex-1 rounded-2xl h-10 font-semibold transition ${
+                isRestricted
+                  ? "border-slate-200 text-slate-400 bg-slate-50 cursor-pointer"
+                  : "border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+              }`}
+            >
+              Reschedule
+            </Button>
+            <Button
+              onClick={handleCancelClick}
+              variant="outline"
+              className={`flex-1 rounded-2xl h-10 font-semibold transition ${
+                isRestricted
+                  ? "border-slate-200 text-slate-400 bg-slate-50 cursor-pointer"
+                  : "border-rose-200 text-rose-600 hover:bg-rose-50"
+              }`}
+            >
+              Cancel Request
+            </Button>
+          </div>
+        )}
+
+        {isRestricted && (booking.status === "PENDING" || booking.status === "CONFIRMED") && (
+          <p className="text-[10px] text-rose-500 text-center font-medium">
+            * Cancellation/Rescheduling restricted (within 1 hour)
+          </p>
+        )}
+      </div>
     </Card>
   );
 }
 
 export default function BookingsPage() {
   const { isLoggedIn } = useAuth();
-  const { bookings, cancelBooking, setBookings, refreshBookings } =
-    useBooking();
+  const { bookings, cancelBooking, setBookings, refreshBookings } = useBooking();
   const [cabBookings, setCabBookings] = useState<any[]>([]);
   const [loadingCabs, setLoadingCabs] = useState(true);
+
+  // Modals / Popups for Cab Bookings
+  const [selectedCab, setSelectedCab] = useState<any | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
+
+  // Reschedule Date & Time state
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+  const [rescheduleSubmitting, setRescheduleSubmitting] = useState(false);
 
   const fetchCabBookings = async () => {
     try {
@@ -157,16 +308,91 @@ export default function BookingsPage() {
     }
   };
 
+  const openRescheduleModal = (booking: any) => {
+    setSelectedCab(booking);
+    setRescheduleDate(new Date(booking.startDate).toISOString().split("T")[0]);
+    setRescheduleTime(booking.pickupTime || "");
+    setRescheduleError(null);
+    setRescheduleModalOpen(true);
+  };
+
+  const handleRescheduleSubmit = async () => {
+    if (!selectedCab || !rescheduleDate || !rescheduleTime) return;
+    setRescheduleError(null);
+
+    // Dynamic advance time validation on frontend
+    try {
+      const parsedTime = parseDateTime(rescheduleDate, rescheduleTime);
+      const now = new Date();
+      if (parsedTime.getTime() - now.getTime() < 60 * 60 * 1000) {
+        setRescheduleError("Rescheduled pickup time must be at least 1 hour in advance.");
+        return;
+      }
+    } catch (e) {
+      setRescheduleError("Invalid date or time.");
+      return;
+    }
+
+    setRescheduleSubmitting(true);
+    try {
+      await rescheduleCabBookingApi(selectedCab._id, rescheduleDate, rescheduleTime);
+      setRescheduleModalOpen(false);
+      await fetchCabBookings();
+      toast({
+        title: "Rescheduled successfully",
+        description: "Your pickup time has been updated successfully.",
+      });
+    } catch (err: any) {
+      setRescheduleError(err.message || "Failed to reschedule booking.");
+    } finally {
+      setRescheduleSubmitting(false);
+    }
+  };
+
+  const openDetailsModal = (booking: any) => {
+    setSelectedCab(booking);
+    setDetailsModalOpen(true);
+  };
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let h = 0; h < 24; h++) {
+      const ampm = h >= 12 ? "PM" : "AM";
+      const displayHour = h % 12 === 0 ? 12 : h % 12;
+      const hrStr = String(displayHour).padStart(2, "0");
+      slots.push(`${hrStr}:00 ${ampm}`);
+      slots.push(`${hrStr}:30 ${ampm}`);
+    }
+    return slots;
+  };
+
+  const isRescheduleSlotDisabled = (slot: string) => {
+    if (!rescheduleDate) return false;
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (rescheduleDate !== todayStr) return false;
+
+    try {
+      const parsedDateTime = parseDateTime(rescheduleDate, slot);
+      const now = new Date();
+      return parsedDateTime.getTime() - now.getTime() < 60 * 60 * 1000;
+    } catch (e) {
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       fetchCabBookings();
     }
   }, [isLoggedIn]);
+
   const { createReview, getBookingReview } = useReview();
   const { toast } = useToast();
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "yesterday" | "month" | "year" | "specific">("all");
+  const [specificDate, setSpecificDate] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewReviewOpen, setViewReviewOpen] = useState(false);
@@ -215,12 +441,12 @@ export default function BookingsPage() {
     setSelectedReviewStatuses((prev) =>
       prev.includes(reviewStatus)
         ? prev.filter((item) => item !== reviewStatus)
-        : [...prev, reviewStatus],
+        : [...prev, reviewStatus]
     );
   };
 
   const togglePaymentStatus = (
-    paymentStatus: (typeof paymentStatusOptions)[number],
+    paymentStatus: (typeof paymentStatusOptions)[number]
   ) => {
     setSelectedPaymentStatuses([paymentStatus]);
   };
@@ -231,6 +457,8 @@ export default function BookingsPage() {
     setSelectedReviewStatuses([...reviewOptions]);
     setSelectedPaymentStatuses([...paymentStatusOptions]);
     setSortBy("newest");
+    setDateFilter("all");
+    setSpecificDate("");
   };
 
   const refreshBookingList = async () => {
@@ -255,7 +483,7 @@ export default function BookingsPage() {
 
   if (!isLoggedIn) {
     return (
-      <main className="min-h-screen flex flex-col bg-background ">
+      <main className="min-h-screen flex flex-col bg-background">
         <Header showBack={true} />
         <HeadingTitle title={"My Bookings"} />
 
@@ -269,7 +497,6 @@ export default function BookingsPage() {
               Please sign in to view your booking history
             </p>
             <Link href={`/login?redirect=/tourist/bookings`}>
-              {" "}
               <Button className="w-full bg-secondary cursor-pointer hover:bg-secondary/90">
                 Sign In
               </Button>
@@ -289,18 +516,17 @@ export default function BookingsPage() {
 
   const filteredBookings = sortedBookings.filter((b) => {
     const statusMatch =
-      selectedStatuses.includes("ALL") ||
-      selectedStatuses.includes(b.status as any);
+      selectedStatuses.includes("ALL") || selectedStatuses.includes(b.status as any);
     const reviewMatch = selectedReviewStatuses.some((option) =>
       option === "REVIEWED"
         ? b.reviewed === true
-        : b.reviewed === false || b.reviewed === undefined,
+        : b.reviewed === false || b.reviewed === undefined
     );
     const paymentStatusLabel = b.paymentStatus || "PENDING";
     const paymentMatch =
       selectedPaymentStatuses.includes("ALL") ||
       selectedPaymentStatuses.includes(
-        paymentStatusLabel as (typeof paymentStatusOptions)[number],
+        paymentStatusLabel as (typeof paymentStatusOptions)[number]
       );
     const searchMatch = searchTerm
       ? [b.touristName, b.tourType, b.bookingId]
@@ -309,9 +535,88 @@ export default function BookingsPage() {
           .includes(searchTerm.toLowerCase())
       : true;
 
-    return statusMatch && reviewMatch && paymentMatch && searchMatch;
+    // Date Filter match
+    let dateMatch = true;
+    if (dateFilter !== "all" && b.bookingDate) {
+      const travelDate = new Date(b.bookingDate);
+      const travelDateStr = travelDate.toISOString().split("T")[0];
+
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      if (dateFilter === "today") {
+        dateMatch = travelDateStr === todayStr;
+      } else if (dateFilter === "yesterday") {
+        dateMatch = travelDateStr === yesterdayStr;
+      } else if (dateFilter === "month") {
+        dateMatch = travelDate.getMonth() === today.getMonth() && travelDate.getFullYear() === today.getFullYear();
+      } else if (dateFilter === "year") {
+        dateMatch = travelDate.getFullYear() === today.getFullYear();
+      } else if (dateFilter === "specific" && specificDate) {
+        dateMatch = travelDateStr === specificDate;
+      }
+    }
+
+    return statusMatch && reviewMatch && paymentMatch && searchMatch && dateMatch;
   });
-{console.log(filteredBookings.map(b => b.bookingType))}
+
+  const filteredCabBookings = cabBookings.filter((b) => {
+    const searchMatch = searchTerm
+      ? [b.fullName, b.pickupLocation, b.dropoffLocation, b.bookingId || b._id]
+          .join(" ")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      : true;
+    if (!searchMatch) return false;
+
+    const statusMatch =
+      selectedStatuses.includes("ALL") || selectedStatuses.includes(b.status as any);
+    if (!statusMatch) return false;
+
+    const paymentStatusLabel = b.paymentStatus || "PENDING";
+    const paymentMatch =
+      selectedPaymentStatuses.includes("ALL") ||
+      selectedPaymentStatuses.includes(
+        paymentStatusLabel as (typeof paymentStatusOptions)[number]
+      );
+    if (!paymentMatch) return false;
+
+    let dateMatch = true;
+    if (dateFilter !== "all" && b.startDate) {
+      const travelDate = new Date(b.startDate);
+      const travelDateStr = travelDate.toISOString().split("T")[0];
+
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      if (dateFilter === "today") {
+        dateMatch = travelDateStr === todayStr;
+      } else if (dateFilter === "yesterday") {
+        dateMatch = travelDateStr === yesterdayStr;
+      } else if (dateFilter === "month") {
+        dateMatch = travelDate.getMonth() === today.getMonth() && travelDate.getFullYear() === today.getFullYear();
+      } else if (dateFilter === "year") {
+        dateMatch = travelDate.getFullYear() === today.getFullYear();
+      } else if (dateFilter === "specific" && specificDate) {
+        dateMatch = travelDateStr === specificDate;
+      }
+    }
+
+    return dateMatch;
+  });
+
+  const packagesCount = filteredBookings.filter((b) => b.bookingType === "PACKAGE").length;
+  const guidesCount = filteredBookings.filter((b) => b.bookingType === "GUIDE").length;
+  const cabsCount = filteredCabBookings.length;
+  const totalDisplayBookingsCount = packagesCount + guidesCount + cabsCount;
 
   const handleViewReview = async (bookingId: string) => {
     setSelectedBookingForReview(bookingId);
@@ -328,8 +633,7 @@ export default function BookingsPage() {
     } catch (error: any) {
       toast({
         title: "Unable to load review",
-        description:
-          error?.message || "Could not load your review for this booking.",
+        description: error?.message || "Could not load your review for this booking.",
         variant: "destructive",
       });
     }
@@ -343,7 +647,7 @@ export default function BookingsPage() {
   const handleSubmitReview = async (
     bookingId: string,
     review: any,
-    reviewId?: string | null,
+    reviewId?: string | null
   ) => {
     try {
       await createReview(bookingId, {
@@ -353,8 +657,8 @@ export default function BookingsPage() {
 
       setBookings((prev) =>
         prev.map((booking) =>
-          booking.id === bookingId ? { ...booking, reviewed: true } : booking,
-        ),
+          booking.id === bookingId ? { ...booking, reviewed: true } : booking
+        )
       );
 
       toast({
@@ -373,10 +677,7 @@ export default function BookingsPage() {
     }
   };
 
-  async function handleCancel(
-    cancellingId: string,
-    reason: string,
-  ): Promise<void> {
+  async function handleCancel(cancellingId: string, reason: string): Promise<void> {
     const booking = bookings.find((b) => b.id === cancellingId);
     if (!booking) return;
 
@@ -389,9 +690,7 @@ export default function BookingsPage() {
       toast({
         title: "Booking cancelled",
         description:
-          res?.refundAmount > 0
-            ? `₹${res.refundAmount} refund initiated`
-            : "Booking cancelled",
+          res?.refundAmount > 0 ? `₹${res.refundAmount} refund initiated` : "Booking cancelled",
       });
     } catch (error: any) {
       toast({
@@ -411,16 +710,11 @@ export default function BookingsPage() {
           {bookings.length === 0 && cabBookings.length === 0 ? (
             <Card className="p-6 sm:p-8 md:p-10 text-center max-w-xl">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                No Bookings Yet
-              </h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">No Bookings Yet</h2>
               <p className="text-muted-foreground mb-6">
                 Start booking your Ayodhya tour experience today
               </p>
-              <Link
-                href={`/login?redirect=/tourist/bookings`}
-                className="block"
-              >
+              <Link href={`/login?redirect=/tourist/bookings`} className="block">
                 <Button className="max-w-lg bg-secondary cursor-pointer hover:bg-secondary/90">
                   Explore Services
                 </Button>
@@ -433,16 +727,11 @@ export default function BookingsPage() {
                   <Card className="space-y-3 sm:space-y-4">
                     <CardHeader>
                       <CardTitle className="text-xl">Filters</CardTitle>
-                      <CardDescription>
-                        Refine your booking list
-                      </CardDescription>
+                      <CardDescription>Refine your booking list</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="space-y-3">
-                        <Label
-                          htmlFor="booking-search"
-                          className="text-sm font-semibold"
-                        >
+                        <Label htmlFor="booking-search" className="text-sm font-semibold">
                           Search bookings
                         </Label>
                         <Input
@@ -454,11 +743,45 @@ export default function BookingsPage() {
                         />
                       </div>
 
+                      <div className="rounded-3xl border border-border bg-background p-4 space-y-3">
+                        <p className="text-sm font-semibold">Date Filter</p>
+                        <Select
+                          value={dateFilter}
+                          onValueChange={(val: any) => {
+                            setDateFilter(val);
+                            if (val !== "specific") setSpecificDate("");
+                          }}
+                        >
+                          <SelectTrigger className="w-full bg-background border-border rounded-2xl h-10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Time</SelectItem>
+                            <SelectItem value="today">Today</SelectItem>
+                            <SelectItem value="yesterday">Yesterday</SelectItem>
+                            <SelectItem value="month">This Month</SelectItem>
+                            <SelectItem value="year">This Year</SelectItem>
+                            <SelectItem value="specific">Specific Date...</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {dateFilter === "specific" && (
+                          <div className="space-y-1 mt-2">
+                            <Label htmlFor="specific-date" className="text-xs text-muted-foreground">Choose Date</Label>
+                            <Input
+                              id="specific-date"
+                              type="date"
+                              value={specificDate}
+                              onChange={(e) => setSpecificDate(e.target.value)}
+                              className="rounded-2xl border-border bg-background h-10"
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       <div className="rounded-3xl border border-border bg-background p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-semibold">
-                            Booking Status
-                          </p>
+                          <p className="text-sm font-semibold">Booking Status</p>
                           <span className="text-xs text-muted-foreground">
                             {selectedStatuses.length} selected
                           </span>
@@ -483,9 +806,7 @@ export default function BookingsPage() {
 
                       <div className="rounded-3xl border border-border bg-background p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-semibold">
-                            Payment Status
-                          </p>
+                          <p className="text-sm font-semibold">Payment Status</p>
                           <span className="text-xs text-muted-foreground">
                             {selectedPaymentStatuses.length} selected
                           </span>
@@ -497,12 +818,8 @@ export default function BookingsPage() {
                               className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
                             >
                               <Checkbox
-                                checked={selectedPaymentStatuses.includes(
-                                  status,
-                                )}
-                                onCheckedChange={() =>
-                                  togglePaymentStatus(status)
-                                }
+                                checked={selectedPaymentStatuses.includes(status)}
+                                onCheckedChange={() => togglePaymentStatus(status)}
                               />
                               <span className="text-sm font-medium capitalize">
                                 {status.toLowerCase()}
@@ -512,45 +829,12 @@ export default function BookingsPage() {
                         </div>
                       </div>
 
-                      {/* <div className="rounded-3xl border border-border bg-background p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-semibold">Review Status</p>
-                          <span className="text-xs text-muted-foreground">
-                            {selectedReviewStatuses.length} selected
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          {reviewOptions.map((status) => (
-                            <label
-                              key={status}
-                              className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
-                            >
-                              <Checkbox
-                                checked={selectedReviewStatuses.includes(
-                                  status,
-                                )}
-                                onCheckedChange={() =>
-                                  toggleReviewStatus(status)
-                                }
-                              />
-                              <span className="text-sm font-medium capitalize">
-                                {status.toLowerCase()}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div> */}
-
                       <div className="flex items-center justify-between gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearFilters}
-                        >
+                        <Button variant="outline" size="sm" onClick={clearFilters}>
                           Reset filters
                         </Button>
                         <span className="text-sm text-muted-foreground">
-                          {filteredBookings.length} results
+                          {totalDisplayBookingsCount} results
                         </span>
                       </div>
                     </CardContent>
@@ -560,11 +844,9 @@ export default function BookingsPage() {
                 <div className="space-y-6">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-3xl font-semibold text-destructive">
-                        My Bookings
-                      </p>
+                      <p className="text-3xl font-semibold text-destructive">My Bookings</p>
                       <p className="text-sm text-muted-foreground">
-                        {filteredBookings.length} bookings match your filters
+                        {totalDisplayBookingsCount} bookings match your filters
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -587,7 +869,7 @@ export default function BookingsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="newest">Newest</SelectItem>
-                          <SelectItem value="oldest">Oldest</SelectItem>
+                           <SelectItem value="oldest">Oldest</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -607,10 +889,7 @@ export default function BookingsPage() {
                     </div>
                   </div>
 
-                  <Dialog
-                    open={mobileFiltersOpen}
-                    onOpenChange={setMobileFiltersOpen}
-                  >
+                  <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
                     <DialogContent className="max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Filters</DialogTitle>
@@ -618,10 +897,7 @@ export default function BookingsPage() {
                       <Card className="border-0 space-y-4">
                         <CardContent className="space-y-6 pt-6">
                           <div className="space-y-3">
-                            <Label
-                              htmlFor="mobile-booking-search"
-                              className="text-sm font-semibold"
-                            >
+                            <Label htmlFor="mobile-booking-search" className="text-sm font-semibold">
                               Search bookings
                             </Label>
                             <Input
@@ -633,11 +909,45 @@ export default function BookingsPage() {
                             />
                           </div>
 
+                          <div className="rounded-3xl border border-border bg-background p-4 space-y-3">
+                            <p className="text-sm font-semibold">Date Filter</p>
+                            <Select
+                              value={dateFilter}
+                              onValueChange={(val: any) => {
+                                setDateFilter(val);
+                                if (val !== "specific") setSpecificDate("");
+                              }}
+                            >
+                              <SelectTrigger className="w-full bg-background border-border rounded-2xl h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Time</SelectItem>
+                                <SelectItem value="today">Today</SelectItem>
+                                <SelectItem value="yesterday">Yesterday</SelectItem>
+                                <SelectItem value="month">This Month</SelectItem>
+                                <SelectItem value="year">This Year</SelectItem>
+                                <SelectItem value="specific">Specific Date...</SelectItem>
+                              </SelectContent>
+                            </Select>
+
+                            {dateFilter === "specific" && (
+                              <div className="space-y-1 mt-2">
+                                <Label htmlFor="mobile-specific-date" className="text-xs text-muted-foreground">Choose Date</Label>
+                                <Input
+                                  id="mobile-specific-date"
+                                  type="date"
+                                  value={specificDate}
+                                  onChange={(e) => setSpecificDate(e.target.value)}
+                                  className="rounded-2xl border-border bg-background h-10"
+                                />
+                              </div>
+                            )}
+                          </div>
+
                           <div className="rounded-3xl border border-border bg-background p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm font-semibold">
-                                Booking Status
-                              </p>
+                              <p className="text-sm font-semibold">Booking Status</p>
                               <span className="text-xs text-muted-foreground">
                                 {selectedStatuses.length} selected
                               </span>
@@ -662,9 +972,7 @@ export default function BookingsPage() {
 
                           <div className="rounded-3xl border border-border bg-background p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm font-semibold">
-                                Payment Status
-                              </p>
+                              <p className="text-sm font-semibold">Payment Status</p>
                               <span className="text-xs text-muted-foreground">
                                 {selectedPaymentStatuses.length} selected
                               </span>
@@ -676,12 +984,8 @@ export default function BookingsPage() {
                                   className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
                                 >
                                   <Checkbox
-                                    checked={selectedPaymentStatuses.includes(
-                                      status,
-                                    )}
-                                    onCheckedChange={() =>
-                                      togglePaymentStatus(status)
-                                    }
+                                    checked={selectedPaymentStatuses.includes(status)}
+                                    onCheckedChange={() => togglePaymentStatus(status)}
                                   />
                                   <span className="text-sm font-medium capitalize">
                                     {status.toLowerCase()}
@@ -693,9 +997,7 @@ export default function BookingsPage() {
 
                           <div className="rounded-3xl border border-border bg-background p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="text-sm font-semibold">
-                                Review Status
-                              </p>
+                              <p className="text-sm font-semibold">Review Status</p>
                               <span className="text-xs text-muted-foreground">
                                 {selectedReviewStatuses.length} selected
                               </span>
@@ -707,12 +1009,8 @@ export default function BookingsPage() {
                                   className="flex items-center gap-3 rounded-2xl border border-border/70 px-3 py-2 cursor-pointer transition hover:border-primary"
                                 >
                                   <Checkbox
-                                    checked={selectedReviewStatuses.includes(
-                                      status,
-                                    )}
-                                    onCheckedChange={() =>
-                                      toggleReviewStatus(status)
-                                    }
+                                    checked={selectedReviewStatuses.includes(status)}
+                                    onCheckedChange={() => toggleReviewStatus(status)}
                                   />
                                   <span className="text-sm font-medium capitalize">
                                     {status.toLowerCase()}
@@ -745,23 +1043,41 @@ export default function BookingsPage() {
 
                   <Tabs defaultValue="tourPackages" className="w-full">
                     <TabsList className="mb-6 w-full flex bg-slate-100 rounded-xl p-1 overflow-x-auto no-scrollbar justify-start sm:justify-center h-auto">
-                      <TabsTrigger value="tourPackages" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Tour Packages</TabsTrigger>
-                      <TabsTrigger value="guideBookings" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Guide Bookings</TabsTrigger>
-                      <TabsTrigger value="cabRequests" className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Cab Requests</TabsTrigger>
+                      <TabsTrigger
+                        value="tourPackages"
+                        className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-xs sm:text-sm"
+                      >
+                        Tour Packages ({packagesCount})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="guideBookings"
+                        className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-xs sm:text-sm"
+                      >
+                        Guide Bookings ({guidesCount})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="cabRequests"
+                        className="flex-1 py-2.5 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-xs sm:text-sm"
+                      >
+                        Cab Requests ({cabsCount})
+                      </TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="tourPackages" className="mt-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {filteredBookings.filter(b => b.bookingType === "PACKAGE").length > 0 ? (
-                          filteredBookings.filter(b => b.bookingType === "PACKAGE").map((booking) => (
-                            <BookingCard
-                              key={booking.id}
-                              booking={booking}
-                              onCancel={(bookingId) => setCancellingId(bookingId)}
-                              onLeaveReview={handleLeaveReview}
-                              onViewReview={handleViewReview}
-                            />
-                          ))
+                        {filteredBookings.filter((b) => b.bookingType === "PACKAGE").length >
+                        0 ? (
+                          filteredBookings
+                            .filter((b) => b.bookingType === "PACKAGE")
+                            .map((booking) => (
+                              <BookingCard
+                                key={booking.id}
+                                booking={booking}
+                                onCancel={(bookingId) => setCancellingId(bookingId)}
+                                onLeaveReview={handleLeaveReview}
+                                onViewReview={handleViewReview}
+                              />
+                            ))
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             No tour packages match your filters.
@@ -772,16 +1088,19 @@ export default function BookingsPage() {
 
                     <TabsContent value="guideBookings" className="mt-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {filteredBookings.filter(b => b.bookingType === "GUIDE").length > 0 ? (
-                          filteredBookings.filter(b => b.bookingType === "GUIDE").map((booking) => (
-                            <BookingCard
-                              key={booking.id}
-                              booking={booking}
-                              onCancel={(bookingId) => setCancellingId(bookingId)}
-                              onLeaveReview={handleLeaveReview}
-                              onViewReview={handleViewReview}
-                            />
-                          ))
+                        {filteredBookings.filter((b) => b.bookingType === "GUIDE").length >
+                        0 ? (
+                          filteredBookings
+                            .filter((b) => b.bookingType === "GUIDE")
+                            .map((booking) => (
+                              <BookingCard
+                                key={booking.id}
+                                booking={booking}
+                                onCancel={(bookingId) => setCancellingId(bookingId)}
+                                onLeaveReview={handleLeaveReview}
+                                onViewReview={handleViewReview}
+                              />
+                            ))
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             No guide bookings match your filters.
@@ -792,17 +1111,19 @@ export default function BookingsPage() {
 
                     <TabsContent value="cabRequests" className="mt-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {cabBookings.length > 0 ? (
-                          cabBookings.map((booking) => (
+                        {filteredCabBookings.length > 0 ? (
+                          filteredCabBookings.map((booking) => (
                             <CabBookingCard
                               key={booking._id}
                               booking={booking}
                               onCancel={handleCancelCabRequest}
+                              onReschedule={openRescheduleModal}
+                              onViewDetails={openDetailsModal}
                             />
                           ))
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-                            No cab requests found.
+                            No cab requests found matching filters.
                           </div>
                         )}
                       </div>
@@ -810,16 +1131,19 @@ export default function BookingsPage() {
 
                     <TabsContent value="cabBookings" className="mt-0">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                        {filteredBookings.filter(b => b.bookingType === "DRIVER").length > 0 ? (
-                          filteredBookings.filter(b => b.bookingType === "DRIVER").map((booking) => (
-                            <BookingCard
-                              key={booking.id}
-                              booking={booking}
-                              onCancel={(bookingId) => setCancellingId(bookingId)}
-                              onLeaveReview={handleLeaveReview}
-                              onViewReview={handleViewReview}
-                            />
-                          ))
+                        {filteredBookings.filter((b) => b.bookingType === "DRIVER").length >
+                        0 ? (
+                          filteredBookings
+                            .filter((b) => b.bookingType === "DRIVER")
+                            .map((booking) => (
+                              <BookingCard
+                                key={booking.id}
+                                booking={booking}
+                                onCancel={(bookingId) => setCancellingId(bookingId)}
+                                onLeaveReview={handleLeaveReview}
+                                onViewReview={handleViewReview}
+                              />
+                            ))
                         ) : (
                           <div className="col-span-full py-12 text-center text-muted-foreground bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                             No cab bookings match your filters.
@@ -839,9 +1163,7 @@ export default function BookingsPage() {
       <CancelBookingModal
         open={!!cancellingId}
         onOpenChange={(open) => !open && setCancellingId(null)}
-        onConfirm={(reason) =>
-          cancellingId && handleCancel(cancellingId, reason)
-        }
+        onConfirm={(reason) => cancellingId && handleCancel(cancellingId, reason)}
       />
 
       {/* View Review Modal */}
@@ -851,8 +1173,7 @@ export default function BookingsPage() {
         review={viewingReview}
         guideName={
           selectedBookingForReview
-            ? bookings.find((b) => b.id === selectedBookingForReview)
-                ?.touristName
+            ? bookings.find((b) => b.id === selectedBookingForReview)?.touristName
             : undefined
         }
       />
@@ -869,7 +1190,262 @@ export default function BookingsPage() {
         />
       )}
 
-      <Footer />
+      {/* ============================================================ */}
+      {/* CAB BOOKING DETAILS DIALOG */}
+      {/* ============================================================ */}
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-6 scrollbar-thin">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Car className="text-indigo-600 w-5 h-5" /> Cab Booking Details
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Complete details for cab booking reference.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCab && (
+            <div className="space-y-4 py-2 text-slate-700">
+              <div className="flex justify-between border-b pb-2 text-xs text-muted-foreground">
+                <span>Created Date:</span>
+                <span className="font-semibold">
+                  {new Date(selectedCab.createdAt).toLocaleDateString()} at{" "}
+                  {new Date(selectedCab.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="block text-muted-foreground">Booking ID</span>
+                  <span className="font-bold text-slate-900 text-sm">
+                    {selectedCab.bookingId || selectedCab._id}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-muted-foreground">Car Category</span>
+                  <span className="font-bold text-orange-600 text-sm">
+                    {selectedCab.vehicleType}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-muted-foreground">Travel Date</span>
+                  <span className="font-semibold text-slate-900">
+                    {new Date(selectedCab.startDate).toLocaleDateString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-muted-foreground">Pickup Time</span>
+                  <span className="font-semibold text-slate-900 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-indigo-500" /> {selectedCab.pickupTime}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="block text-muted-foreground">Passengers</span>
+                  <span className="font-semibold text-slate-900 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-indigo-500" /> {selectedCab.numPeople} people
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-muted-foreground">Booking Status</span>
+                  <span className="font-bold uppercase text-xs">{selectedCab.status}</span>
+                </div>
+              </div>
+
+              <div className="border-t pt-3 space-y-2 text-xs">
+                <div>
+                  <span className="block text-muted-foreground">Pickup Location</span>
+                  <span className="font-semibold text-slate-900 flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {selectedCab.pickupLocation}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-muted-foreground">Dropoff Location</span>
+                  <span className="font-semibold text-slate-900 flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {selectedCab.dropoffLocation}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t pt-3 text-xs">
+                <span className="block text-muted-foreground mb-1">Passenger Contact Details</span>
+                <p className="font-semibold text-slate-900">{selectedCab.fullName}</p>
+                <p className="text-slate-600 flex items-center gap-1 mt-0.5">
+                  <Phone className="w-3.5 h-3.5" /> {selectedCab.phone}
+                </p>
+              </div>
+
+              {selectedCab.specialAssistance && (
+                <div className="border-t pt-3 text-xs">
+                  <span className="block text-muted-foreground mb-1.5">
+                    Special Assistance Required
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCab.specialAssistance.wheelchair && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Wheelchair
+                      </Badge>
+                    )}
+                    {selectedCab.specialAssistance.medicalSupport && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Medical Support
+                      </Badge>
+                    )}
+                    {selectedCab.specialAssistance.elderlyCare && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Elderly Care
+                      </Badge>
+                    )}
+                    {selectedCab.specialAssistance.childCare && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Child Care
+                      </Badge>
+                    )}
+                    {!selectedCab.specialAssistance.wheelchair &&
+                      !selectedCab.specialAssistance.medicalSupport &&
+                      !selectedCab.specialAssistance.elderlyCare &&
+                      !selectedCab.specialAssistance.childCare && (
+                        <span className="text-muted-foreground italic">None</span>
+                      )}
+                  </div>
+                </div>
+              )}
+
+              {/* Pricing Breakdown inside details */}
+              <div className="border-t pt-3 bg-slate-50 p-3 rounded-2xl border">
+                <span className="block text-xs font-bold text-slate-900 uppercase mb-2">
+                  Pricing Breakdown
+                </span>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Base Price:</span>
+                    <span className="font-semibold text-slate-900">₹{selectedCab.price || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">GST / Tax:</span>
+                    <span className="font-semibold text-slate-900">₹{selectedCab.tax || 0}</span>
+                  </div>
+                  {selectedCab.wheelchairCharge > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Wheelchair Assistance Fee:</span>
+                      <span className="font-semibold text-slate-900">₹{selectedCab.wheelchairCharge}</span>
+                    </div>
+                  )}
+                  {selectedCab.medicalSupportCharge > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Medical Support Fee:</span>
+                      <span className="font-semibold text-slate-900">₹{selectedCab.medicalSupportCharge}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-1.5 flex justify-between font-bold text-sm text-indigo-900">
+                    <span>Total Amount Paid:</span>
+                    <span>₹{selectedCab.totalAmount || selectedCab.price || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] mt-1 pt-1 border-t text-muted-foreground">
+                    <span>Payment Status:</span>
+                    <span className="font-bold text-slate-800 uppercase">
+                      {selectedCab.paymentStatus || "PENDING"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2 border-t">
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              onClick={() => setDetailsModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============================================================ */}
+      {/* CAB RESCHEDULE MODAL */}
+      {/* ============================================================ */}
+      <Dialog open={rescheduleModalOpen} onOpenChange={setRescheduleModalOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Calendar className="text-indigo-600 w-5 h-5" /> Reschedule Cab Booking
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Pick a new date and time slot for your pickup.
+            </DialogDescription>
+          </DialogHeader>
+
+          {rescheduleError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{rescheduleError}</span>
+            </div>
+          )}
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-semibold">New Date *</Label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => {
+                  setRescheduleDate(e.target.value);
+                  setRescheduleTime("");
+                }}
+                className="rounded-xl border-slate-200"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-700 font-semibold">New Pickup Time *</Label>
+              <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
+                <SelectTrigger className="rounded-xl border-slate-200">
+                  <SelectValue placeholder="Select Pickup Time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {generateTimeSlots().map((slot) => {
+                    const disabled = isRescheduleSlotDisabled(slot);
+                    return (
+                      <SelectItem key={slot} value={slot} disabled={disabled}>
+                        {slot} {disabled ? "(Too early)" : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2 text-xs text-amber-800">
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>
+                Rescheduling is only allowed if scheduled pickup is more than 1 hour away. New pickup
+                time must also be at least 1 hour in advance.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2 border-t">
+            <Button variant="outline" onClick={() => setRescheduleModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              onClick={handleRescheduleSubmit}
+              disabled={rescheduleSubmitting || !rescheduleDate || !rescheduleTime}
+            >
+              {rescheduleSubmitting ? "Updating..." : "Confirm Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

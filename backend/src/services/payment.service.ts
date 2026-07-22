@@ -486,9 +486,43 @@ export class PaymentService {
     bookingId: string,
     paymentType: PaymentType,
   ) {
-    const booking = await Booking.findById(bookingId);
+    let booking = await Booking.findById(bookingId);
 
     if (!booking) {
+      const { CabBooking } = await import("../models/CabBooking");
+      const cabBooking = await CabBooking.findById(bookingId);
+      if (cabBooking) {
+        if (cabBooking.userId && cabBooking.userId.toString() !== userId) {
+          throw new Unauthorized("Not authorized");
+        }
+        cabBooking.paymentType = paymentType;
+        cabBooking.paymentMethod = paymentType === "COD" ? "Cash in hand" : paymentType === "CARD" ? "Card" : "Online";
+        await cabBooking.save();
+        const amount = cabBooking.totalAmount || cabBooking.price || 0;
+        return {
+          ...cabBooking.toObject(),
+          _id: cabBooking._id,
+          id: cabBooking._id,
+          bookingId: cabBooking.bookingId || cabBooking._id,
+          bookingType: "CAB",
+          touristName: cabBooking.fullName,
+          email: "",
+          phone: cabBooking.phone,
+          bookingDate: cabBooking.startDate,
+          startTime: cabBooking.pickupTime,
+          tourType: "Cab Service",
+          meetingPoint: cabBooking.pickupLocation,
+          dropoffLocation: cabBooking.dropoffLocation,
+          totalPrice: amount,
+          totalAmount: amount,
+          originalPrice: amount,
+          finalPrice: amount,
+          status: cabBooking.status,
+          paymentStatus: cabBooking.paymentStatus || "PENDING",
+          paymentMethod: cabBooking.paymentMethod,
+          paymentType: cabBooking.paymentType,
+        };
+      }
       throw new NotFound("Booking not found");
     }
 
@@ -666,11 +700,40 @@ export class PaymentService {
     bookingId: string,
     opts?: { paymentStage?: "ADVANCE" | "FULL" },
   ) {
-    const booking = await Booking.findById(bookingId);
+    let booking: any = await Booking.findById(bookingId);
+    let isCab = false;
 
     if (!booking) {
-      console.log("Booking not found:", bookingId);
-      throw new NotFound("Booking not found");
+      const { CabBooking } = await import("../models/CabBooking");
+      const cabBooking = await CabBooking.findById(bookingId);
+      if (cabBooking) {
+        isCab = true;
+        const amt = cabBooking.totalAmount || cabBooking.price || 0;
+        booking = {
+          ...cabBooking.toObject(),
+          _id: cabBooking._id,
+          id: cabBooking._id,
+          bookingType: "CAB",
+          userId: cabBooking.userId || userId,
+          totalPrice: amt,
+          totalAmount: amt,
+          originalPrice: amt,
+          finalPrice: amt,
+          paidAmount: 0,
+          paymentType: cabBooking.paymentType || "FULL",
+          status: cabBooking.status,
+          bookingDate: cabBooking.startDate,
+          startTime: cabBooking.pickupTime,
+          save: async () => {
+            cabBooking.paymentType = booking.paymentType;
+            cabBooking.paymentMethod = booking.paymentMethod;
+            await cabBooking.save();
+          },
+        };
+      } else {
+        console.log("Booking not found:", bookingId);
+        throw new NotFound("Booking not found");
+      }
     }
 
     if (!booking.userId) {
@@ -681,7 +744,7 @@ export class PaymentService {
       throw new Unauthorized("Not authorized to access this booking");
     }
 
-    if (booking.status !== "ACCEPTED") {
+    if (!isCab && booking.status !== "ACCEPTED") {
       throw new BadRequest(
         "Booking must be accepted before payment can be initiated",
       );
@@ -1448,51 +1511,74 @@ export class PaymentService {
         );
       }
 
-      const booking = await Booking.findById(freshPayment.bookingId).session(
+      let booking = await Booking.findById(freshPayment.bookingId).session(
         session,
       );
+      let isCab = false;
+
       if (!booking) {
-        throw new NotFound("Booking not found");
+        const { CabBooking } = await import("../models/CabBooking");
+        const cabBookingDoc = await CabBooking.findById(freshPayment.bookingId).session(session);
+        if (cabBookingDoc) {
+          isCab = true;
+          cabBookingDoc.paymentStatus = "COMPLETED";
+          cabBookingDoc.status = "CONFIRMED";
+          cabBookingDoc.paymentMethod = "Online";
+          cabBookingDoc.paymentType = "FULL";
+          cabBookingDoc.isRescheduled = false;
+          await cabBookingDoc.save({ session });
+
+          freshPayment.status = "COMPLETED";
+          freshPayment.transactionId = payload.razorpay_payment_id;
+          freshPayment.razorpayPaymentId = payload.razorpay_payment_id;
+          freshPayment.paymentMethod = "RAZORPAY";
+          freshPayment.paidAt = new Date();
+          freshPayment.failureReason = undefined;
+          await freshPayment.save({ session });
+        } else {
+          throw new NotFound("Booking not found");
+        }
+      } else {
+        const lineAmount = effectiveLineAmount(freshPayment);
+        const finalPrice = booking.finalPrice ?? booking.totalPrice;
+        const paidBefore = booking.paidAmount ?? 0;
+
+        if (paidBefore + lineAmount > finalPrice + 0.01) {
+          throw new BadRequest("This payment would overpay the booking");
+        }
+
+        freshPayment.status = "COMPLETED";
+        freshPayment.transactionId = payload.razorpay_payment_id;
+        freshPayment.razorpayPaymentId = payload.razorpay_payment_id;
+        freshPayment.paymentMethod = "RAZORPAY";
+        freshPayment.paidAt = new Date();
+        freshPayment.failureReason = undefined;
+        await freshPayment.save({ session });
+
+        const paidAfter = roundMoney(paidBefore + lineAmount);
+        const remainingAfter = roundMoney(finalPrice - paidAfter);
+
+        booking.paidAmount = paidAfter;
+        booking.remainingAmount = Math.max(0, remainingAfter);
+        booking.paymentStatus =
+          remainingAfter <= 0.01
+            ? "COMPLETED"
+            : paidAfter > 0
+              ? "PARTIAL"
+              : "PENDING";
+        booking.paymentMethod = "RAZORPAY";
+        applyPlatformSplitToBooking(booking);
+        await booking.save({ session });
       }
-
-      const lineAmount = effectiveLineAmount(freshPayment);
-      const finalPrice = booking.finalPrice ?? booking.totalPrice;
-      const paidBefore = booking.paidAmount ?? 0;
-
-      if (paidBefore + lineAmount > finalPrice + 0.01) {
-        throw new BadRequest("This payment would overpay the booking");
-      }
-
-      freshPayment.status = "COMPLETED";
-      freshPayment.transactionId = payload.razorpay_payment_id;
-      freshPayment.razorpayPaymentId = payload.razorpay_payment_id;
-      freshPayment.paymentMethod = "RAZORPAY";
-      freshPayment.paidAt = new Date();
-      freshPayment.failureReason = undefined;
-      await freshPayment.save({ session });
-
-      const paidAfter = roundMoney(paidBefore + lineAmount);
-      const remainingAfter = roundMoney(finalPrice - paidAfter);
-
-      booking.paidAmount = paidAfter;
-      booking.remainingAmount = Math.max(0, remainingAfter);
-      booking.paymentStatus =
-        remainingAfter <= 0.01
-          ? "COMPLETED"
-          : paidAfter > 0
-            ? "PARTIAL"
-            : "PENDING";
-      applyPlatformSplitToBooking(booking);
-      await booking.save({ session });
 
       await financialAuditService.log({
         action: "PAYMENT_COMPLETED",
-        bookingId: booking._id.toString(),
+        bookingId: freshPayment.bookingId.toString(),
         paymentId: freshPayment._id.toString(),
         metadata: {
           razorpayPaymentId: payload.razorpay_payment_id,
           source: "checkout",
-          amount: lineAmount,
+          amount: freshPayment.amount,
         },
       });
 
@@ -2606,7 +2692,7 @@ export class PaymentService {
     );
   }
 
-  async getAdminPaymentsSummary() {
+  async getAdminPaymentsSummary(page: number = 1, limit: number = 20) {
     const revenueAgg = await Payment.aggregate([
       { $match: { status: "COMPLETED" } },
       {
@@ -2668,14 +2754,56 @@ export class PaymentService {
       status: "COMPLETED",
     });
 
-    const recentPayments = await Payment.find({ status: "COMPLETED" })
-      .sort({ paidAt: -1, updatedAt: -1 })
-      .limit(15)
+    const totalPaymentsCount = await Payment.countDocuments();
+    const totalPages = Math.ceil(totalPaymentsCount / limit) || 1;
+    const currentPage = Math.max(1, Math.min(page, totalPages));
+    const skip = (currentPage - 1) * limit;
+
+    const rawPayments = await Payment.find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .populate({
         path: "bookingId",
-        select: "touristName tourType totalPrice finalPrice paymentType",
+        select: "touristName tourType totalPrice finalPrice paymentType bookingType",
       })
       .lean();
+
+    const { CabBooking } = await import("../models/CabBooking");
+
+    const recentPayments = await Promise.all(
+      rawPayments.map(async (p: any) => {
+        let bookingType: "Cab" | "Guide" | "Package" = "Guide";
+        let touristName = p.bookingId?.touristName || "Unknown";
+
+        if (p.bookingId?.bookingType === "PACKAGE") {
+          bookingType = "Package";
+        } else if (p.bookingId?.bookingType === "CAB") {
+          bookingType = "Cab";
+          const cabBooking = await CabBooking.findById(p.bookingId).lean();
+          if (cabBooking) {
+            touristName = cabBooking.fullName || touristName;
+          }
+        } else if (p.driverId || (!p.bookingId && p.amount)) {
+          bookingType = "Cab";
+        } else {
+          const cabBooking = await CabBooking.findById(p.bookingId).lean();
+          if (cabBooking) {
+            bookingType = "Cab";
+            touristName = cabBooking.fullName || touristName;
+          }
+        }
+
+        return {
+          ...p,
+          bookingType,
+          touristName,
+          isNew: p.isSeenByAdmin !== true,
+        };
+      })
+    );
+
+    const unseenCount = await Payment.countDocuments({ isSeenByAdmin: { $ne: true } });
 
     return {
       totalRevenue,
@@ -2688,8 +2816,23 @@ export class PaymentService {
       codPendingCount,
       totalBookings,
       completedPaymentsCount,
+      unseenCount,
       recentPayments,
+      pagination: {
+        page: currentPage,
+        limit,
+        totalPages,
+        totalPaymentsCount,
+      },
     };
+  }
+
+  async markAllPaymentsAsRead() {
+    await Payment.updateMany(
+      { isSeenByAdmin: { $ne: true } },
+      { $set: { isSeenByAdmin: true } }
+    );
+    return { success: true, message: "All payments marked as read" };
   }
 }
 

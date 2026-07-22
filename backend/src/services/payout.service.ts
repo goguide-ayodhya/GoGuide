@@ -151,6 +151,25 @@ export class PayoutService {
       },
     });
 
+    // Notify guide about payout request
+    try {
+      if (guide.userId) {
+        const { NotificationService } = require("./notification.service");
+        await NotificationService.sendNotification(
+          guide.userId.toString(),
+          "Payout Initiated",
+          `A payout of ₹${payout.amount} has been initiated by admin and is pending your confirmation.`,
+          {
+            type: "PAYOUT_INITIATED",
+            payoutId: payout._id.toString(),
+            amount: payout.amount.toString(),
+          }
+        );
+      }
+    } catch (notifyErr) {
+      console.warn("[PAYOUT] Failed to send payout creation notification (non-blocking):", notifyErr);
+    }
+
     return Payout.findById(payout._id)
       .populate("guideId")
       .populate("createdBy", "name email");
@@ -193,6 +212,25 @@ export class PayoutService {
         amount: payout.amount,
       },
     });
+
+    // Notify guide about payout confirmation success
+    try {
+      if (guide.userId) {
+        const { NotificationService } = require("./notification.service");
+        await NotificationService.sendNotification(
+          guide.userId.toString(),
+          "Payout Confirmed",
+          `Your payout of ₹${payout.amount} has been successfully completed.`,
+          {
+            type: "PAYOUT_CONFIRMED",
+            payoutId: payout._id.toString(),
+            amount: payout.amount.toString(),
+          }
+        );
+      }
+    } catch (notifyErr) {
+      console.warn("[PAYOUT] Failed to send payout confirmation notification (non-blocking):", notifyErr);
+    }
 
     return Payout.findById(payout._id)
       .populate("guideId")

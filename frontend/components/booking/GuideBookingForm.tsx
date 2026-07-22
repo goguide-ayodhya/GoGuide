@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "./FormField";
@@ -97,7 +97,6 @@ export function GuideBookingForm({
     if (!dropoffLocation.trim())
       newErrors.dropoffLocation = "Drop-off location is required";
     if (!touristName.trim()) newErrors.touristName = "Name is required";
-    if (!email.trim()) newErrors.email = "Email is required";
     if (!phone.trim()) newErrors.phone = "Phone is required";
     else if (phone.length !== 10)
       newErrors.phone = "Phone must be exactly 10 digits";
@@ -196,12 +195,20 @@ export function GuideBookingForm({
     localStorage.setItem("bookingForm", JSON.stringify(data));
   }, [touristName, email, phone, meetingPoint, dropoffLocation, groupSize, notes, tourType, selectedLocations]);
 
-  // Handle tourType change reset selected locations if > new max
+  const isMounted = useRef(false);
+
+  // Reset selected locations when tourType changes
   useEffect(() => {
-      if (selectedLocations.length > maxLocations) {
-          setSelectedLocations(selectedLocations.slice(0, maxLocations));
-      }
-  }, [tourType, maxLocations, selectedLocations]);
+    if (isMounted.current) {
+      setSelectedLocations([]);
+      setErrors((prev) => {
+        const { selectedLocations, ...rest } = prev;
+        return rest;
+      });
+    } else {
+      isMounted.current = true;
+    }
+  }, [tourType]);
 
   if (!settings) {
     return <div className="p-4 text-center">Loading booking options...</div>;
@@ -293,7 +300,7 @@ export function GuideBookingForm({
         <Input value={touristName} onChange={(e) => setTouristName(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 
-      <FormField label="Email" error={errors.email} required>
+      <FormField label="Email" error={errors.email}>
         <Input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full h-11 bg-muted border-0" />
       </FormField>
 

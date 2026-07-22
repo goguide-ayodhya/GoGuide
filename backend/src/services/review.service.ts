@@ -1,6 +1,7 @@
 import { Review } from "../models/Review";
 import { WebsiteReview } from "../models/WebsiteReview";
 import { Booking } from "../models/Booking";
+import { CabBooking } from "../models/CabBooking";
 import { Guide } from "../models/Guide";
 import { Driver } from "../models/Driver";
 import { NotFound, BadRequest } from "../utils/httpException";
@@ -9,6 +10,38 @@ import { filterProfanity } from "../utils/profanityFilter";
 import { Types } from "mongoose";
 
 export class ReviewService {
+  async populateBookingNamesForReviews(reviews: any[]) {
+    if (!reviews || reviews.length === 0) return reviews;
+
+    const bookingIds = reviews.map((r: any) => r.bookingId).filter(Boolean);
+
+    const [bookings, cabBookings] = await Promise.all([
+      Booking.find({ _id: { $in: bookingIds } }).lean(),
+      CabBooking.find({ _id: { $in: bookingIds } }).lean(),
+    ]);
+
+    const bookingMap = new Map(bookings.map((b: any) => [b._id.toString(), b.touristName]));
+    const cabBookingMap = new Map(cabBookings.map((c: any) => [c._id.toString(), c.fullName]));
+
+    for (const r of reviews) {
+      const bId = r.bookingId?.toString();
+      const bookingName = bId ? (bookingMap.get(bId) || cabBookingMap.get(bId)) : null;
+
+      const targetName =
+        bookingName ||
+        r.reviewerName ||
+        (r.userId && (r.userId.name || r.userId.fullname)) ||
+        "Anonymous";
+
+      if (r.userId && typeof r.userId === "object") {
+        r.userId = { ...r.userId, name: targetName };
+      }
+      r.reviewerName = targetName;
+    }
+
+    return reviews;
+  }
+
   // ─── Website Reviews ──────────────────────────────────────────────────────────
   async createWebsiteReview(data: any) {
     if (!data.rating || data.rating < 1 || data.rating > 5) {
@@ -115,6 +148,39 @@ export class ReviewService {
       await this.updateDriverRating(booking.driverId.toString());
     }
 
+    // Notify guide/driver about the new review
+    try {
+      let recipientUserId: string | undefined = undefined;
+      if (booking.guideId) {
+        const guide = await Guide.findById(booking.guideId);
+        if (guide && guide.userId) {
+          recipientUserId = guide.userId.toString();
+        }
+      } else if (booking.driverId) {
+        const driver = await Driver.findById(booking.driverId);
+        if (driver && driver.userId) {
+          recipientUserId = driver.userId.toString();
+        }
+      }
+
+      if (recipientUserId) {
+        const { NotificationService } = require("./notification.service");
+        await NotificationService.sendNotification(
+          recipientUserId,
+          "New Review Received ⭐",
+          `A traveler has submitted a ${review.rating}-star review for your service.`,
+          {
+            type: "NEW_REVIEW",
+            bookingId: bookingId,
+            reviewId: review._id.toString(),
+            rating: review.rating.toString(),
+          }
+        );
+      }
+    } catch (notifyErr) {
+      console.warn("[REVIEW] Failed to send new review notification (non-blocking):", notifyErr);
+    }
+
     return review;
   }
 
@@ -175,7 +241,8 @@ export class ReviewService {
       .populate("userId", "id name profileImage")
       .sort({ createdAt: -1 });
 
-    return reviews;
+    const reviewsJson = reviews.map(r => r.toJSON ? r.toJSON() : r);
+    return await this.populateBookingNamesForReviews(reviewsJson);
   }
 
   async getReviewsByDriver(driverId: string) {
@@ -183,7 +250,8 @@ export class ReviewService {
       .populate("userId", "id name profileImage")
       .sort({ createdAt: -1 });
 
-    return reviews;
+    const reviewsJson = reviews.map(r => r.toJSON ? r.toJSON() : r);
+    return await this.populateBookingNamesForReviews(reviewsJson);
   }
 
   async getReviewByBooking(bookingId: string) {
@@ -194,7 +262,10 @@ export class ReviewService {
       })
       .populate("userId");
 
-    return review;
+    if (!review) return null;
+    const reviewJson = review.toJSON ? review.toJSON() : review;
+    const populated = await this.populateBookingNamesForReviews([reviewJson]);
+    return populated[0];
   }
 
   // ─── Unified Administration & Moderation Endpoints ──────────────────────────
@@ -359,6 +430,38 @@ export class ReviewService {
       }
     });
 
+    // Lookup Booking Info
+    pipeline.push({
+      $lookup: {
+        from: 'bookings',
+        localField: 'bookingId',
+        foreignField: '_id',
+        as: 'bookingInfo'
+      }
+    });
+    pipeline.push({
+      $unwind: {
+        path: '$bookingInfo',
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
+    // Lookup CabBooking Info
+    pipeline.push({
+      $lookup: {
+        from: 'cabbookings',
+        localField: 'bookingId',
+        foreignField: '_id',
+        as: 'cabBookingInfo'
+      }
+    });
+    pipeline.push({
+      $unwind: {
+        path: '$cabBookingInfo',
+        preserveNullAndEmptyArrays: true
+      }
+    });
+
     // Construct searchable virtuals
     pipeline.push({
       $addFields: {
@@ -366,7 +469,15 @@ export class ReviewService {
           $cond: {
             if: { $eq: ["$type", "website"] },
             then: "$travelerName",
-            else: { $ifNull: ["$reviewerName", "$reviewerUserInfo.name"] }
+            else: {
+              $ifNull: [
+                "$bookingInfo.touristName",
+                "$cabBookingInfo.fullName",
+                "$reviewerName",
+                "$reviewerUserInfo.name",
+                "Anonymous"
+              ]
+            }
           }
         },
         unifiedTravelerAvatar: {

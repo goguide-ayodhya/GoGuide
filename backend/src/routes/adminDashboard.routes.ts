@@ -30,6 +30,10 @@ router.get("/admin/pending-guides", authenticate, authorize(["ADMIN"]), (req, re
   dashboardController.getPendingGuides(req, res).catch(next);
 });
 
+router.get("/admin/sidebar-counts", authenticate, authorize(["ADMIN"]), (req, res, next) => {
+  dashboardController.getSidebarCounts(req, res).catch(next);
+});
+
 // GUIDE
 router.get("/guide", authenticate, (req, res, next) => {
   dashboardController.getGuideDashboard(req, res).catch(next);

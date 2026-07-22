@@ -85,8 +85,8 @@ function PaymentPageContent() {
       setBookingDetails(merged);
       setCurrentBooking(merged);
 
-      // After changing to COD, keep behavior: refresh bookings and navigate back
-      if (mode === "COD") {
+      // After changing to COD or CARD, keep behavior: refresh bookings and navigate back
+      if (mode === "COD" || mode === "CARD") {
         await refreshBookings();
         router.push("/tourist/bookings");
         return;
@@ -148,6 +148,7 @@ function PaymentPageContent() {
     if (booking.paymentType === "FULL") setSelectedMode("FULL");
     else if (booking.paymentType === "PARTIAL") setSelectedMode("PARTIAL");
     else if (booking.paymentType === "COD") setSelectedMode("COD");
+    else if (booking.paymentType === "CARD") setSelectedMode("CARD");
   }, [booking?.paymentType]);
 
   useEffect(() => {
@@ -184,7 +185,7 @@ function PaymentPageContent() {
     return <SuccessConfirmation />;
   }
 
-  if (booking.status !== "ACCEPTED") {
+  if (booking.status !== "ACCEPTED" && booking.status !== "CONFIRMED" && booking.bookingType !== "CAB") {
     const pendingMessage =
       booking.bookingType === "PACKAGE"
         ? "Payment will be available once admin approves your package booking."
@@ -286,7 +287,7 @@ function PaymentPageContent() {
 
     try {
       console.log("Booking data:", booking);
-      if (!booking || booking.status !== "ACCEPTED") {
+      if (!booking || (booking.status !== "ACCEPTED" && booking.status !== "CONFIRMED" && booking.bookingType !== "CAB")) {
         setError("Booking is not ready for payment");
         return;
       }

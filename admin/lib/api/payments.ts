@@ -139,8 +139,17 @@ export const getGuideEarnings = async () => {
   return handleRes(res);
 };
 
-export const getAdminPaymentsSummaryApi = async () => {
-  const res = await fetch(`${base_url}payments/admin/payments/summary`, {
+export const getAdminPaymentsSummaryApi = async (page: number = 1, limit: number = 20) => {
+  const res = await fetch(`${base_url}payments/admin/payments/summary?page=${page}&limit=${limit}`, {
+    headers: authHeaders(),
+  });
+
+  return handleRes(res);
+};
+
+export const markAllPaymentsAsReadApi = async () => {
+  const res = await fetch(`${base_url}payments/admin/mark-all-read`, {
+    method: "POST",
     headers: authHeaders(),
   });
 

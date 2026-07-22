@@ -159,6 +159,21 @@ export class BookingService {
       `[BOOKING] Booking created successfully: ${booking._id}, bookingType: ${booking.bookingType}`,
     );
 
+    // Notify tourist user about booking request creation
+    try {
+      await NotificationService.sendNotification(
+        bookingOwnerId,
+        "Booking Requested",
+        `Your booking request has been successfully submitted. Booking ID: ${booking._id}`,
+        {
+          bookingId: booking._id.toString(),
+          type: "booking_requested",
+        },
+      );
+    } catch (error) {
+      console.warn("Notification send failed to tourist (non-blocking):", error);
+    }
+
     if (assignedUserId) {
       console.log(
         `[BOOKING] Sending booking creation notification to assigned user ${assignedUserId}`,
@@ -383,6 +398,42 @@ export class BookingService {
       .populate("userId");
 
     if (!booking) {
+      const { CabBooking } = await import("../models/CabBooking");
+      const cabBooking = await CabBooking.findById(bookingId).populate("userId");
+      if (cabBooking) {
+        const amount = cabBooking.totalAmount || cabBooking.price || 0;
+        return {
+          _id: cabBooking._id,
+          id: cabBooking._id,
+          bookingId: cabBooking.bookingId || cabBooking._id,
+          bookingType: "CAB",
+          touristName: cabBooking.fullName,
+          email: (cabBooking.userId as any)?.email || "",
+          phone: cabBooking.phone,
+          bookingDate: cabBooking.startDate,
+          startTime: cabBooking.pickupTime,
+          tourType: "Cab Service",
+          meetingPoint: cabBooking.pickupLocation,
+          dropoffLocation: cabBooking.dropoffLocation,
+          totalPrice: amount,
+          totalAmount: amount,
+          originalPrice: amount,
+          finalPrice: amount,
+          price: cabBooking.price,
+          tax: cabBooking.tax,
+          wheelchairCharge: cabBooking.wheelchairCharge,
+          medicalSupportCharge: cabBooking.medicalSupportCharge,
+          status: cabBooking.status,
+          paymentStatus: cabBooking.paymentStatus || "PENDING",
+          paymentMethod: cabBooking.paymentMethod || "",
+          paymentType: cabBooking.paymentType || "COD",
+          vehicleType: cabBooking.vehicleType,
+          numPeople: cabBooking.numPeople,
+          specialAssistance: cabBooking.specialAssistance,
+          createdAt: cabBooking.createdAt,
+          updatedAt: cabBooking.updatedAt,
+        };
+      }
       throw new NotFound("Booking not found");
     }
 
@@ -444,6 +495,48 @@ export class BookingService {
     booking.cancelledBy = cancelledBy;
     booking.cancelledAt = new Date();
     await booking.save();
+
+    // Send notifications to users about cancellation
+    try {
+      // 1. Notify the tourist user
+      await NotificationService.sendNotification(
+        booking.userId.toString(),
+        "Booking Cancelled",
+        `Your booking has been cancelled. Reason: ${reason || "Not specified"}`,
+        {
+          bookingId: booking._id.toString(),
+          type: "booking_cancelled",
+        }
+      );
+
+      // 2. Notify the assigned provider (GUIDE or DRIVER) if any
+      let providerUserId: string | undefined = undefined;
+      if (booking.bookingType === "GUIDE" && booking.guideId) {
+        const guide = await Guide.findById(booking.guideId);
+        if (guide && guide.userId) {
+          providerUserId = guide.userId.toString();
+        }
+      } else if (booking.bookingType === "DRIVER" && booking.driverId) {
+        const driver = await Driver.findById(booking.driverId);
+        if (driver && driver.userId) {
+          providerUserId = driver.userId.toString();
+        }
+      }
+
+      if (providerUserId) {
+        await NotificationService.sendNotification(
+          providerUserId,
+          "Booking Cancelled",
+          `The booking (ID: ${booking._id}) has been cancelled. Reason: ${reason || "Not specified"}`,
+          {
+            bookingId: booking._id.toString(),
+            type: "booking_cancelled",
+          }
+        );
+      }
+    } catch (error) {
+      console.warn("Notification send failed for booking cancellation (non-blocking):", error);
+    }
 
     let refundAmount = 0;
     if ((booking.paidAmount ?? 0) > 0 && actorUserId) {
@@ -841,6 +934,21 @@ export class BookingService {
       status: "PENDING",
       paymentStatus: "PENDING",
     });
+
+    // Notify tourist about package booking creation
+    try {
+      await NotificationService.sendNotification(
+        userId,
+        "Package Booking Created",
+        `Your package booking has been successfully created. Booking ID: ${booking._id}`,
+        {
+          bookingId: booking._id.toString(),
+          type: "booking_package_created",
+        },
+      );
+    } catch (error) {
+      console.warn("Notification send failed to tourist for package (non-blocking):", error);
+    }
 
     return booking;
   }

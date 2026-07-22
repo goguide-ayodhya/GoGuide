@@ -18,6 +18,9 @@ export interface IAdminSettings extends Document {
     fullDay?: string[];
   };
   vehicleTypes?: string[];
+  cabBookingTaxPercent?: number;
+  cabWheelchairCharge?: number;
+  cabMedicalSupportCharge?: number;
   paymentQR?: {
     url: string;
     isEnabled: boolean;
@@ -37,6 +40,22 @@ const AdminSettingsSchema = new Schema<IAdminSettings>(
       default: 20,
       min: 0,
       max: 100,
+    },
+    cabBookingTaxPercent: {
+      type: Number,
+      default: 5,
+      min: 0,
+      max: 100,
+    },
+    cabWheelchairCharge: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    cabMedicalSupportCharge: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     guidePricing: {
       halfDay: {

@@ -88,3 +88,10 @@ export const getUserDashboard = async () => {
   });
   return handleRes(res);
 };
+
+export const getAdminSidebarCounts = async () => {
+  const res = await fetch(`${base_url}adminDashboard/admin/sidebar-counts`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};

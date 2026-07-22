@@ -11,7 +11,7 @@ import { uploadBufferToStorage } from "../services/fileUpload.service";
 export async function getGuideByReviewToken(req: Request, res: Response) {
   try {
     const { token } = req.params;
-    const guide = await Guide.findOne({ reviewQRToken: token, reviewCollectionEnabled: true })
+    const guide = await Guide.findOne({ reviewQRToken: token, reviewCollectionEnabled: { $ne: false } })
       .populate("userId", "name avatar")
       .select("userId averageRating totalReviews reviewCollectionEnabled reviewQRToken reviewQRImage verificationStatus");
 
@@ -35,7 +35,7 @@ export async function submitReviewByToken(req: Request, res: Response) {
       return res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
     }
 
-    const guide = await Guide.findOne({ reviewQRToken: token, reviewCollectionEnabled: true });
+    const guide = await Guide.findOne({ reviewQRToken: token, reviewCollectionEnabled: { $ne: false } });
     if (!guide) {
       return res.status(404).json({ success: false, message: "Guide not found or review collection is disabled" });
     }

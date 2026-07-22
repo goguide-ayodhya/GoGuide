@@ -72,14 +72,14 @@ export function Header({
           </Link>
 
           {/* Desktop Book Cab */}
-          <Link href="/tourist/cabs/book-cab" className="items-center px-3 bg-primary text-white  py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-primary/90 transition">
+          {/* <Link href="/tourist/cabs/book-cab" className="items-center px-3 bg-primary text-white  py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-primary/90 transition">
             Book Cab
-          </Link>
+          </Link> */}
 
           {/* Contact */}
           <Link href="/contact-us" className="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-50 to-indigo-50 text-indigo-600 text-sm hover:from-sky-100 hover:to-indigo-100 transition">
             <Phone size={16} />
-            <span>Contact</span>
+            <span>Contact Us </span>
           </Link>
 
           {/* Profile / Login */}
@@ -112,10 +112,10 @@ export function Header({
             My Bookings
           </Link>
 
-          <Link href="/tourist/cabs/book-cab" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-sm font-medium px-2 py-2 rounded hover:bg-slate-50">
+          {/* <Link href="/tourist/cabs/book-cab" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-sm font-medium px-2 py-2 rounded hover:bg-slate-50">
             <Car size={16} />
             Book Cab
-          </Link>
+          </Link> */}
 
           {user ? (
             <button onClick={handleLogout} className="w-full text-left mt-2 px-2 py-2 rounded text-sm text-rose-600 hover:bg-slate-50 flex items-center gap-2">

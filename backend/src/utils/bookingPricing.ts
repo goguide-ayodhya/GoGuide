@@ -1,6 +1,6 @@
 import { PRICING_CONFIG } from "../config/pricing";
 
-export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING";
+export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "REMAINING" | "CARD";
 
 const GST_RATE = PRICING_CONFIG.GST_RATE; // 0% GST
 export const PARTIAL_DISCOUNT_RATE = 0.05; // 5% discount for partial payments

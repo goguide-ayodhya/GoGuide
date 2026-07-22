@@ -94,6 +94,15 @@ export class DashboardController {
       data,
     });
   }
+
+  async getSidebarCounts(req: AuthRequest, res: Response) {
+    const data = await dashboardService.getSidebarCounts();
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  }
 }
 
 export const dashboardController = new DashboardController();

@@ -52,3 +52,65 @@ export const updateCabBookingStatusApi = async (bookingId: string, status: strin
   });
   return handleRes(res);
 };
+
+// Get Cab Locations
+export const getCabLocationsApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/locations`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Get Cab Categories
+export const getCabCategoriesApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/categories`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Calculate Cab Booking Price
+export const calculateCabPriceApi = async (
+  pickupLocationId: string,
+  dropLocationId: string,
+  carCategoryId: string,
+  wheelchair = false,
+  medicalSupport = false
+) => {
+  const query = new URLSearchParams({
+    pickupLocationId,
+    dropLocationId,
+    carCategoryId,
+    wheelchair: String(wheelchair),
+    medicalSupport: String(medicalSupport),
+  }).toString();
+  const res = await fetch(`${base_url}cab-bookings/price?${query}`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};
+
+// Reschedule Cab Booking
+export const rescheduleCabBookingApi = async (
+  bookingId: string,
+  startDate: string,
+  pickupTime: string
+) => {
+  const res = await fetch(`${base_url}cab-bookings/${bookingId}/reschedule`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ startDate, pickupTime }),
+  });
+  return handleRes(res);
+};
+
+// Get Cab Additional Charges
+export const getCabAdditionalChargesApi = async () => {
+  const res = await fetch(`${base_url}cab-bookings/additional-charges`, {
+    headers: authHeaders(),
+  });
+  return handleRes(res);
+};

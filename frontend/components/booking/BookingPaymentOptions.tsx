@@ -3,9 +3,9 @@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Banknote, IndianRupee, Percent } from "lucide-react";
+import { Banknote, CreditCard, IndianRupee, Percent } from "lucide-react";
 
-export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD";
+export type BookingPaymentMode = "FULL" | "PARTIAL" | "COD" | "CARD";
 
 interface BookingPaymentOptionsProps {
   value: BookingPaymentMode | null;
@@ -54,6 +54,27 @@ export function BookingPaymentOptions({
         </div>
 
         <div className="flex items-center space-x-3 cursor-pointer group">
+          <RadioGroupItem value="CARD" id="card" className="cursor-pointer" />
+          <label htmlFor="card" className="flex-1 cursor-pointer">
+            <Card
+              className={`p-4 transition-all hover:border-primary ${
+                value === "CARD" ? "border-secondary bg-secondary/50" : ""
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-6 w-6 text-secondary shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">Pay with Card</p>
+                  <p className="text-sm text-muted-foreground">
+                    Pay with Debit or Credit Card
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </label>
+        </div>
+
+        <div className="flex items-center space-x-3 cursor-pointer group">
           <RadioGroupItem value="FULL" id="full" className="cursor-pointer" />
           <label htmlFor="full" className="flex-1 cursor-pointer">
             <Card
@@ -65,20 +86,12 @@ export function BookingPaymentOptions({
                 <IndianRupee className="h-6 w-6 text-secondary shrink-0" />
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">
-                    {fullPaymentDiscountEligible ? "Pay Advance" : "Pay Full"}
+                    Pay Online
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {fullPaymentDiscountEligible
-                      ? "Complete payment online in one step and get 10% off"
-                      : "Complete payment online in one step"}
+                    Complete payment online via UPI, Netbanking or Wallet
                   </p>
                 </div>
-                {fullPaymentDiscountEligible && (
-                  <Badge variant="default" className="ml-auto bg-green-500 hover:bg-green-600">
-                    <Percent className="h-3 w-3 mr-1" />
-                    10% Off
-                  </Badge>
-                )}
               </div>
             </Card>
           </label>

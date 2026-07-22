@@ -1,6 +1,6 @@
 import { Schema, model, Document, Types } from "mongoose";
 
-export type PaymentType = "FULL" | "PARTIAL" | "COD" | "REMAINING";
+export type PaymentType = "FULL" | "PARTIAL" | "COD" | "REMAINING" | "CARD";
 
 export interface IBooking extends Document {
   guideId?: Types.ObjectId;
@@ -102,7 +102,7 @@ const BookingSchema = new Schema<IBooking>(
     },
     email: {
       type: String,
-      required: true,
+      required: false,
     },
     phone: {
       type: String,
