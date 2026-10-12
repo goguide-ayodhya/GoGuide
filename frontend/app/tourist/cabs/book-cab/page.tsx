@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import Image from "next/image";
 import { assets } from "@/public/assets/assets";
@@ -156,14 +156,22 @@ export default function BookCabPage() {
     if (pickupLocationId && dropoffLocationId && carCategoryId) {
       setPricingLoading(true);
       setPricingError(null);
-      calculateCabPriceApi(pickupLocationId, dropoffLocationId, carCategoryId, wheelchair, medicalSupport)
+      calculateCabPriceApi(
+        pickupLocationId,
+        dropoffLocationId,
+        carCategoryId,
+        wheelchair,
+        medicalSupport,
+      )
         .then((res) => {
           setPricing(res);
         })
         .catch((err) => {
           console.error("Pricing fetch error:", err);
           setPricing(null);
-          setPricingError(err.message || "Pricing not configured for this route.");
+          setPricingError(
+            err.message || "Pricing not configured for this route.",
+          );
         })
         .finally(() => {
           setPricingLoading(false);
@@ -172,13 +180,19 @@ export default function BookCabPage() {
       setPricing(null);
       setPricingError(null);
     }
-  }, [pickupLocationId, dropoffLocationId, carCategoryId, wheelchair, medicalSupport]);
+  }, [
+    pickupLocationId,
+    dropoffLocationId,
+    carCategoryId,
+    wheelchair,
+    medicalSupport,
+  ]);
 
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !isLoggedIn) {
       router.push(
-        `/login?redirect=${encodeURIComponent(pathname || "/tourist/cabs/book-cab")}`
+        `/login?redirect=${encodeURIComponent(pathname || "/tourist/cabs/book-cab")}`,
       );
     }
   }, [isLoggedIn, authLoading, router, pathname]);
@@ -272,7 +286,11 @@ export default function BookCabPage() {
         },
       });
 
-      const bId = createdBooking?._id || createdBooking?.id || createdBooking?.data?._id || createdBooking?.data?.id;
+      const bId =
+        createdBooking?._id ||
+        createdBooking?.id ||
+        createdBooking?.data?._id ||
+        createdBooking?.data?.id;
       setCurrentBooking({
         ...createdBooking,
         id: bId,
@@ -281,7 +299,9 @@ export default function BookCabPage() {
       router.push(`/tourist/payment?bookingId=${bId}`);
     } catch (err: any) {
       console.error("Booking error:", err);
-      setError(err?.message || "Failed to submit booking request. Please try again.");
+      setError(
+        err?.message || "Failed to submit booking request. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -306,7 +326,7 @@ export default function BookCabPage() {
       className={`${poppins.className} min-h-screen bg-white text-slate-900 flex flex-col`}
     >
       <Header showBackButton />
-      <div className="flex items-center justify-center">
+      {/* <div className="flex items-center justify-center">
 
         {assets.evoke && (
           <Image
@@ -315,115 +335,20 @@ export default function BookCabPage() {
             className="relative pt-6 w-64 h-auto object-contain"
           />
         )}
-      </div>
+      </div> */}
       <div className="flex-grow py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          {/* POSTER BANNER */}
-          <section className="relative overflow-hidden rounded-[2.5rem] border border-indigo-100 bg-gradient-to-r from-amber-950 via-amber-900 to-amber-900 text-white p-8 sm:p-10 md:p-12 shadow-2xl shadow-indigo-950/20">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center relative z-10">
-              <div className="space-y-4 text-center md:text-left">
-                {/* Logo & Powered By Header */}
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pb-1">
-                  <div className="inline-flex items-center gap-1.5 bg-amber-400/20 border border-amber-300/40 rounded-full px-3.5 py-1 text-xs font-bold text-amber-300 tracking-wide uppercase">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Powered by <strong className="text-white font-extrabold text-[12px] tracking-normal">GoGuide</strong></span>
-                  </div>
-                </div>
-
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight tracking-tight text-white">
-                  Travel Desk for <strong className="text-amber-300 font-extrabold tracking-normal">Evoke Rambagh {" "}</strong>Ayodhya
-                </h1>
-
-                <p className="text-indigo-200 text-xs sm:text-sm md:text-base max-w-md">
-                  Experience a seamless, luxury journey tailored specifically to your route and assistance needs.
-                </p>
-
-                {/* Talk to Consultant Buttons */}
-                <div className="pt-2">
-                  {/* Mobile direct click tel */}
-                  <a href="tel:+918881993735" className="block md:hidden">
-                    <Button className="w-full bg-amber-300 hover:bg-amber-400 text-black font-semibold py-3 rounded-xl flex items-center justify-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Talk to Consultant
-                    </Button>
-                  </a>
-
-                  {/* Desktop show number */}
-                  <div className="hidden md:block">
-                    <a href="tel:+918881993735">
-                      <Button className="bg-amber-300 hover:bg-amber-400 text-black font-semibold px-6 py-6 rounded-2xl flex items-center gap-3 text-base shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02]">
-                        <Phone className="w-5 h-5 animate-pulse" />
-                        <span>
-                          Talk to Consultant: <strong>+91 88819 93735</strong>
-                        </span>
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Clipart - Minimalist Premium Car Graphic */}
-              <div className="flex justify-center items-center">
-                <svg
-                  className="w-full max-w-[280px] h-auto text-indigo-400 drop-shadow-lg"
-                  viewBox="0 0 200 120"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle cx="100" cy="60" r="50" fill="url(#paint0_radial)" opacity="0.3" />
-                  <path d="M10 95H190" stroke="#475569" strokeWidth="2" strokeDasharray="6 6" />
-                  {/* Premium Car */}
-                  <path
-                    d="M50 78C50 78 54 62 68 60C82 58 118 58 132 60C146 62 150 78 150 78C156 78 162 81 162 87C162 93 156 95 150 95H50C44 95 38 93 38 87C38 81 44 78 50 78Z"
-                    fill="url(#paint1_linear)"
-                  />
-                  <path d="M70 63H97V74H58C60 68 65 64 70 63Z" fill="#E2E8F0" opacity="0.9" />
-                  <path d="M103 63H130C135 64 140 68 142 74H103V63Z" fill="#E2E8F0" opacity="0.9" />
-                  {/* Wheels */}
-                  <circle cx="70" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5" />
-                  <circle cx="70" cy="95" r="4" fill="#94A3B8" />
-                  <circle cx="130" cy="95" r="11" fill="#0F172A" stroke="#E2E8F0" strokeWidth="2.5" />
-                  <circle cx="130" cy="95" r="4" fill="#94A3B8" />
-                  <defs>
-                    <radialGradient
-                      id="paint0_radial"
-                      cx="0"
-                      cy="0"
-                      r="1"
-                      gradientUnits="userSpaceOnUse"
-                      gradientTransform="translate(100 60) rotate(90) scale(50)"
-                    >
-                      <stop stopColor="#6366F1" stopOpacity="0.5" />
-                      <stop offset="1" stopColor="#6366F1" stopOpacity="0" />
-                    </radialGradient>
-                    <linearGradient
-                      id="paint1_linear"
-                      x1="38"
-                      y1="78"
-                      x2="162"
-                      y2="78"
-                      gradientUnits="userSpaceOnUse"
-                    >
-                      <stop stopColor="#818CF8" />
-                      <stop offset="1" stopColor="#22D3EE" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-              </div>
-            </div>
-          </section>
-
           {/* SUCCESS STATE */}
           {success ? (
             <div className="bg-white border border-slate-200 rounded-[2rem] p-8 md:p-12 text-center shadow-lg space-y-6 animate-in fade-in zoom-in-95 duration-300">
               <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
-              <h2 className="text-3xl font-extrabold text-slate-900">Cab Request Submitted!</h2>
+              <h2 className="text-3xl font-extrabold text-slate-900">
+                Cab Request Submitted!
+              </h2>
               <p className="text-slate-600 max-w-md mx-auto leading-relaxed">
-                Your booking request has been received. We will verify availability and send a confirmation email with complete details shortly.
+                Your booking request has been received. We will verify
+                availability and send a confirmation email with complete details
+                shortly.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
@@ -463,9 +388,12 @@ export default function BookCabPage() {
               className="bg-white border border-slate-200 rounded-[2rem] p-6 sm:p-10 shadow-md space-y-8"
             >
               <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-2xl font-bold text-slate-900">Ride Information Form</h2>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  Ride Information Form
+                </h2>
                 <p className="text-slate-500 text-sm mt-1">
-                  Please provide accurate travel details. Asterisk (*) denotes required fields.
+                  Please provide accurate travel details. Asterisk (*) denotes
+                  required fields.
                 </p>
               </div>
 
@@ -478,13 +406,16 @@ export default function BookCabPage() {
 
               {/* Personal Details */}
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-amber-600 pl-3">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-primary-600 pl-3">
                   1. Contact Details
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="fullname" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="fullname"
+                      className="font-semibold text-slate-700"
+                    >
                       Full Name *
                     </Label>
                     <Input
@@ -499,7 +430,10 @@ export default function BookCabPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="phone"
+                      className="font-semibold text-slate-700"
+                    >
                       Mobile Number *
                     </Label>
                     <Input
@@ -508,7 +442,9 @@ export default function BookCabPage() {
                       placeholder="e.g. 9876543210"
                       value={phone}
                       onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        const val = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 10);
                         setPhone(val);
                       }}
                       required
@@ -520,13 +456,16 @@ export default function BookCabPage() {
 
               {/* Travel Specifications */}
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-amber-600 pl-3">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-primary-600 pl-3">
                   2. Travel Details
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="startdate" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="startdate"
+                      className="font-semibold text-slate-700"
+                    >
                       Planned Start Date *
                     </Label>
                     <Input
@@ -541,7 +480,10 @@ export default function BookCabPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="pickuptime" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="pickuptime"
+                      className="font-semibold text-slate-700"
+                    >
                       Pickup Time Slot *
                     </Label>
                     <Select value={pickupTime} onValueChange={setPickupTime}>
@@ -552,7 +494,11 @@ export default function BookCabPage() {
                         {generateTimeSlots().map((slot) => {
                           const disabled = isSlotDisabled(slot);
                           return (
-                            <SelectItem key={slot} value={slot} disabled={disabled}>
+                            <SelectItem
+                              key={slot}
+                              value={slot}
+                              disabled={disabled}
+                            >
                               {slot} {disabled ? "(Too early)" : ""}
                             </SelectItem>
                           );
@@ -564,7 +510,10 @@ export default function BookCabPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2 col-span-1">
-                    <Label htmlFor="numpeople" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="numpeople"
+                      className="font-semibold text-slate-700"
+                    >
                       Number of People *
                     </Label>
                     <Input
@@ -580,16 +529,26 @@ export default function BookCabPage() {
                   </div>
 
                   <div className="space-y-2 col-span-1">
-                    <Label htmlFor="pickup" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="pickup"
+                      className="font-semibold text-slate-700"
+                    >
                       Pickup Location *
                     </Label>
-                    <Select value={pickupLocationId} onValueChange={setPickupLocationId}>
+                    <Select
+                      value={pickupLocationId}
+                      onValueChange={setPickupLocationId}
+                    >
                       <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/50 h-11">
                         <SelectValue placeholder="Select Pickup Location" />
                       </SelectTrigger>
                       <SelectContent>
                         {locations
-                          .filter((l) => l.isActive && (l.type === "pickup" || l.type === "both"))
+                          .filter(
+                            (l) =>
+                              l.isActive &&
+                              (l.type === "pickup" || l.type === "both"),
+                          )
                           .map((l) => (
                             <SelectItem key={l._id} value={l._id}>
                               {l.name}
@@ -600,16 +559,26 @@ export default function BookCabPage() {
                   </div>
 
                   <div className="space-y-2 col-span-1">
-                    <Label htmlFor="dropoff" className="font-semibold text-slate-700">
+                    <Label
+                      htmlFor="dropoff"
+                      className="font-semibold text-slate-700"
+                    >
                       Dropoff Location *
                     </Label>
-                    <Select value={dropoffLocationId} onValueChange={setDropoffLocationId}>
+                    <Select
+                      value={dropoffLocationId}
+                      onValueChange={setDropoffLocationId}
+                    >
                       <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/50 h-11">
                         <SelectValue placeholder="Select Dropoff Location" />
                       </SelectTrigger>
                       <SelectContent>
                         {locations
-                          .filter((l) => l.isActive && (l.type === "dropoff" || l.type === "both"))
+                          .filter(
+                            (l) =>
+                              l.isActive &&
+                              (l.type === "dropoff" || l.type === "both"),
+                          )
                           .map((l) => (
                             <SelectItem key={l._id} value={l._id}>
                               {l.name}
@@ -618,20 +587,24 @@ export default function BookCabPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                 </div>
               </div>
 
               {/* Vehicle Specifications */}
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-amber-600 pl-3">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-primary-600 pl-3">
                   3. Vehicle Class
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 col-span-2">
-                    <Label className="font-semibold text-slate-700">Car Category *</Label>
-                    <Select value={carCategoryId} onValueChange={setCarCategoryId}>
+                    <Label className="font-semibold text-slate-700">
+                      Car Category *
+                    </Label>
+                    <Select
+                      value={carCategoryId}
+                      onValueChange={setCarCategoryId}
+                    >
                       <SelectTrigger className="rounded-xl border-slate-200 bg-slate-50/50 h-11">
                         <SelectValue placeholder="Select Car Category" />
                       </SelectTrigger>
@@ -651,20 +624,22 @@ export default function BookCabPage() {
 
               {/* Special Assistance */}
               <div className="space-y-6">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-amber-600 pl-3">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 border-l-4 border-primary-600 pl-3">
                   4. Special Assistance Required
                 </h3>
 
                 <p className="text-sm text-slate-500">
-                  Check all categories that apply to travelers in your group. Selected add-ons add configured fees to final total:
+                  Check all categories that apply to travelers in your group.
+                  Selected add-ons add configured fees to final total:
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <label
-                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${wheelchair
-                      ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                      wheelchair
+                        ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -683,10 +658,11 @@ export default function BookCabPage() {
                   </label>
 
                   <label
-                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${medicalSupport
-                      ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                      medicalSupport
+                        ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -705,10 +681,11 @@ export default function BookCabPage() {
                   </label>
 
                   <label
-                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${elderlyCare
-                      ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                      elderlyCare
+                        ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -720,10 +697,11 @@ export default function BookCabPage() {
                   </label>
 
                   <label
-                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${childCare
-                      ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                      childCare
+                        ? "bg-rose-50/50 border-rose-400 text-rose-700 font-semibold"
+                        : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                    }`}
                   >
                     <input
                       type="checkbox"
@@ -744,8 +722,10 @@ export default function BookCabPage() {
 
                 {pricingLoading && (
                   <div className="p-4 text-center rounded-xl bg-indigo-50/50 border border-indigo-100">
-                    <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-xs text-indigo-600">Calculating fare from route pricing...</p>
+                    <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <p className="text-xs text-indigo-600">
+                      Calculating fare from route pricing...
+                    </p>
                   </div>
                 )}
 
@@ -754,29 +734,45 @@ export default function BookCabPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-slate-600">Route Fare:</span>
-                        <span className="font-semibold text-slate-900">₹{pricing.price}</span>
+                        <span className="font-semibold text-slate-900">
+                          ₹{pricing.price}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">
                           GST / Tax ({pricing.taxPercent}%):
                         </span>
-                        <span className="font-semibold text-slate-900">₹{pricing.tax}</span>
+                        <span className="font-semibold text-slate-900">
+                          ₹{pricing.tax}
+                        </span>
                       </div>
                       {pricing.wheelchairCharge > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Wheelchair Assistance Fee:</span>
-                          <span className="font-semibold text-slate-900">₹{pricing.wheelchairCharge}</span>
+                          <span className="text-slate-600">
+                            Wheelchair Assistance Fee:
+                          </span>
+                          <span className="font-semibold text-slate-900">
+                            ₹{pricing.wheelchairCharge}
+                          </span>
                         </div>
                       )}
                       {pricing.medicalSupportCharge > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Medical Support Fee:</span>
-                          <span className="font-semibold text-slate-900">₹{pricing.medicalSupportCharge}</span>
+                          <span className="text-slate-600">
+                            Medical Support Fee:
+                          </span>
+                          <span className="font-semibold text-slate-900">
+                            ₹{pricing.medicalSupportCharge}
+                          </span>
                         </div>
                       )}
                       <div className="border-t border-indigo-200/50 pt-2 flex justify-between font-bold text-base">
-                        <span className="text-indigo-950 font-bold">Total price (incl. GST):</span>
-                        <span className="text-indigo-950 font-bold">₹{pricing.totalAmount}</span>
+                        <span className="text-indigo-950 font-bold">
+                          Total price (incl. GST):
+                        </span>
+                        <span className="text-indigo-950 font-bold">
+                          ₹{pricing.totalAmount}
+                        </span>
                       </div>
                     </div>
                     {pricing.notes && (
@@ -789,7 +785,8 @@ export default function BookCabPage() {
 
                 {!pricingLoading && !pricing && (
                   <div className="p-4 rounded-xl bg-slate-100 text-slate-500 text-xs text-center border border-dashed border-slate-200">
-                    Select Pickup, Drop, and Vehicle Category to view fare (+ Tax GST always applicable).
+                    Select Pickup, Drop, and Vehicle Category to view fare (+
+                    Tax GST always applicable).
                   </div>
                 )}
               </div>
@@ -814,7 +811,7 @@ export default function BookCabPage() {
                         e.preventDefault();
                         setShowTermsModal(true);
                       }}
-                      className="text-amber-600 hover:text-indigo-800 font-bold underline inline-flex items-center gap-1 cursor-pointer"
+                      className="text-primary-600 hover:text-indigo-800 font-bold underline inline-flex items-center gap-1 cursor-pointer"
                     >
                       Travel Desk Terms & Conditions
                     </button>{" "}
@@ -833,7 +830,13 @@ export default function BookCabPage() {
               <div className="pt-2">
                 <Button
                   type="submit"
-                  disabled={isSubmitting || pricingLoading || !!pricingError || !pricing || !agreedTerms}
+                  disabled={
+                    isSubmitting ||
+                    pricingLoading ||
+                    !!pricingError ||
+                    !pricing ||
+                    !agreedTerms
+                  }
                   className="w-full bg-amber-950 hover:bg-amber-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-amber-950 text-white font-semibold rounded-xl text-base shadow-lg transition-all"
                 >
                   {isSubmitting ? (
@@ -860,7 +863,9 @@ export default function BookCabPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-indigo-400" />
-                  <h3 className="text-lg sm:text-xl font-bold">Travel Desk Terms & Conditions</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">
+                    Travel Desk Terms & Conditions
+                  </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-indigo-200">
                   Evoke Rambagh Ayodhya | Travel Desk Managed by GoGuide
@@ -878,123 +883,249 @@ export default function BookCabPage() {
             {/* Modal Body (Scrollable) */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-xs sm:text-sm text-slate-700 leading-relaxed max-h-[60vh]">
               <p className="font-medium text-slate-900 bg-indigo-50/60 p-3 rounded-xl border border-indigo-100">
-                By submitting a travel enquiry or confirming a booking through the Travel Desk, you agree to the following Terms & Conditions.
+                By submitting a travel enquiry or confirming a booking through
+                the Travel Desk, you agree to the following Terms & Conditions.
               </p>
 
               <ol className="space-y-4 list-decimal pl-4">
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Booking Window</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Booking Window
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Travel requests can be submitted up to 12 hours in advance.</li>
-                    <li>The minimum booking time is 2 hours before the scheduled pickup, subject to vehicle availability.</li>
-                    <li>Requests made within 2 hours of pickup may not be accommodated.</li>
+                    <li>
+                      Travel requests can be submitted up to 12 hours in
+                      advance.
+                    </li>
+                    <li>
+                      The minimum booking time is 2 hours before the scheduled
+                      pickup, subject to vehicle availability.
+                    </li>
+                    <li>
+                      Requests made within 2 hours of pickup may not be
+                      accommodated.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Booking Confirmation</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Booking Confirmation
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>A booking is considered confirmed only after receiving confirmation from the GoGuide Travel Desk.</li>
-                    <li>Vehicle allocation is subject to availability at the time of confirmation.</li>
+                    <li>
+                      A booking is considered confirmed only after receiving
+                      confirmation from the GoGuide Travel Desk.
+                    </li>
+                    <li>
+                      Vehicle allocation is subject to availability at the time
+                      of confirmation.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Guest Information</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Guest Information
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Guests must provide accurate contact details, pickup location, destination, travel date, and passenger information.</li>
-                    <li>Incorrect or incomplete information may result in delays or cancellation of the booking.</li>
+                    <li>
+                      Guests must provide accurate contact details, pickup
+                      location, destination, travel date, and passenger
+                      information.
+                    </li>
+                    <li>
+                      Incorrect or incomplete information may result in delays
+                      or cancellation of the booking.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Vehicle Allocation</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Vehicle Allocation
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Vehicles are assigned based on availability and the selected category.</li>
-                    <li>In exceptional circumstances, an equivalent or higher category vehicle may be provided without prior notice.</li>
+                    <li>
+                      Vehicles are assigned based on availability and the
+                      selected category.
+                    </li>
+                    <li>
+                      In exceptional circumstances, an equivalent or higher
+                      category vehicle may be provided without prior notice.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Pickup & Waiting Time</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Pickup & Waiting Time
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Complimentary waiting time: Hotel Pickup (15 min), Railway Station Pickup (30 min), Airport Pickup (45 min).</li>
-                    <li>Additional waiting charges may apply beyond the complimentary waiting period.</li>
+                    <li>
+                      Complimentary waiting time: Hotel Pickup (15 min), Railway
+                      Station Pickup (30 min), Airport Pickup (45 min).
+                    </li>
+                    <li>
+                      Additional waiting charges may apply beyond the
+                      complimentary waiting period.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Cancellation Policy</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Cancellation Policy
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
                     <li>12 hours or more before pickup: Free Cancellation.</li>
-                    <li>Between 2 and 12 hours before pickup: 70% Cancellation Charges will apply.</li>
-                    <li>Less than 2 hours before pickup or No-Show: Up to 70% of the total booking amount will be charged.</li>
+                    <li>
+                      Between 2 and 12 hours before pickup: 70% Cancellation
+                      Charges will apply.
+                    </li>
+                    <li>
+                      Less than 2 hours before pickup or No-Show: Up to 70% of
+                      the total booking amount will be charged.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Route Changes</strong>
-                  <p className="text-slate-600">Any change in route, destination, or additional stops after the trip has started may attract extra charges.</p>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Route Changes
+                  </strong>
+                  <p className="text-slate-600">
+                    Any change in route, destination, or additional stops after
+                    the trip has started may attract extra charges.
+                  </p>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Toll, Parking & State Taxes</strong>
-                  <p className="text-slate-600">Toll charges, parking fees, and applicable state taxes will be charged as per the selected package unless specifically mentioned as included.</p>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Toll, Parking & State Taxes
+                  </strong>
+                  <p className="text-slate-600">
+                    Toll charges, parking fees, and applicable state taxes will
+                    be charged as per the selected package unless specifically
+                    mentioned as included.
+                  </p>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Payment</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Payment
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Payment may be collected in advance or at the completion of the trip, depending on the booking type.</li>
-                    <li>Accepted payment methods include UPI, Cash, Credit/Debit Cards, and other available digital payment options.</li>
+                    <li>
+                      Payment may be collected in advance or at the completion
+                      of the trip, depending on the booking type.
+                    </li>
+                    <li>
+                      Accepted payment methods include UPI, Cash, Credit/Debit
+                      Cards, and other available digital payment options.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Luggage</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Luggage
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Guests are responsible for their personal luggage and belongings.</li>
-                    <li>The Travel Desk and Hotel shall not be responsible for any lost, damaged, or unattended items.</li>
+                    <li>
+                      Guests are responsible for their personal luggage and
+                      belongings.
+                    </li>
+                    <li>
+                      The Travel Desk and Hotel shall not be responsible for any
+                      lost, damaged, or unattended items.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Flight or Train Delays</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Flight or Train Delays
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>Guests are requested to inform the Travel Desk immediately in case of any delay in flight or train arrival.</li>
-                    <li>Every effort will be made to adjust the pickup; however, availability cannot be guaranteed.</li>
+                    <li>
+                      Guests are requested to inform the Travel Desk immediately
+                      in case of any delay in flight or train arrival.
+                    </li>
+                    <li>
+                      Every effort will be made to adjust the pickup; however,
+                      availability cannot be guaranteed.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Driver Conduct</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Driver Conduct
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>All drivers are expected to maintain professional behavior and follow applicable traffic laws.</li>
-                    <li>Guests are requested to treat drivers with respect throughout the journey.</li>
+                    <li>
+                      All drivers are expected to maintain professional behavior
+                      and follow applicable traffic laws.
+                    </li>
+                    <li>
+                      Guests are requested to treat drivers with respect
+                      throughout the journey.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Force Majeure</strong>
-                  <p className="text-slate-600">The Travel Desk shall not be held responsible for delays or service interruptions caused by circumstances beyond reasonable control, including but not limited to traffic congestion, road closures, adverse weather conditions, strikes, government restrictions, or natural disasters.</p>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Force Majeure
+                  </strong>
+                  <p className="text-slate-600">
+                    The Travel Desk shall not be held responsible for delays or
+                    service interruptions caused by circumstances beyond
+                    reasonable control, including but not limited to traffic
+                    congestion, road closures, adverse weather conditions,
+                    strikes, government restrictions, or natural disasters.
+                  </p>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Liability</strong>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Liability
+                  </strong>
                   <ul className="list-disc pl-4 space-y-1 text-slate-600">
-                    <li>The Travel Desk&apos;s responsibility is limited to arranging transportation services.</li>
-                    <li>Neither Evoke Rambagh Ayodhya nor GoGuide shall be liable for indirect, incidental, or consequential losses arising from unforeseen circumstances.</li>
+                    <li>
+                      The Travel Desk&apos;s responsibility is limited to
+                      arranging transportation services.
+                    </li>
+                    <li>
+                      Neither Evoke Rambagh Ayodhya nor GoGuide shall be liable
+                      for indirect, incidental, or consequential losses arising
+                      from unforeseen circumstances.
+                    </li>
                   </ul>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Right to Refuse Service</strong>
-                  <p className="text-slate-600">The Travel Desk reserves the right to refuse or cancel any booking in cases involving safety concerns, abusive behavior, fraudulent activity, or violation of these Terms & Conditions.</p>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Right to Refuse Service
+                  </strong>
+                  <p className="text-slate-600">
+                    The Travel Desk reserves the right to refuse or cancel any
+                    booking in cases involving safety concerns, abusive
+                    behavior, fraudulent activity, or violation of these Terms &
+                    Conditions.
+                  </p>
                 </li>
 
                 <li className="pl-1">
-                  <strong className="text-slate-900 font-semibold block mb-1">Acceptance</strong>
-                  <p className="text-slate-600">By submitting a booking request, the guest confirms that they have read, understood, and agreed to these Terms & Conditions.</p>
+                  <strong className="text-slate-900 font-semibold block mb-1">
+                    Acceptance
+                  </strong>
+                  <p className="text-slate-600">
+                    By submitting a booking request, the guest confirms that
+                    they have read, understood, and agreed to these Terms &
+                    Conditions.
+                  </p>
                 </li>
               </ol>
             </div>
@@ -1018,8 +1149,7 @@ export default function BookCabPage() {
                 }}
                 className="bg-amber-950 hover:bg-amber-900 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                I Agree & Accept Terms
+                <CheckCircle2 className="w-4 h-4" />I Agree & Accept Terms
               </Button>
             </div>
           </div>
